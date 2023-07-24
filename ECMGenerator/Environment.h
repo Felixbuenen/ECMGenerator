@@ -4,6 +4,8 @@
 
 #include <vector>
 
+class ECMEdge;
+
 class Environment
 {
 	// an environment is the 2D "world" for which we generate the ECM.
@@ -35,8 +37,13 @@ public:
 
 	bool InsideObstacle(const Point& p) const;
 
+	void GetClosestObstaclePointsToEdge(const Point& edge_v1, const Point& edge_v2, Point& out_Left0, Point& out_Left1, Point& out_Right0, Point& out_Right1) const;
+	std::vector<Point> GetClosestObstaclePoints(const Point& location) const;
+
 private:
 	void UpdateBbox(const std::vector<Segment>& newEdges);
+
+	Point GetClosestPointOnSegment(const Point& point, const Segment& segment) const;
 
 private:
 	std::vector<Segment> _walkableArea;

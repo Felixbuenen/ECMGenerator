@@ -80,9 +80,10 @@ void ECMRenderer::Render()
 	DrawObstacles();
 	DrawMedialAxis();
 	DrawECMVertices();
+	DrawClosestObstaclePoints();
 	
 	// TEST
-	DrawRandomTestPath();
+	//DrawRandomTestPath();
 	DrawInsideVerts();
 
 	// render window
@@ -223,5 +224,26 @@ void ECMRenderer::DrawInsideVerts()
 	}
 
 	//SDL_RenderSetScale(_renderer, 1.0f, 1.0f);
+}
+
+void ECMRenderer::DrawClosestObstaclePoints()
+{
+	auto verts = _ecm->GetECMGraph().GetVertices();
+	SDL_SetRenderDrawColor(_renderer, 0xff, 0x8c, 0x00, 0xff);
+
+	for (const auto& vert : verts)
+	{
+		float startX = vert.Position().x * _zoomFactor + _offsetX;
+		float startY = vert.Position().y * _zoomFactor + _offsetY;
+
+		const auto& clPoints = vert.GetClosestPoints();
+		for (const auto& clPoint : clPoints)
+		{
+			float x = clPoint.x * _zoomFactor + _offsetX;
+			float y = clPoint.y * _zoomFactor + _offsetY;
+
+			SDL_RenderDrawLine(_renderer, startX, startY, x, y);
+		}
+	}
 }
 

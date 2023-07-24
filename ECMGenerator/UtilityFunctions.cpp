@@ -20,6 +20,23 @@ float MathUtility::Distance(float x0, float y0, float x1, float y1)
 	return sqrtf(diffX * diffX + diffY * diffY);
 }
 
+float MathUtility::SquareDistance(const Point& p1, const Point& p2)
+{
+	Point diff;
+	diff.x = p2.x - p1.x;
+	diff.y = p2.y - p1.y;
+
+	return diff.x * diff.x + diff.y * diff.y;
+}
+
+float MathUtility::SquareDistance(float x0, float y0, float x1, float y1)
+{
+	float diffX = x0 - x1;
+	float diffY = y0 - y1;
+
+	return diffX * diffX + diffY * diffY;
+}
+
 bool MathUtility::Contains(const Point& p, const std::vector<Segment>& polygon)
 {
 	// ray cast algorithm

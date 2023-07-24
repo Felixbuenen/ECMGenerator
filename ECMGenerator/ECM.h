@@ -5,11 +5,12 @@
 #include "ECMDataTypes.h"
 
 #define INVALID_ECM_VERTEX_INDEX -1
-#define ECM_EPSILON 0.002f
+#define ECM_EPSILON 0.02f // TODO: decide what is a good epsilon
+#define ECM_HALF_EPSILON ECM_EPSILON * 0.5f
 
 class MedialAxis;
-struct Point;
-struct Segment;
+class Point;
+class Segment;
 
 class ECMVertex
 {
@@ -17,17 +18,23 @@ public:
 	//ECMVertex(int idx) : m_Index(idx) { }
 	ECMVertex(float x, float y) : m_Position(Point(x, y)) { }
 	ECMVertex(Point point) : m_Position(point) { }
+	ECMVertex() { }
 
 	inline int Index() const { return m_Index; }
 	inline Point Position() const { return m_Position; }
+	inline float Clearance() const { return m_Clearance; }
+	inline std::vector<Point> GetClosestPoints() const { return m_ClosestPoints; }
 
 	void SetIndex(int index) { m_Index = index; }
 	void SetPosition(Point position) { m_Position = position; }
+	void SetClearance(float clearance) { m_Clearance = clearance; }
+	void AddClosestPoint(Point point) { m_ClosestPoints.emplace_back(point); }
 
 private:
 	int m_Index;
 	Point m_Position;
-	float clearance;
+	float m_Clearance;
+	std::vector<Point> m_ClosestPoints;
 };
 
 // there is no directionality in the ECMEdge. We assume that an edge is traversable in either direction.
@@ -48,6 +55,10 @@ public:
 
 	void SetVertices(int v1, int v2);
 	void SetCost(float cost);
+	void SetNearestLeftV0(Point p) const { m_Nearest_left_V0 = p; }
+	void SetNearestRightV0(Point p) const {  m_Nearest_right_V0 = p; }
+	void SetNearestLeftV1(Point p) const {  m_Nearest_left_V1 = p; }
+	void SetNearestRightV1(Point p) const {  m_Nearest_right_V1 = p; }
 
 private:
 	int m_V1;

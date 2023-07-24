@@ -11,7 +11,9 @@ struct Point {
 	Point operator -(const Point& a) const {
 		return Point(x - a.x, y - a.y);
 	}
-
+	Point operator =(const Point& a) const {
+		return Point(a.x, a.y);
+	}
 };
 
 struct Segment {

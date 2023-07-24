@@ -119,8 +119,18 @@ void ECMGenerator::ConstructECMGraph(ECM& ecm, const Environment& environment) c
 		Point vertLocation(vertex.x(), vertex.y());
 		if (!environment.InsideObstacle(vertLocation))
 		{
-			// TODO: vertex has clearance information. Query nearest two obstacle points here (using KD structure).
-			ecmGraph.AddVertex(ECMVertex(vertLocation));
+			// store the closest points in the vertex
+			// TODO:
+			// > use an acceleration structure
+			// > maybe even implement this in the Boost library?
+			ECMVertex vertex(vertLocation);
+			std::vector<Point> closestPoints = environment.GetClosestObstaclePoints(vertLocation);
+			for (const Point& p : closestPoints)
+			{
+				vertex.AddClosestPoint(p);
+			}
+
+			ecmGraph.AddVertex(vertex);
 		}
 	}
 

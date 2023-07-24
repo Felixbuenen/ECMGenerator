@@ -38,6 +38,7 @@ private:
 	void DrawPath(); // bij deze even kijken hoe ik dat ga doen, want het pad is in principe geen onderdeel van ECM, wellicht met ref van pad
 	void DrawRandomTestPath();
 	void DrawInsideVerts();
+	void DrawClosestObstaclePoints();
 
 private:
 	std::shared_ptr<ECM> _ecm;
