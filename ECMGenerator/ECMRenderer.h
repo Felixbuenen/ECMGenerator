@@ -1,10 +1,12 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 #include <stdint.h>
 
 class ECM;
 class Environment;
+struct Segment;
 
 class SDL_Window;
 class SDL_Renderer;
@@ -40,6 +42,9 @@ private:
 	void DrawInsideVerts();
 	void DrawClosestObstaclePoints();
 
+	void DebugSetDrawECMCell(float screenX, float screenY);
+	void DebugDrawECMCell();
+
 private:
 	std::shared_ptr<ECM> _ecm;
 	Environment* _env;
@@ -54,5 +59,7 @@ private:
 	SDL_Renderer* _renderer;
 	SDL_Surface* _screenSurface;
 
+	// testy testy
+	std::vector<Segment> cellToDraw;
 };
 

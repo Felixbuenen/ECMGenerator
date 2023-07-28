@@ -10,6 +10,10 @@
 #include <memory>
 #include <map>
 
+// TODO
+// > Er zit een hoop boost code verwerkt in ECM code. Misschien een idee om de boost VD code + types te verbergen achter een ECMVoronoiDiagram class oid,
+//   zodat de alleen de implementatie van de VD met Boost wordt gedaan. Dat is iets netter. 
+
 
 // ---------- /this should all be refactored\ -------------
 using boost::polygon::voronoi_builder;
@@ -116,24 +120,28 @@ void ECMGenerator::ConstructECMGraph(ECM& ecm, const Environment& environment) c
 		vd.vertices().begin(); it != vd.vertices().end(); ++it) {
 		const voronoi_diagram<double>::vertex_type& vertex = *it;
 		
+		// TODO: we want to make a directional graph. That means we loop through all points, and create an edge for each
+		// point P, where P is the start of the edge. 
+
 		Point vertLocation(vertex.x(), vertex.y());
 		if (!environment.InsideObstacle(vertLocation))
 		{
 			// store the closest points in the vertex
 			// TODO:
-			// > use an acceleration structure
-			// > maybe even implement this in the Boost library?
+			// > In paper it rightfully states that this information could be added in constant time. After all, the VD is generated using 
+			//   nearest obstacle information. We need to adjust the boost library for this.
 			ECMVertex vertex(vertLocation);
 			std::vector<Point> closestPoints = environment.GetClosestObstaclePoints(vertLocation);
 			for (const Point& p : closestPoints)
 			{
-				vertex.AddClosestPoint(p);
+				vertex.AddClosestObstaclePoint(p);
 			}
 
 			ecmGraph.AddVertex(vertex);
 		}
 	}
 
+	int counter = 0;
 	// then create all ECM edges. Note that we do not have to check for edges inside obstacles. This is
 	// automatically solved by not including vertices inside obstacles in the ecmGraph.
 	for (voronoi_diagram<double>::const_edge_iterator it = vd.edges().begin();
@@ -153,15 +161,159 @@ void ECMGenerator::ConstructECMGraph(ECM& ecm, const Environment& environment) c
 				continue;
 			}
 
-			// TODO: find v0 and v1 closest obstacle points using a KD-tree of the obstacles.
+			// Given closest obstacle points per vertex, assign left/right v0 and v1
+			// > For the segment, calculate the 'right' vector -> Vr.
+			// > Using Vr, determine which closest obstacle points are left and right.
+			// > If there is only 1 left/right closest point, assign this point.
+			// > If there is more, then we want the obstacle point with the sharpest angle with v0-v1. This ensures
+			//    that the segment is adjacent to the obstacle segment:
+			// > for v0, take max(dot(obstaclePoint, segment)). 
+			// > for v1, take min(dot(obstaclePoint, segment)). 
+			//Vec2 right = MathUtility::Right()
 
-			float cost = MathUtility::Distance(x0, y0, x1, y1);
+			// TODO: it's important to determine how ECM will be traversed. If there is directionality (i.e. two edges for A->B and B->A), then
+			// we can do the above. HOWEVER: the ECM is currently implemented bi-directional (i.e. 1 edge for A<->B). Now, there is no concept of left/right
+			// and the above won't work. Then, you must determine 2 different sides of the line, and determine on runtime (during path planning) which one
+			// is left and which one is right.
+
 			
-			int edgeIndex = ecmGraph.AddEdge(ECMEdge(v0_index, v1_index, cost));
+			float cost = MathUtility::Distance(x0, y0, x1, y1);
+			ECMEdge edge(v0_index, v1_index, cost);
+			
+			// calculate nearest obstacle point information
+			Vec2 edgeVec(x1 - x0, y1 - y0);
+			float edgeVecT = MathUtility::SquaredLength(edgeVec);
+			Vec2 rightVec = MathUtility::Right(edgeVec);
+			float rightVecT = MathUtility::SquaredLength(rightVec);
 
-			ecmGraph.AddAdjacency(v0_index, v1_index, edgeIndex);
+			const std::vector<Point>& startClosestPoints = ecmGraph.GetVertex(v0_index).GetClosestPoints();
+			const std::vector<Point>& endClosestPoints = ecmGraph.GetVertex(v1_index).GetClosestPoints();
+
+			// 1. calculate closest points to start vertex
+			//     Check for edge case when nearest obstacle positions equal the vertex position itself
+			// TODO: make an 'estimate equal' function so we don't have to do this stuff everytime.
+			bool startVertIntersectsObject = 
+				x0 > startClosestPoints[0].x - ECM_EPSILON
+				&& x0 < startClosestPoints[0].x + ECM_EPSILON
+				&& y0 > startClosestPoints[0].y - ECM_EPSILON
+				&& y0 < startClosestPoints[0].y + ECM_EPSILON;
+
+			if (startVertIntersectsObject)
+			{
+				edge.SetNearestLeftV0(Point(x0, y0));
+				edge.SetNearestRightV0(Point(x0, y0));
+			}
+			else
+			{
+				int idxLeft = -1, idxRight = -1;
+				float largestDotLeft = -1000000.0f; // FIX THIS!!
+				float largestDotRight = -1000000.0f; // FIX THIS!!
+
+				int counter = 0;
+				for (const Point& p : startClosestPoints)
+				{
+					Vec2 pVec(p.x - x0, p.y - y0);
+
+					// because the length of the edge and the length to all closest points are constant, we only have to calculate the dot
+					// product to determine which closest point makes the sharpest angle with the ecm edge.
+					float dot = MathUtility::Dot(edgeVec, pVec);
+					bool isLeft = MathUtility::Dot(rightVec, pVec) < 0;
+
+					if (isLeft && dot > largestDotLeft)
+					{
+						// obstacle point on the left, and new sharpest angle wrt the ECM edge
+						largestDotLeft = dot;
+						idxLeft = counter;
+						counter++;
+
+						continue;
+					}
+					if (!isLeft && dot > largestDotRight)
+					{
+						// obstacle point on the right, and new largest angle wrt the ECM edge
+						largestDotRight = dot;
+						idxRight = counter;
+						counter++;
+
+						continue;
+					}
+
+					counter++;
+				}
+
+				if (idxLeft == -1 || idxRight == -1)
+				{
+					printf("ERROR: closest point could not be found!\n");
+				}
+
+				edge.SetNearestLeftV0(startClosestPoints[idxLeft]);
+				edge.SetNearestRightV0(startClosestPoints[idxRight]);
+			}
+
+			bool endVertIntersectsObject =
+				x1 > endClosestPoints[0].x - ECM_EPSILON
+				&& x1 < endClosestPoints[0].x + ECM_EPSILON
+				&& y1 > endClosestPoints[0].y - ECM_EPSILON
+				&& y1 < endClosestPoints[0].y + ECM_EPSILON;
+
+			if (endVertIntersectsObject)
+			{
+				edge.SetNearestLeftV1(Point(x1, y1));
+				edge.SetNearestRightV1(Point(x1, y1));
+			}
+			else
+			{
+				int idxLeft = -1, idxRight = -1;
+				float smallestDotLeft = 10000000.0f; // FIX THIS!!
+				float smallestDotRight = 10000000.0f; // FIX THIS!!
+				
+				int counter = 0;
+				for (const Point& p : endClosestPoints)
+				{
+					Vec2 pVec(p.x - x1, p.y - y1);
+				
+					// because the length of the edge and the length to all closest points are constant, we only have to calculate the dot
+					// product to determine which closest point makes the sharpest angle with the ecm edge.
+					float dot = MathUtility::Dot(edgeVec, pVec);
+					bool isLeft = MathUtility::Dot(rightVec, pVec) < 0;
+				
+					if (isLeft && dot < smallestDotLeft)
+					{
+						smallestDotLeft = dot;
+						idxLeft = counter;
+						counter++;
+				
+						continue;
+					}
+					if (!isLeft && dot < smallestDotRight)
+					{
+						smallestDotRight = dot;
+						idxRight = counter;
+						counter++;
+				
+						continue;
+					}
+				
+					counter++;
+				}
+				
+				if (idxLeft == -1 || idxRight == -1)
+				{
+					printf("ERROR: closest point could not be found!\n");
+				}
+
+				edge.SetNearestLeftV1(endClosestPoints[idxLeft]);
+				edge.SetNearestRightV1(endClosestPoints[idxRight]);
+			}
+
+			int edgeIndex = ecmGraph.AddEdge(edge);
+			ecmGraph.AddAdjacency(v0_index, edgeIndex);
+
+			counter++;
 		}
 	}
+
+	printf("number of edges: %d\n", counter);
 
 }
 

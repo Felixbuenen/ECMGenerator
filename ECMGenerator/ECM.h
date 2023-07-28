@@ -12,10 +12,44 @@ class MedialAxis;
 class Point;
 class Segment;
 
+
+class ECMEdge
+{
+public:
+	ECMEdge(int start, int end, float cost) : m_StartVert(start), m_EndVert(end), m_Cost(cost) { }
+	ECMEdge(int start, int end) : m_StartVert(start), m_EndVert(end), m_Cost(1.0f) { }
+	ECMEdge() : m_StartVert(INVALID_ECM_VERTEX_INDEX), m_EndVert(INVALID_ECM_VERTEX_INDEX), m_Cost(1.0f) { }
+
+	inline int StartIndex() const { return m_StartVert; }
+	inline int EndIndex() const { return m_EndVert; }
+	inline float Cost() const { return m_Cost; }
+	inline Point NearestLeftV0() const { return m_Nearest_left_V0; }
+	inline Point NearestRightV0() const { return m_Nearest_right_V0; }
+	inline Point NearestLeftV1() const { return m_Nearest_left_V1; }
+	inline Point NearestRightV1() const { return m_Nearest_right_V1; }
+
+	void SetVertices(int v1, int v2);
+	void SetCost(float cost);
+	void SetNearestLeftV0(Point p) { m_Nearest_left_V0 = p; }
+	void SetNearestRightV0(Point p) { m_Nearest_right_V0 = p; }
+	void SetNearestLeftV1(Point p) { m_Nearest_left_V1 = p; }
+	void SetNearestRightV1(Point p) { m_Nearest_right_V1 = p; }
+
+private:
+	int m_StartVert;
+	int m_EndVert;
+	float m_Cost;
+
+	// these are the four closest points to adjacent obstacle. Essentially, this - along with the edge - defines the corridor.
+	Point m_Nearest_left_V0;
+	Point m_Nearest_left_V1;
+	Point m_Nearest_right_V0;
+	Point m_Nearest_right_V1;
+};
+
 class ECMVertex
 {
 public:
-	//ECMVertex(int idx) : m_Index(idx) { }
 	ECMVertex(float x, float y) : m_Position(Point(x, y)) { }
 	ECMVertex(Point point) : m_Position(point) { }
 	ECMVertex() { }
@@ -28,50 +62,17 @@ public:
 	void SetIndex(int index) { m_Index = index; }
 	void SetPosition(Point position) { m_Position = position; }
 	void SetClearance(float clearance) { m_Clearance = clearance; }
-	void AddClosestPoint(Point point) { m_ClosestPoints.emplace_back(point); }
+	void AddClosestObstaclePoint(Point point) { m_ClosestPoints.push_back(point); }
+	void AddIncidentEdge(int edge) { m_IncidentEdges.push_back(edge); }
 
 private:
 	int m_Index;
 	Point m_Position;
 	float m_Clearance;
 	std::vector<Point> m_ClosestPoints;
+	std::vector<int> m_IncidentEdges;
 };
 
-// there is no directionality in the ECMEdge. We assume that an edge is traversable in either direction.
-class ECMEdge
-{
-public:
-	ECMEdge(int v1, int v2, float cost) : m_V1(v1), m_V2(v2), m_Cost(cost) { }
-	ECMEdge(int v1, int v2) : m_V1(v1), m_V2(v2), m_Cost(1.0f) { }
-	ECMEdge() : m_V1(INVALID_ECM_VERTEX_INDEX), m_V2(INVALID_ECM_VERTEX_INDEX), m_Cost(1.0f) { }
-
-	inline int V1() const { return m_V1; }
-	inline int V2() const { return m_V2; }
-	inline float Cost() const { return m_Cost; }
-	inline Point NearestLeftV0() const {return m_Nearest_left_V0; }
-	inline Point NearestRightV0() const { return m_Nearest_right_V0; }
-	inline Point NearestLeftV1() const { return m_Nearest_left_V1; }
-	inline Point NearestRightV1() const { return m_Nearest_right_V1; }
-
-	void SetVertices(int v1, int v2);
-	void SetCost(float cost);
-	void SetNearestLeftV0(Point p) const { m_Nearest_left_V0 = p; }
-	void SetNearestRightV0(Point p) const {  m_Nearest_right_V0 = p; }
-	void SetNearestLeftV1(Point p) const {  m_Nearest_left_V1 = p; }
-	void SetNearestRightV1(Point p) const {  m_Nearest_right_V1 = p; }
-
-private:
-	int m_V1;
-	int m_V2;
-	float m_Cost;
-
-	// these are the four closest points to adjacent obstacle. Essentially, this - along with the edge - defines the corridor.
-	// you could also make indices of these points but I don't think it's worth the hassle
-	Point m_Nearest_left_V0;
-	Point m_Nearest_left_V1;
-	Point m_Nearest_right_V0;
-	Point m_Nearest_right_V1;
-};
 
 // for now, let's assume that an ECM graph is always bidirectional. Note that this doesn't have to be the case (e.g. cars that must travel in one direction on a lane).
 // the ECMGraph implements the typical edge adjacency list structure
@@ -95,11 +96,13 @@ public:
 	int AddEdge(ECMEdge edge);
 	void RemoveEdge(int start, int end);
 
-	void AddAdjacency(int v0, int v1, int edge);
+	void AddAdjacency(int vertexIndex, int edgeIndex);
 
 	int GetVertexIndex(float x, float y) const;
 	const std::vector<ECMVertex>& GetVertices() const { return m_Vertices; }
 	const std::vector<ECMEdge>& GetEdges() const { return m_Edges; }
+	const ECMVertex& GetVertex(int idx) const { return m_Vertices[idx]; }
+	const ECMEdge& GetEdge(int idx) const { return m_Edges[idx]; }
 
 	// ------------- TESTING -------------
 	std::vector<Segment> GetRandomTestPath(int startIndex) const;
@@ -108,7 +111,7 @@ private:
 	std::vector<ECMVertex> m_Vertices; // TODO: make KD-tree
 	std::vector<ECMEdge> m_Edges; // TODO: make KD-tree
 
-	std::vector<std::vector<EdgeIndex>> m_VertAdjacency;
+	//std::vector<std::vector<EdgeIndex>> m_VertAdjacency;
 
 	int m_NextVertexIndex;
 	int m_NextEdgeIndex;
@@ -132,6 +135,7 @@ public:
 	void GetECMBounds(/*point refs*/) const;
 	void GetWalkableArea(/*point refs*/) const;
 	void GetObstacles(/*point refs*/) const;
+	std::vector<Segment> GetECMCell(float x, float y) const;
 
 	inline std::shared_ptr<MedialAxis> GetMedialAxis() { return _medialAxis; }
 	inline ECMGraph& GetECMGraph() { return _ecmGraph; }

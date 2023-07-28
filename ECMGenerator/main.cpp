@@ -36,7 +36,7 @@ int main()
 	printf("Starting render loop... \n");
 	ECMRenderer ecmRenderer;
 	ECMRendererColorSettings colorSettings;
-	ecmRenderer.Initialize(1080, 720, "Esmee lijkt op haar moeder", ecm, &env, colorSettings, 0.65f);
+	ecmRenderer.Initialize(1080, 720, "ECM generation tool", ecm, &env, colorSettings, 0.65f);
 	printf("ECM application stopped.\n");
 
 	return 0;

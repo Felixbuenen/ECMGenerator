@@ -43,8 +43,6 @@ public:
 private:
 	void UpdateBbox(const std::vector<Segment>& newEdges);
 
-	Point GetClosestPointOnSegment(const Point& point, const Segment& segment) const;
-
 private:
 	std::vector<Segment> _walkableArea;
 	std::vector<std::vector<Segment>> _obstacles;

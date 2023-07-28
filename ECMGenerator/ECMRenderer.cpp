@@ -68,7 +68,22 @@ void ECMRenderer::InitializeRenderContext(int width, int height, const char* tit
 			Render();
 
 			//Hack to get window to stay up
-			SDL_Event e; bool quit = false; while (quit == false) { while (SDL_PollEvent(&e)) { if (e.type == SDL_QUIT) quit = true; } }
+			SDL_Event e; bool quit = false; while (quit == false) 
+			{ 
+				while (SDL_PollEvent(&e)) { 
+					if (e.type == SDL_QUIT) quit = true; 
+
+					if (e.type == SDL_MOUSEBUTTONDOWN)
+					{
+						DebugSetDrawECMCell(e.button.x, e.button.y);
+					}
+
+					else
+					{
+						Render();
+					}
+				} 
+			}
 		}
 	}
 }
@@ -80,11 +95,12 @@ void ECMRenderer::Render()
 	DrawObstacles();
 	DrawMedialAxis();
 	DrawECMVertices();
-	DrawClosestObstaclePoints();
+	//DrawClosestObstaclePoints();
 	
 	// TEST
 	//DrawRandomTestPath();
 	DrawInsideVerts();
+	DebugDrawECMCell();
 
 	// render window
 	SDL_RenderPresent(_renderer);
@@ -154,10 +170,10 @@ void ECMRenderer::DrawMedialAxis()
 
 	for (auto edge : edges)
 	{
-		int x1 = verts[edge.V1()].Position().x * _zoomFactor + _offsetX;
-		int y1 = verts[edge.V1()].Position().y * _zoomFactor + _offsetY;
-		int x2 = verts[edge.V2()].Position().x * _zoomFactor + _offsetX;
-		int y2 = verts[edge.V2()].Position().y * _zoomFactor + _offsetY;
+		int x1 = verts[edge.StartIndex()].Position().x * _zoomFactor + _offsetX;
+		int y1 = verts[edge.StartIndex()].Position().y * _zoomFactor + _offsetY;
+		int x2 = verts[edge.EndIndex()].Position().x * _zoomFactor + _offsetX;
+		int y2 = verts[edge.EndIndex()].Position().y * _zoomFactor + _offsetY;
 
 		SDL_RenderDrawLine(_renderer, x1, y1, x2, y2);
 	}
@@ -245,5 +261,28 @@ void ECMRenderer::DrawClosestObstaclePoints()
 			SDL_RenderDrawLine(_renderer, startX, startY, x, y);
 		}
 	}
+}
+
+void ECMRenderer::DebugDrawECMCell()
+{
+	SDL_SetRenderDrawColor(_renderer, 0xc4, 0x77, 0x02, 0xff);
+
+	for (const Segment& s : cellToDraw)
+	{
+		float x0 = s.p0.x * _zoomFactor + _offsetX;
+		float x1 = s.p1.x * _zoomFactor + _offsetX;
+		float y0 = s.p0.y * _zoomFactor + _offsetY;
+		float y1 = s.p1.y * _zoomFactor + _offsetY;
+		SDL_RenderDrawLine(_renderer, x0, y0, x1, y1);
+	}
+}
+
+
+void ECMRenderer::DebugSetDrawECMCell(float screenX, float screenY)
+{
+	float worldX = (screenX - _offsetX) / _zoomFactor;
+	float worldY = (screenY - _offsetY) / _zoomFactor;
+
+	cellToDraw = _ecm->GetECMCell(worldX, worldY);
 }
 

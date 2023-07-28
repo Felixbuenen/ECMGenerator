@@ -2,6 +2,8 @@
 
 #include "boost/polygon/voronoi.hpp"
 
+// TODO: add namespace ECM...
+
 struct Point {
 	float x;
 	float y;
@@ -11,8 +13,10 @@ struct Point {
 	Point operator -(const Point& a) const {
 		return Point(x - a.x, y - a.y);
 	}
-	Point operator =(const Point& a) const {
-		return Point(a.x, a.y);
+	Point operator =(const Point& a) {
+		x = a.x;
+		y = a.y;
+		return *this;;
 	}
 };
 
@@ -21,6 +25,14 @@ struct Segment {
 	Point p1;
 	Segment(float x1, float y1, float x2, float y2) : p0(x1, y1), p1(x2, y2) {}
 	Segment(Point point0, Point point1) : p0(point0), p1(point1) {}
+};
+
+struct Vec2 {
+	Vec2() { }
+	Vec2(float _x, float _y) 
+		: x(_x), y(_y) { }
+	float x;
+	float y;
 };
 
 struct BBOX {

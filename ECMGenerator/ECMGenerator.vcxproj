@@ -141,6 +141,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="ECM.h" />
+    <ClInclude Include="ECMCellCollection.h" />
     <ClInclude Include="ECMDataTypes.h" />
     <ClInclude Include="ECMGenerator.h" />
     <ClInclude Include="ECMPathPlanner.h" />
