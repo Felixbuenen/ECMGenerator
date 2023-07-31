@@ -37,30 +37,25 @@ int ECMGraph::AddEdge(ECMEdge edge)
 	return index;
 }
 
-void ECMGraph::AddAdjacency(int vertexIndex, int edgeIndex)
-{
-	m_Vertices[vertexIndex].AddIncidentEdge(edgeIndex);
-}
-
-
-//
-//void ECMGraph::AddAdjacency(int v0, int v1, int edge)
+//void ECMGraph::AddAdjacency(int vertexIndex, int edgeIndex)
 //{
-//	if (m_VertAdjacency.size() < (v0 + 1)) m_VertAdjacency.resize(v0 + 1);
-//	//if (m_VertAdjacency.size() < (v1 + 1)) m_VertAdjacency.resize(v1 + 1);
-//
-//	m_VertAdjacency[v0].push_back(edge);
-//	//m_VertAdjacency[v1].push_back(edge);
-//
-//	printf("m_VertAdjacency.size(): %d\n", m_VertAdjacency.size());
+//	m_Vertices[vertexIndex].AddIncidentEdge(edgeIndex);
 //}
+
+
+
+void ECMGraph::AddAdjacency(int v0, int v1, int edge)
+{
+	if (m_VertAdjacency.size() < (v0 + 1)) m_VertAdjacency.resize(v0 + 1);
+	m_VertAdjacency[v0].push_back(edge);
+
+	//printf("m_VertAdjacency.size(): %d\n", m_VertAdjacency.size());
+}
 
 
 // TODO: make KD-tree query
 int ECMGraph::GetVertexIndex(float x, float y) const
 {
-	float xtest = x;
-	float ytest = y;
 	int index = 0;
 	for (const ECMVertex& vert : m_Vertices)
 	{
@@ -75,9 +70,18 @@ int ECMGraph::GetVertexIndex(float x, float y) const
 		index++;
 	}
 
-	int hallo = 0;
 	// not found
 	return -1;
+}
+
+const std::vector<EdgeIndex>& ECMGraph::GetIncidentEdges(int vertex_index) const
+{
+	if (vertex_index >= m_VertAdjacency.size())
+	{
+		return std::vector<EdgeIndex>();
+	}
+
+	return m_VertAdjacency[vertex_index];
 }
 
 //// TESTY TESTY
@@ -97,7 +101,7 @@ int ECMGraph::GetVertexIndex(float x, float y) const
 //		for (EdgeIndex i : m_VertAdjacency[currentVertex])
 //		{
 //			const ECMEdge& edge = m_Edges[i];
-//			int vertToConsider = edge.StartIndex() == currentVertex ? edge.EndIndex() : edge.StartIndex(); // pick the vertex on the other side of the edge
+//			int vertToConsider = edge.V0() == currentVertex ? edge.V1() : edge.V0(); // pick the vertex on the other side of the edge
 //
 //			// check if we've already visited this node
 //			bool alreadyVisited = false;
@@ -153,8 +157,8 @@ std::vector<Segment> ECM::GetECMCell(float x, float y) const
 	int closestIdx = -1;
 	for (const auto& edge : edges)
 	{
-		ECMVertex v1 = _ecmGraph.GetVertex(edge.StartIndex());
-		ECMVertex v2 = _ecmGraph.GetVertex(edge.EndIndex());
+		ECMVertex v1 = _ecmGraph.GetVertex(edge.V0());
+		ECMVertex v2 = _ecmGraph.GetVertex(edge.V1());
 
 		Segment s(v1.Position(), v2.Position());
 
@@ -171,8 +175,8 @@ std::vector<Segment> ECM::GetECMCell(float x, float y) const
 	}
 
 	ECMEdge closestEdge = edges[closestIdx];
-	ECMVertex v1 = _ecmGraph.GetVertex(closestEdge.StartIndex());
-	ECMVertex v2 = _ecmGraph.GetVertex(closestEdge.EndIndex());
+	ECMVertex v1 = _ecmGraph.GetVertex(closestEdge.V0());
+	ECMVertex v2 = _ecmGraph.GetVertex(closestEdge.V1());
 	Point edgePoint(v2.Position() - v1.Position());
 	Vec2 edgeVec(edgePoint.x, edgePoint.y);
 	Vec2 edgeRight = MathUtility::Right(edgeVec);

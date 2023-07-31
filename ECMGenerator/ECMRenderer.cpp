@@ -101,7 +101,7 @@ void ECMRenderer::Render()
 	//DrawRandomTestPath();
 	DrawInsideVerts();
 	DebugDrawECMCell();
-
+	
 	// render window
 	SDL_RenderPresent(_renderer);
 }
@@ -170,10 +170,10 @@ void ECMRenderer::DrawMedialAxis()
 
 	for (auto edge : edges)
 	{
-		int x1 = verts[edge.StartIndex()].Position().x * _zoomFactor + _offsetX;
-		int y1 = verts[edge.StartIndex()].Position().y * _zoomFactor + _offsetY;
-		int x2 = verts[edge.EndIndex()].Position().x * _zoomFactor + _offsetX;
-		int y2 = verts[edge.EndIndex()].Position().y * _zoomFactor + _offsetY;
+		int x1 = verts[edge.V0()].Position().x * _zoomFactor + _offsetX;
+		int y1 = verts[edge.V0()].Position().y * _zoomFactor + _offsetY;
+		int x2 = verts[edge.V1()].Position().x * _zoomFactor + _offsetX;
+		int y2 = verts[edge.V1()].Position().y * _zoomFactor + _offsetY;
 
 		SDL_RenderDrawLine(_renderer, x1, y1, x2, y2);
 	}

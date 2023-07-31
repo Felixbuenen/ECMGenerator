@@ -12,16 +12,18 @@ class MedialAxis;
 class Point;
 class Segment;
 
+typedef int EdgeIndex;
 
+// An ECMEdge is bi-directional, so we have 1 edge between two ECM vertices. 
 class ECMEdge
 {
 public:
-	ECMEdge(int start, int end, float cost) : m_StartVert(start), m_EndVert(end), m_Cost(cost) { }
-	ECMEdge(int start, int end) : m_StartVert(start), m_EndVert(end), m_Cost(1.0f) { }
-	ECMEdge() : m_StartVert(INVALID_ECM_VERTEX_INDEX), m_EndVert(INVALID_ECM_VERTEX_INDEX), m_Cost(1.0f) { }
+	ECMEdge(int v0, int v1, float cost) : m_V0(v0), m_V1(v1), m_Cost(cost) { }
+	ECMEdge(int v0, int v1) : m_V0(v0), m_V1(v1), m_Cost(1.0f) { }
+	ECMEdge() : m_V0(INVALID_ECM_VERTEX_INDEX), m_V1(INVALID_ECM_VERTEX_INDEX), m_Cost(1.0f) { }
 
-	inline int StartIndex() const { return m_StartVert; }
-	inline int EndIndex() const { return m_EndVert; }
+	inline int V0() const { return m_V0; }
+	inline int V1() const { return m_V1; }
 	inline float Cost() const { return m_Cost; }
 	inline Point NearestLeftV0() const { return m_Nearest_left_V0; }
 	inline Point NearestRightV0() const { return m_Nearest_right_V0; }
@@ -36,8 +38,8 @@ public:
 	void SetNearestRightV1(Point p) { m_Nearest_right_V1 = p; }
 
 private:
-	int m_StartVert;
-	int m_EndVert;
+	int m_V0;
+	int m_V1;
 	float m_Cost;
 
 	// these are the four closest points to adjacent obstacle. Essentially, this - along with the edge - defines the corridor.
@@ -63,23 +65,21 @@ public:
 	void SetPosition(Point position) { m_Position = position; }
 	void SetClearance(float clearance) { m_Clearance = clearance; }
 	void AddClosestObstaclePoint(Point point) { m_ClosestPoints.push_back(point); }
-	void AddIncidentEdge(int edge) { m_IncidentEdges.push_back(edge); }
+	//void AddIncidentEdge(int edge) { m_IncidentEdges.push_back(edge); }
 
 private:
 	int m_Index;
 	Point m_Position;
 	float m_Clearance;
 	std::vector<Point> m_ClosestPoints;
-	std::vector<int> m_IncidentEdges;
+	//std::vector<int> m_IncidentEdges;
 };
 
 
-// for now, let's assume that an ECM graph is always bidirectional. Note that this doesn't have to be the case (e.g. cars that must travel in one direction on a lane).
-// the ECMGraph implements the typical edge adjacency list structure
+// the ECMGraph implements the typical edge adjacency list structure, as a bi-directional graph
 class ECMGraph
 {
 public:
-	typedef int EdgeIndex;
 
 	ECMGraph() : m_NextVertexIndex(0), m_NextEdgeIndex(0) { }
 
@@ -96,13 +96,14 @@ public:
 	int AddEdge(ECMEdge edge);
 	void RemoveEdge(int start, int end);
 
-	void AddAdjacency(int vertexIndex, int edgeIndex);
+	void AddAdjacency(int v0, int v1, int edge);
 
 	int GetVertexIndex(float x, float y) const;
 	const std::vector<ECMVertex>& GetVertices() const { return m_Vertices; }
 	const std::vector<ECMEdge>& GetEdges() const { return m_Edges; }
 	const ECMVertex& GetVertex(int idx) const { return m_Vertices[idx]; }
 	const ECMEdge& GetEdge(int idx) const { return m_Edges[idx]; }
+	const std::vector<EdgeIndex>& GetIncidentEdges(int vertex_index) const;
 
 	// ------------- TESTING -------------
 	std::vector<Segment> GetRandomTestPath(int startIndex) const;
@@ -111,7 +112,7 @@ private:
 	std::vector<ECMVertex> m_Vertices; // TODO: make KD-tree
 	std::vector<ECMEdge> m_Edges; // TODO: make KD-tree
 
-	//std::vector<std::vector<EdgeIndex>> m_VertAdjacency;
+	std::vector<std::vector<EdgeIndex>> m_VertAdjacency;
 
 	int m_NextVertexIndex;
 	int m_NextEdgeIndex;

@@ -119,9 +119,6 @@ void ECMGenerator::ConstructECMGraph(ECM& ecm, const Environment& environment) c
 	for (voronoi_diagram<double>::const_vertex_iterator it = 
 		vd.vertices().begin(); it != vd.vertices().end(); ++it) {
 		const voronoi_diagram<double>::vertex_type& vertex = *it;
-		
-		// TODO: we want to make a directional graph. That means we loop through all points, and create an edge for each
-		// point P, where P is the start of the edge. 
 
 		Point vertLocation(vertex.x(), vertex.y());
 		if (!environment.InsideObstacle(vertLocation))
@@ -141,6 +138,8 @@ void ECMGenerator::ConstructECMGraph(ECM& ecm, const Environment& environment) c
 		}
 	}
 
+	printf("Number of vertices: {%d}\n", ecmGraph.GetVertices().size());
+
 	int counter = 0;
 	// then create all ECM edges. Note that we do not have to check for edges inside obstacles. This is
 	// automatically solved by not including vertices inside obstacles in the ecmGraph.
@@ -157,9 +156,23 @@ void ECMGenerator::ConstructECMGraph(ECM& ecm, const Environment& environment) c
 			int v0_index = ecmGraph.GetVertexIndex(x0, y0);
 			int v1_index = ecmGraph.GetVertexIndex(x1, y1);
 
+			// skip if a vertex could not be found
 			if (v0_index == -1 || v1_index == -1) {
 				continue;
 			}
+
+			// if there already exists an edge between v0 and v1, then we should not construct another edge (bi-directional).
+			const std::vector<int>& edges = ecm.GetECMGraph().GetIncidentEdges(v1_index);
+			bool edgeExists = false;
+			for (int edge_index : edges)
+			{
+				if (ecm.GetECMGraph().GetEdge(edge_index).V1() == v0_index)
+				{
+					edgeExists = true;
+					break;
+				}
+			}
+			if (edgeExists) continue;
 
 			// Given closest obstacle points per vertex, assign left/right v0 and v1
 			// > For the segment, calculate the 'right' vector -> Vr.
@@ -307,13 +320,21 @@ void ECMGenerator::ConstructECMGraph(ECM& ecm, const Environment& environment) c
 			}
 
 			int edgeIndex = ecmGraph.AddEdge(edge);
-			ecmGraph.AddAdjacency(v0_index, edgeIndex);
+			ecmGraph.AddAdjacency(v0_index, v1_index, edgeIndex);
 
 			counter++;
 		}
 	}
 
 	printf("number of edges: %d\n", counter);
+	
+	for (const auto& edge : ecm.GetECMGraph().GetEdges())
+	{
+		ECMVertex v0 = ecm.GetECMGraph().GetVertex(edge.V0());
+		ECMVertex v1 = ecm.GetECMGraph().GetVertex(edge.V1());
+
+		printf("(%f, %f) -> (%f, %f)\n", v0.Position().x, v0.Position().y, v1.Position().x, v1.Position().y);
+	}
 
 }
 
