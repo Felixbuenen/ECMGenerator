@@ -98,7 +98,7 @@ const std::vector<EdgeIndex>& ECMGraph::GetIncidentEdges(int vertex_index) const
 	return m_VertAdjacency[vertex_index];
 }
 
-const ECMCell& ECMGraph::GetCell(float x, float y) const
+const ECMCell* ECMGraph::GetCell(float x, float y) const
 {
 	return m_Cells->PointLocationQuery(Point(x, y));
 }
@@ -162,7 +162,7 @@ std::vector<Segment> ECM::GetRandomTestPath() const
 	//return _ecmGraph.GetRandomTestPath(startIdx);
 }
 
-const ECMCell& ECM::GetECMCell(float x, float y) const
+const ECMCell* ECM::GetECMCell(float x, float y) const
 {
 	return _ecmGraph.GetCell(x, y);
 }

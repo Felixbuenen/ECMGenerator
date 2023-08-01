@@ -288,6 +288,6 @@ void ECMRenderer::DebugSetDrawECMCell(float screenX, float screenY)
 	float worldX = (screenX - _offsetX) / _zoomFactor;
 	float worldY = (screenY - _offsetY) / _zoomFactor;
 
-	cellToDraw = &(_ecm->GetECMCell(worldX, worldY));
+	cellToDraw = _ecm->GetECMCell(worldX, worldY);
 }
 

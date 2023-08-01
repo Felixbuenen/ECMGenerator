@@ -30,16 +30,16 @@ void ECMCellCollection::Construct(const ECMGraph& graph)
 
 
 // todo: make more clever (trapezoidal decomposition)
-const ECMCell& ECMCellCollection::PointLocationQuery(const Point& location) const
+const ECMCell* ECMCellCollection::PointLocationQuery(const Point& location) const
 {
 	for (const ECMCell& cell : m_ECMCells)
 	{
 		if (MathUtility::Contains(location, cell.boundary))
 		{
-			return cell;
+			return &cell;
 		}
 	}
 
 	printf("Couldn't locate point in the ECM graph!\n");
-	return ECMCell();
+	return nullptr;
 }

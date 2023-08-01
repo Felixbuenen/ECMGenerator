@@ -113,7 +113,7 @@ public:
 	const ECMVertex& GetVertex(int idx) const { return m_Vertices[idx]; }
 	const ECMEdge& GetEdge(int idx) const { return m_Edges[idx]; }
 	const std::vector<EdgeIndex>& GetIncidentEdges(int vertex_index) const;
-	const ECMCell& GetCell(float x, float y) const;
+	const ECMCell* GetCell(float x, float y) const;
 
 	// ------------- TESTING -------------
 	std::vector<Segment> GetRandomTestPath(int startIndex) const;
@@ -147,7 +147,7 @@ public:
 	void GetECMBounds(/*point refs*/) const;
 	void GetWalkableArea(/*point refs*/) const;
 	void GetObstacles(/*point refs*/) const;
-	const ECMCell& GetECMCell(float x, float y) const;
+	const ECMCell* GetECMCell(float x, float y) const; // pointer because it can be null
 
 	inline std::shared_ptr<MedialAxis> GetMedialAxis() { return _medialAxis; }
 	inline ECMGraph& GetECMGraph() { return _ecmGraph; }
