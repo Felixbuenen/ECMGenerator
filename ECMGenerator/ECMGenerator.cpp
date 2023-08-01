@@ -327,15 +327,9 @@ void ECMGenerator::ConstructECMGraph(ECM& ecm, const Environment& environment) c
 	}
 
 	printf("number of edges: %d\n", counter);
-	
-	for (const auto& edge : ecm.GetECMGraph().GetEdges())
-	{
-		ECMVertex v0 = ecm.GetECMGraph().GetVertex(edge.V0());
-		ECMVertex v1 = ecm.GetECMGraph().GetVertex(edge.V1());
 
-		printf("(%f, %f) -> (%f, %f)\n", v0.Position().x, v0.Position().y, v1.Position().x, v1.Position().y);
-	}
-
+	// finally construct the cells
+	ecmGraph.ConstructECMCells();
 }
 
 

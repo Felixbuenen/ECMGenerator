@@ -3,6 +3,7 @@
 #include <memory>
 
 #include "ECMDataTypes.h"
+#include "ECMCellCollection.h"
 
 #define INVALID_ECM_VERTEX_INDEX -1
 #define ECM_EPSILON 0.02f // TODO: decide what is a good epsilon
@@ -11,6 +12,10 @@
 class MedialAxis;
 class Point;
 class Segment;
+class ECMCellCollection;
+class ECM;
+
+struct ECMCell;
 
 typedef int EdgeIndex;
 
@@ -24,6 +29,7 @@ public:
 
 	inline int V0() const { return m_V0; }
 	inline int V1() const { return m_V1; }
+	inline int Index() const { return m_Index; }
 	inline float Cost() const { return m_Cost; }
 	inline Point NearestLeftV0() const { return m_Nearest_left_V0; }
 	inline Point NearestRightV0() const { return m_Nearest_right_V0; }
@@ -31,6 +37,7 @@ public:
 	inline Point NearestRightV1() const { return m_Nearest_right_V1; }
 
 	void SetVertices(int v1, int v2);
+	void SetIndex(int idx) { m_Index = idx; }
 	void SetCost(float cost);
 	void SetNearestLeftV0(Point p) { m_Nearest_left_V0 = p; }
 	void SetNearestRightV0(Point p) { m_Nearest_right_V0 = p; }
@@ -40,6 +47,7 @@ public:
 private:
 	int m_V0;
 	int m_V1;
+	int m_Index;
 	float m_Cost;
 
 	// these are the four closest points to adjacent obstacle. Essentially, this - along with the edge - defines the corridor.
@@ -81,11 +89,10 @@ class ECMGraph
 {
 public:
 
-	ECMGraph() : m_NextVertexIndex(0), m_NextEdgeIndex(0) { }
+	ECMGraph();
 
 	// NOTE: it's nicer to use the addvertex/addedge methods and build the graph in the ecm generator class
 	// so we don't need this construct method here
-	//int Construct(); // provide environment and voronoi diagram to construct ecm graph
 
 	inline int GetNextFreeVertexIndex() const { return m_NextVertexIndex; }
 	inline int GetNextFreeEdgeIndex() const { return m_NextEdgeIndex; }
@@ -96,6 +103,8 @@ public:
 	int AddEdge(ECMEdge edge);
 	void RemoveEdge(int start, int end);
 
+	void ConstructECMCells();
+
 	void AddAdjacency(int v0, int v1, int edge);
 
 	int GetVertexIndex(float x, float y) const;
@@ -104,6 +113,7 @@ public:
 	const ECMVertex& GetVertex(int idx) const { return m_Vertices[idx]; }
 	const ECMEdge& GetEdge(int idx) const { return m_Edges[idx]; }
 	const std::vector<EdgeIndex>& GetIncidentEdges(int vertex_index) const;
+	const ECMCell& GetCell(float x, float y) const;
 
 	// ------------- TESTING -------------
 	std::vector<Segment> GetRandomTestPath(int startIndex) const;
@@ -111,6 +121,7 @@ public:
 private:
 	std::vector<ECMVertex> m_Vertices; // TODO: make KD-tree
 	std::vector<ECMEdge> m_Edges; // TODO: make KD-tree
+	std::unique_ptr<ECMCellCollection> m_Cells;
 
 	std::vector<std::vector<EdgeIndex>> m_VertAdjacency;
 
@@ -136,7 +147,7 @@ public:
 	void GetECMBounds(/*point refs*/) const;
 	void GetWalkableArea(/*point refs*/) const;
 	void GetObstacles(/*point refs*/) const;
-	std::vector<Segment> GetECMCell(float x, float y) const;
+	const ECMCell& GetECMCell(float x, float y) const;
 
 	inline std::shared_ptr<MedialAxis> GetMedialAxis() { return _medialAxis; }
 	inline ECMGraph& GetECMGraph() { return _ecmGraph; }

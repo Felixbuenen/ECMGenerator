@@ -2,6 +2,7 @@
 
 #include "ECMDataTypes.h"
 #include "UtilityFunctions.h"
+#include "ECMCellCollection.h"
 
 #include <memory>
 #include <math.h>
@@ -14,6 +15,11 @@ ECM::ECM()
 
 
 // ECM Graph
+
+ECMGraph::ECMGraph() : m_NextVertexIndex(0), m_NextEdgeIndex(0)
+{
+	m_Cells = std::make_unique<ECMCellCollection>();
+}
 
 // TODO: make into KD-tree insert
 int ECMGraph::AddVertex(ECMVertex vertex)
@@ -29,13 +35,21 @@ int ECMGraph::AddVertex(ECMVertex vertex)
 // TODO: make into KD-tree insert
 int ECMGraph::AddEdge(ECMEdge edge)
 {
-	m_Edges.push_back(edge);
-
 	int index = m_NextEdgeIndex;
 	m_NextEdgeIndex++;
+	edge.SetIndex(index);
+	
+	m_Edges.push_back(edge);
 
 	return index;
 }
+
+void ECMGraph::ConstructECMCells()
+{
+	m_Cells->Construct(*this);
+}
+
+
 
 //void ECMGraph::AddAdjacency(int vertexIndex, int edgeIndex)
 //{
@@ -83,6 +97,12 @@ const std::vector<EdgeIndex>& ECMGraph::GetIncidentEdges(int vertex_index) const
 
 	return m_VertAdjacency[vertex_index];
 }
+
+const ECMCell& ECMGraph::GetCell(float x, float y) const
+{
+	return m_Cells->PointLocationQuery(Point(x, y));
+}
+
 
 //// TESTY TESTY
 //std::vector<Segment> ECMGraph::GetRandomTestPath(int startVertIndex) const
@@ -142,62 +162,7 @@ std::vector<Segment> ECM::GetRandomTestPath() const
 	//return _ecmGraph.GetRandomTestPath(startIdx);
 }
 
-std::vector<Segment> ECM::GetECMCell(float x, float y) const
+const ECMCell& ECM::GetECMCell(float x, float y) const
 {
-	// TODO: right now we check for the nearest edge and draw that cell. However, this is not correct. 
-	// We must do a point location query, where the ecm edges and closest obstacles form the planar subdivision.
-	// We could for now simply test against all cells manually (eg loop through all half edges, check if point inside
-	// left face). But eventually we must create a point location query datastructure for this.
-
-	const auto& edges = _ecmGraph.GetEdges();
-	Point p(x, y);
-
-	int counter = 0;
-	float closestDist = 1000000;
-	int closestIdx = -1;
-	for (const auto& edge : edges)
-	{
-		ECMVertex v1 = _ecmGraph.GetVertex(edge.V0());
-		ECMVertex v2 = _ecmGraph.GetVertex(edge.V1());
-
-		Segment s(v1.Position(), v2.Position());
-
-		Point pOnSeg = MathUtility::GetClosestPointOnSegment(p, s);
-		float distance = MathUtility::Distance(p, pOnSeg);
-
-		if (distance < closestDist)
-		{
-			closestDist = distance;
-			closestIdx = counter;
-		}
-
-		counter++;
-	}
-
-	ECMEdge closestEdge = edges[closestIdx];
-	ECMVertex v1 = _ecmGraph.GetVertex(closestEdge.V0());
-	ECMVertex v2 = _ecmGraph.GetVertex(closestEdge.V1());
-	Point edgePoint(v2.Position() - v1.Position());
-	Vec2 edgeVec(edgePoint.x, edgePoint.y);
-	Vec2 edgeRight = MathUtility::Right(edgeVec);
-
-	bool isLeft = MathUtility::Dot(edgeRight, Vec2(x - v1.Position().x, y - v1.Position().y)) < 0.0f;
-	
-	std::vector<Segment> result;
-	if (isLeft)
-	{
-		result.push_back(Segment(v1.Position(), v2.Position()));
-		result.push_back(Segment(v2.Position(), closestEdge.NearestLeftV1()));
-		result.push_back(Segment(closestEdge.NearestLeftV1(), closestEdge.NearestLeftV0()));
-		result.push_back(Segment(closestEdge.NearestLeftV0(), v1.Position()));
-	}
-	else
-	{
-		result.push_back(Segment(v1.Position(), v2.Position()));
-		result.push_back(Segment(v2.Position(), closestEdge.NearestRightV1()));
-		result.push_back(Segment(closestEdge.NearestRightV1(), closestEdge.NearestRightV0()));
-		result.push_back(Segment(closestEdge.NearestRightV0(), v1.Position()));
-	}
-
-	return result;
+	return _ecmGraph.GetCell(x, y);
 }

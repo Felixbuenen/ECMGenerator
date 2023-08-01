@@ -131,6 +131,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="ECM.cpp" />
+    <ClCompile Include="ECMCellCollection.cpp" />
     <ClCompile Include="ECMGenerator.cpp" />
     <ClCompile Include="ECMPathPlanner.cpp" />
     <ClCompile Include="ECMRenderer.cpp" />

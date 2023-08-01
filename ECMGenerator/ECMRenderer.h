@@ -7,6 +7,7 @@
 class ECM;
 class Environment;
 struct Segment;
+struct ECMCell;
 
 class SDL_Window;
 class SDL_Renderer;
@@ -60,6 +61,6 @@ private:
 	SDL_Surface* _screenSurface;
 
 	// testy testy
-	std::vector<Segment> cellToDraw;
+	const ECMCell* cellToDraw;
 };
 

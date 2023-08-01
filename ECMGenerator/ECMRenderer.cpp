@@ -1,6 +1,7 @@
 #include "ECMRenderer.h"
 #include "ECM.h"
 #include "Environment.h"
+#include "ECMCellCollection.h"
 
 #include "SDL.h"
 #include "boost/polygon/voronoi.hpp"
@@ -160,7 +161,7 @@ void ECMRenderer::DrawMedialAxis()
 {
 	// TODO: loop through all edges. For non-linear edges (arcs), sample the arc.
 	auto ma = _ecm->GetMedialAxis();
-	auto graph = _ecm->GetECMGraph();
+	ECMGraph& graph = _ecm->GetECMGraph();
 
 	// TODO: add colour to properties
 	SDL_SetRenderDrawColor(_renderer, 0x00,0x00, 0x00, 0xff);
@@ -265,9 +266,13 @@ void ECMRenderer::DrawClosestObstaclePoints()
 
 void ECMRenderer::DebugDrawECMCell()
 {
+	if (!cellToDraw) return;
+
 	SDL_SetRenderDrawColor(_renderer, 0xc4, 0x77, 0x02, 0xff);
 
-	for (const Segment& s : cellToDraw)
+	const std::vector<Segment>& segs = cellToDraw->boundary;
+
+	for (const Segment& s : segs)
 	{
 		float x0 = s.p0.x * _zoomFactor + _offsetX;
 		float x1 = s.p1.x * _zoomFactor + _offsetX;
@@ -283,6 +288,6 @@ void ECMRenderer::DebugSetDrawECMCell(float screenX, float screenY)
 	float worldX = (screenX - _offsetX) / _zoomFactor;
 	float worldY = (screenY - _offsetY) / _zoomFactor;
 
-	cellToDraw = _ecm->GetECMCell(worldX, worldY);
+	cellToDraw = &(_ecm->GetECMCell(worldX, worldY));
 }
 
