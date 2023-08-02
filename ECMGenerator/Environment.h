@@ -37,8 +37,9 @@ public:
 
 	bool InsideObstacle(const Point& p) const;
 
-	void GetClosestObstaclePointsToEdge(const Point& edge_v1, const Point& edge_v2, Point& out_Left0, Point& out_Left1, Point& out_Right0, Point& out_Right1) const;
 	std::vector<Point> GetClosestObstaclePoints(const Point& location) const;
+
+	const std::vector<Segment>& GetEnvironmentObstacleUnion() const { return _environmentObstacleUnion;}
 
 private:
 	void UpdateBbox(const std::vector<Segment>& newEdges);
@@ -46,7 +47,7 @@ private:
 private:
 	std::vector<Segment> _walkableArea;
 	std::vector<std::vector<Segment>> _obstacles;
-	std::vector<Segment> _environmentUnion;
+	std::vector<Segment> _environmentObstacleUnion;
 	BBOX _bbox;
 };
 

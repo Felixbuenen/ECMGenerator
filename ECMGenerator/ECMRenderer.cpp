@@ -100,9 +100,11 @@ void ECMRenderer::Render()
 	
 	// TEST
 	//DrawRandomTestPath();
-	DrawInsideVerts();
+	//DrawInsideVerts();
 	DebugDrawECMCell();
-	
+	//DebugDrawSecondaryLines();
+	//DebugDrawCellValues();
+
 	// render window
 	SDL_RenderPresent(_renderer);
 }
@@ -171,6 +173,14 @@ void ECMRenderer::DrawMedialAxis()
 
 	for (auto edge : edges)
 	{
+		if (edge.IsArc())
+		{
+			SDL_SetRenderDrawColor(_renderer, 0x00, 0xff, 0x00, 0xff);
+		}
+		else
+		{
+			SDL_SetRenderDrawColor(_renderer, 0x00, 0x00, 0x00, 0xff);
+		}
 		int x1 = verts[edge.V0()].Position().x * _zoomFactor + _offsetX;
 		int y1 = verts[edge.V0()].Position().y * _zoomFactor + _offsetY;
 		int x2 = verts[edge.V1()].Position().x * _zoomFactor + _offsetX;
@@ -291,3 +301,55 @@ void ECMRenderer::DebugSetDrawECMCell(float screenX, float screenY)
 	cellToDraw = _ecm->GetECMCell(worldX, worldY);
 }
 
+void ECMRenderer::DebugDrawSecondaryLines()
+{
+	using boost::polygon::voronoi_diagram;
+	const auto& vd = _ecm->GetMedialAxis()->VD;
+	
+	SDL_SetRenderDrawColor(_renderer, 0x55, 0x55, 0xff, 0xff);
+
+	for (boost::polygon::voronoi_diagram<double>::const_edge_iterator it =
+		vd.edges().begin(); it != vd.edges().end(); ++it)
+	{
+		if (it->is_finite() && it->is_secondary())
+		{
+			float x0 = it->vertex0()->x() * _zoomFactor + _offsetX;
+			float x1 = it->vertex1()->x() * _zoomFactor + _offsetX;
+			float y0 = it->vertex0()->y() * _zoomFactor + _offsetY;
+			float y1 = it->vertex1()->y() * _zoomFactor + _offsetY;
+
+			SDL_RenderDrawLine(_renderer, x0, y0, x1, y1);
+		}
+	}
+}
+
+void ECMRenderer::DebugDrawCellValues()
+{
+	using boost::polygon::voronoi_diagram;
+	const auto& vd = _ecm->GetMedialAxis()->VD;
+
+	SDL_SetRenderDrawColor(_renderer, 0x55, 0x55, 0xff, 0xff);
+
+	for (boost::polygon::voronoi_diagram<double>::const_edge_iterator it =
+		vd.edges().begin(); it != vd.edges().end(); ++it)
+	{
+		if (it->cell()->contains_point()) continue;
+
+		if (it->is_finite() && it->is_secondary())
+		{
+			// TODO:
+			// > this demonstrates that we can find the closest segments in constant time.
+			// > update the ecm construction algorithm such that it utilizes this information.
+			int segmentIndex = it->cell()->source_index();
+
+			const Segment& s = _env->GetEnvironmentObstacleUnion()[segmentIndex];
+
+			float x0 = s.p0.x * _zoomFactor + _offsetX;
+			float x1 = s.p1.x * _zoomFactor + _offsetX;
+			float y0 = s.p0.y * _zoomFactor + _offsetY;
+			float y1 = s.p1.y * _zoomFactor + _offsetY;
+			
+			SDL_RenderDrawLine(_renderer, x0, y0, x1, y1);
+		}
+	}
+}

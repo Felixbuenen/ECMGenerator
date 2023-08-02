@@ -18,6 +18,16 @@ struct Point {
 		y = a.y;
 		return *this;;
 	}
+	Point operator *(const float& a) {
+		x *= a;
+		y *= a;
+		return *this;
+	}
+	Point operator +(const Point& a) {
+		x += a.x;
+		y += a.y;
+		return *this;
+	}
 };
 
 struct Segment {

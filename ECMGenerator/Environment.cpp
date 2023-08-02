@@ -7,6 +7,7 @@ void Environment::AddWalkableArea(std::vector<Segment> waEdges)
 {
 	_walkableArea = waEdges;
 
+	for(Segment s : waEdges) _environmentObstacleUnion.push_back(s);
 	// the edges of the walkable area should be considered an 'object'
 	//AddObstacle(waEdges);
 
@@ -16,6 +17,8 @@ void Environment::AddWalkableArea(std::vector<Segment> waEdges)
 void Environment::AddObstacle(std::vector<Segment> obstacleEdges)
 {
 	_obstacles.push_back(obstacleEdges);
+	for (Segment s : obstacleEdges) _environmentObstacleUnion.push_back(s);
+
 	UpdateBbox(obstacleEdges);
 }
 

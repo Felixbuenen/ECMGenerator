@@ -103,6 +103,90 @@ const ECMCell* ECMGraph::GetCell(float x, float y) const
 	return m_Cells->PointLocationQuery(Point(x, y));
 }
 
+std::vector<Segment> ECMGraph::GetSampledEdge(const ECMEdge& edge, int samples, bool inverseDirection) const
+{
+	std::vector<Segment> result;
+
+	const ECMVertex& v1 = inverseDirection ? m_Vertices[edge.V1()] : m_Vertices[edge.V0()];
+	const ECMVertex& v2 = inverseDirection ? m_Vertices[edge.V0()] : m_Vertices[edge.V1()];
+	Point p1 = v1.Position();
+	Point p2 = v2.Position();
+
+	if (!edge.IsArc())
+	{
+		result.push_back(Segment(p1, p2));
+		return result;
+	}
+
+   // // Apply the linear transformation to move start point of the segment to
+   // // the point with coordinates (0, 0) and the direction of the segment to
+   // // coincide the positive direction of the x-axis.
+   // CT segm_vec_x = cast(x(high(segment))) - cast(x(low(segment)));
+   // CT segm_vec_y = cast(y(high(segment))) - cast(y(low(segment)));
+   // CT sqr_segment_length = segm_vec_x * segm_vec_x + segm_vec_y * segm_vec_y;
+   //
+   // // Compute x-coordinates of the endpoints of the edge
+   // // in the transformed space.
+   // CT projection_start = sqr_segment_length *
+   //     get_point_projection((*discretization)[0], segment);
+   // CT projection_end = sqr_segment_length *
+   //     get_point_projection((*discretization)[1], segment);
+   //
+   // // Compute parabola parameters in the transformed space.
+   // // Parabola has next representation:
+   // // f(x) = ((x-rot_x)^2 + rot_y^2) / (2.0*rot_y).
+   // CT point_vec_x = cast(x(point)) - cast(x(low(segment)));
+   // CT point_vec_y = cast(y(point)) - cast(y(low(segment)));
+   // CT rot_x = segm_vec_x * point_vec_x + segm_vec_y * point_vec_y;
+   // CT rot_y = segm_vec_x * point_vec_y - segm_vec_y * point_vec_x;
+   //
+   // // Save the last point.
+   // Point<CT> last_point = (*discretization)[1];
+   // discretization->pop_back();
+   //
+   // // Use stack to avoid recursion.
+   // std::stack<CT> point_stack;
+   // point_stack.push(projection_end);
+   // CT cur_x = projection_start;
+   // CT cur_y = parabola_y(cur_x, rot_x, rot_y);
+   //
+   // // Adjust max_dist parameter in the transformed space.
+   // const CT max_dist_transformed = max_dist * max_dist * sqr_segment_length;
+   // while (!point_stack.empty()) {
+   //     CT new_x = point_stack.top();
+   //     CT new_y = parabola_y(new_x, rot_x, rot_y);
+   //
+   //     // Compute coordinates of the point of the parabola that is
+   //     // furthest from the current line segment.
+   //     CT mid_x = (new_y - cur_y) / (new_x - cur_x) * rot_y + rot_x;
+   //     CT mid_y = parabola_y(mid_x, rot_x, rot_y);
+   //
+   //     // Compute maximum distance between the given parabolic arc
+   //     // and line segment that discretize it.
+   //     CT dist = (new_y - cur_y) * (mid_x - cur_x) -
+   //         (new_x - cur_x) * (mid_y - cur_y);
+   //     dist = dist * dist / ((new_y - cur_y) * (new_y - cur_y) +
+   //         (new_x - cur_x) * (new_x - cur_x));
+   //     if (dist <= max_dist_transformed) {
+   //         // Distance between parabola and line segment is less than max_dist.
+   //         point_stack.pop();
+   //         CT inter_x = (segm_vec_x * new_x - segm_vec_y * new_y) /
+   //             sqr_segment_length + cast(x(low(segment)));
+   //         CT inter_y = (segm_vec_x * new_y + segm_vec_y * new_x) /
+   //             sqr_segment_length + cast(y(low(segment)));
+   //         discretization->push_back(Point<CT>(inter_x, inter_y));
+   //         cur_x = new_x;
+   //         cur_y = new_y;
+   //     }
+   //     else {
+   //         point_stack.push(mid_x);
+   //     }
+   // }
+   //
+   // // Update last point.
+   // discretization->back() = last_point;
+}
+
 
 //// TESTY TESTY
 //std::vector<Segment> ECMGraph::GetRandomTestPath(int startVertIndex) const

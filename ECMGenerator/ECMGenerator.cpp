@@ -25,6 +25,8 @@ using boost::polygon::orientation_2d;
 using boost::polygon::segment_concept;
 using boost::polygon::direction_1d;
 using boost::polygon::segment_traits;
+using boost::polygon::SourceCategory;
+
 
 namespace bp = boost::polygon;
 
@@ -118,24 +120,12 @@ void ECMGenerator::ConstructECMGraph(ECM& ecm, const Environment& environment) c
 	// first create all ECM vertices
 	for (voronoi_diagram<double>::const_vertex_iterator it = 
 		vd.vertices().begin(); it != vd.vertices().end(); ++it) {
-		const voronoi_diagram<double>::vertex_type& vertex = *it;
 
-		Point vertLocation(vertex.x(), vertex.y());
-		if (!environment.InsideObstacle(vertLocation))
-		{
-			// store the closest points in the vertex
-			// TODO:
-			// > In paper it rightfully states that this information could be added in constant time. After all, the VD is generated using 
-			//   nearest obstacle information. We need to adjust the boost library for this.
-			ECMVertex vertex(vertLocation);
-			std::vector<Point> closestPoints = environment.GetClosestObstaclePoints(vertLocation);
-			for (const Point& p : closestPoints)
-			{
-				vertex.AddClosestObstaclePoint(p);
-			}
+		Point vertLocation(it->x(), it->y());
+		if (environment.InsideObstacle(vertLocation)) continue;
 
-			ecmGraph.AddVertex(vertex);
-		}
+		ECMVertex vertex(vertLocation);
+		ecmGraph.AddVertex(vertex);
 	}
 
 	printf("Number of vertices: {%d}\n", ecmGraph.GetVertices().size());
@@ -161,6 +151,9 @@ void ECMGenerator::ConstructECMGraph(ECM& ecm, const Environment& environment) c
 				continue;
 			}
 
+			ECMVertex v0 = ecmGraph.GetVertex(v0_index);
+			ECMVertex v1 = ecmGraph.GetVertex(v1_index);
+
 			// if there already exists an edge between v0 and v1, then we should not construct another edge (bi-directional).
 			const std::vector<int>& edges = ecm.GetECMGraph().GetIncidentEdges(v1_index);
 			bool edgeExists = false;
@@ -173,150 +166,73 @@ void ECMGenerator::ConstructECMGraph(ECM& ecm, const Environment& environment) c
 				}
 			}
 			if (edgeExists) continue;
-
-			// Given closest obstacle points per vertex, assign left/right v0 and v1
-			// > For the segment, calculate the 'right' vector -> Vr.
-			// > Using Vr, determine which closest obstacle points are left and right.
-			// > If there is only 1 left/right closest point, assign this point.
-			// > If there is more, then we want the obstacle point with the sharpest angle with v0-v1. This ensures
-			//    that the segment is adjacent to the obstacle segment:
-			// > for v0, take max(dot(obstaclePoint, segment)). 
-			// > for v1, take min(dot(obstaclePoint, segment)). 
-			//Vec2 right = MathUtility::Right()
-
-			// TODO: it's important to determine how ECM will be traversed. If there is directionality (i.e. two edges for A->B and B->A), then
-			// we can do the above. HOWEVER: the ECM is currently implemented bi-directional (i.e. 1 edge for A<->B). Now, there is no concept of left/right
-			// and the above won't work. Then, you must determine 2 different sides of the line, and determine on runtime (during path planning) which one
-			// is left and which one is right.
-
 			
 			float cost = MathUtility::Distance(x0, y0, x1, y1);
 			ECMEdge edge(v0_index, v1_index, cost);
-			
-			// calculate nearest obstacle point information
-			Vec2 edgeVec(x1 - x0, y1 - y0);
-			float edgeVecT = MathUtility::SquaredLength(edgeVec);
-			Vec2 rightVec = MathUtility::Right(edgeVec);
-			float rightVecT = MathUtility::SquaredLength(rightVec);
 
-			const std::vector<Point>& startClosestPoints = ecmGraph.GetVertex(v0_index).GetClosestPoints();
-			const std::vector<Point>& endClosestPoints = ecmGraph.GetVertex(v1_index).GetClosestPoints();
+			// set whether or not the edge is a parabolic arc
+			edge.SetIsArc(it->is_curved());
 
-			// 1. calculate closest points to start vertex
-			//     Check for edge case when nearest obstacle positions equal the vertex position itself
-			// TODO: make an 'estimate equal' function so we don't have to do this stuff everytime.
-			bool startVertIntersectsObject = 
-				x0 > startClosestPoints[0].x - ECM_EPSILON
-				&& x0 < startClosestPoints[0].x + ECM_EPSILON
-				&& y0 > startClosestPoints[0].y - ECM_EPSILON
-				&& y0 < startClosestPoints[0].y + ECM_EPSILON;
+			// add closest obstacle information
+			// the cell incident (left) to the half-edge of the current iterator contains the closest obstacle information
+			// assume that we only have segments as input (so point must be from input segment)
 
-			if (startVertIntersectsObject)
+			// TODO: refactor (lots of code duplication)
+			// left side contains point
+			if (it->cell()->contains_point())
 			{
-				edge.SetNearestLeftV0(Point(x0, y0));
-				edge.SetNearestRightV0(Point(x0, y0));
+				int sourceIdx = it->cell()->source_index();
+				Segment source = environment.GetEnvironmentObstacleUnion()[sourceIdx];
+				Point p = it->cell()->source_category() == SourceCategory::SOURCE_CATEGORY_SEGMENT_START_POINT ? source.p0 : source.p1;
+				
+				v0.AddClosestObstaclePoint(p);
+				v1.AddClosestObstaclePoint(p);
+
+				edge.SetNearestLeftV0(p);
+				edge.SetNearestLeftV1(p);
 			}
+			// left side contains segment
 			else
 			{
-				int idxLeft = -1, idxRight = -1;
-				float largestDotLeft = -1000000.0f; // FIX THIS!!
-				float largestDotRight = -1000000.0f; // FIX THIS!!
+				int sourceIdx = it->cell()->source_index();
+				Segment source = environment.GetEnvironmentObstacleUnion()[sourceIdx];
+				
+				Point closestP0 = MathUtility::GetClosestPointOnSegment(v0.Position(), source);
+				Point closestP1 = MathUtility::GetClosestPointOnSegment(v1.Position(), source);
 
-				int counter = 0;
-				for (const Point& p : startClosestPoints)
-				{
-					Vec2 pVec(p.x - x0, p.y - y0);
+				v0.AddClosestObstaclePoint(closestP0);
+				v1.AddClosestObstaclePoint(closestP1);
 
-					// because the length of the edge and the length to all closest points are constant, we only have to calculate the dot
-					// product to determine which closest point makes the sharpest angle with the ecm edge.
-					float dot = MathUtility::Dot(edgeVec, pVec);
-					bool isLeft = MathUtility::Dot(rightVec, pVec) < 0;
-
-					if (isLeft && dot > largestDotLeft)
-					{
-						// obstacle point on the left, and new sharpest angle wrt the ECM edge
-						largestDotLeft = dot;
-						idxLeft = counter;
-						counter++;
-
-						continue;
-					}
-					if (!isLeft && dot > largestDotRight)
-					{
-						// obstacle point on the right, and new largest angle wrt the ECM edge
-						largestDotRight = dot;
-						idxRight = counter;
-						counter++;
-
-						continue;
-					}
-
-					counter++;
-				}
-
-				if (idxLeft == -1 || idxRight == -1)
-				{
-					printf("ERROR: closest point could not be found!\n");
-				}
-
-				edge.SetNearestLeftV0(startClosestPoints[idxLeft]);
-				edge.SetNearestRightV0(startClosestPoints[idxRight]);
+				edge.SetNearestLeftV0(closestP0);
+				edge.SetNearestLeftV1(closestP1);
 			}
-
-			bool endVertIntersectsObject =
-				x1 > endClosestPoints[0].x - ECM_EPSILON
-				&& x1 < endClosestPoints[0].x + ECM_EPSILON
-				&& y1 > endClosestPoints[0].y - ECM_EPSILON
-				&& y1 < endClosestPoints[0].y + ECM_EPSILON;
-
-			if (endVertIntersectsObject)
+			// right side contains point
+			if (it->twin()->cell()->contains_point())
 			{
-				edge.SetNearestLeftV1(Point(x1, y1));
-				edge.SetNearestRightV1(Point(x1, y1));
+				int sourceIdx = it->twin()->cell()->source_index();
+				Segment source = environment.GetEnvironmentObstacleUnion()[sourceIdx];
+				Point p = it->twin()->cell()->source_category() == SourceCategory::SOURCE_CATEGORY_SEGMENT_START_POINT ? source.p0 : source.p1;
+
+				v0.AddClosestObstaclePoint(p);
+				v1.AddClosestObstaclePoint(p);
+
+				edge.SetNearestRightV0(p);
+				edge.SetNearestRightV1(p);
 			}
+			// right side contains segment
 			else
 			{
-				int idxLeft = -1, idxRight = -1;
-				float smallestDotLeft = 10000000.0f; // FIX THIS!!
-				float smallestDotRight = 10000000.0f; // FIX THIS!!
-				
-				int counter = 0;
-				for (const Point& p : endClosestPoints)
-				{
-					Vec2 pVec(p.x - x1, p.y - y1);
-				
-					// because the length of the edge and the length to all closest points are constant, we only have to calculate the dot
-					// product to determine which closest point makes the sharpest angle with the ecm edge.
-					float dot = MathUtility::Dot(edgeVec, pVec);
-					bool isLeft = MathUtility::Dot(rightVec, pVec) < 0;
-				
-					if (isLeft && dot < smallestDotLeft)
-					{
-						smallestDotLeft = dot;
-						idxLeft = counter;
-						counter++;
-				
-						continue;
-					}
-					if (!isLeft && dot < smallestDotRight)
-					{
-						smallestDotRight = dot;
-						idxRight = counter;
-						counter++;
-				
-						continue;
-					}
-				
-					counter++;
-				}
-				
-				if (idxLeft == -1 || idxRight == -1)
-				{
-					printf("ERROR: closest point could not be found!\n");
-				}
+				int sourceIdx = it->twin()->cell()->source_index();
+				Segment source = environment.GetEnvironmentObstacleUnion()[sourceIdx];
 
-				edge.SetNearestLeftV1(endClosestPoints[idxLeft]);
-				edge.SetNearestRightV1(endClosestPoints[idxRight]);
+				Point closestP0 = MathUtility::GetClosestPointOnSegment(v0.Position(), source);
+				Point closestP1 = MathUtility::GetClosestPointOnSegment(v1.Position(), source);
+
+				v0.AddClosestObstaclePoint(closestP0);
+				v1.AddClosestObstaclePoint(closestP1);
+
+				edge.SetNearestRightV0(closestP0);
+				edge.SetNearestRightV1(closestP1);
 			}
 
 			int edgeIndex = ecmGraph.AddEdge(edge);
@@ -337,22 +253,9 @@ std::shared_ptr<ECM> ECMGenerator::GenerateECM(const Environment& environment) c
 {
 	std::shared_ptr<ECM> ecm = std::make_shared<ECM>();
 
-	// first make union of walkable area and obstacles
-	std::vector<Segment> envUnion;
-	for (const Segment& seg : environment.GetWalkableArea())
-	{
-		envUnion.push_back(seg);
-	}
-	for (auto obstacle : environment.GetObstacles())
-	{
-		for (const Segment& seg : obstacle)
-		{
-			envUnion.push_back(seg);
-		}
-	}
-
 	printf("Construct voronoi diagram (Boost)... ");
-	boost::polygon::construct_voronoi(envUnion.begin(), envUnion.end(), &ecm->GetMedialAxis()->VD);
+	boost::polygon::construct_voronoi(environment.GetEnvironmentObstacleUnion().begin(), environment.GetEnvironmentObstacleUnion().end(), &ecm->GetMedialAxis()->VD);
+	
 	printf("Done\n");
 
 	printf("Construct ECM graph... ");

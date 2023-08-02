@@ -8,6 +8,7 @@
 #define INVALID_ECM_VERTEX_INDEX -1
 #define ECM_EPSILON 0.02f // TODO: decide what is a good epsilon
 #define ECM_HALF_EPSILON ECM_EPSILON * 0.5f
+#define ECM_ARC_SAMPLE_COUNT 10
 
 class MedialAxis;
 class Point;
@@ -31,6 +32,7 @@ public:
 	inline int V1() const { return m_V1; }
 	inline int Index() const { return m_Index; }
 	inline float Cost() const { return m_Cost; }
+	inline bool IsArc() const { return m_IsArc; }
 	inline Point NearestLeftV0() const { return m_Nearest_left_V0; }
 	inline Point NearestRightV0() const { return m_Nearest_right_V0; }
 	inline Point NearestLeftV1() const { return m_Nearest_left_V1; }
@@ -43,12 +45,15 @@ public:
 	void SetNearestRightV0(Point p) { m_Nearest_right_V0 = p; }
 	void SetNearestLeftV1(Point p) { m_Nearest_left_V1 = p; }
 	void SetNearestRightV1(Point p) { m_Nearest_right_V1 = p; }
+	void SetIsArc(bool isArc) { m_IsArc = isArc; }
 
 private:
 	int m_V0;
 	int m_V1;
 	int m_Index;
 	float m_Cost;
+
+	bool m_IsArc;
 
 	// these are the four closest points to adjacent obstacle. Essentially, this - along with the edge - defines the corridor.
 	Point m_Nearest_left_V0;
@@ -114,6 +119,7 @@ public:
 	const ECMEdge& GetEdge(int idx) const { return m_Edges[idx]; }
 	const std::vector<EdgeIndex>& GetIncidentEdges(int vertex_index) const;
 	const ECMCell* GetCell(float x, float y) const;
+	std::vector<Segment> GetSampledEdge(const ECMEdge& edge, int samples = 10, bool inverseDirection = false) const;
 
 	// ------------- TESTING -------------
 	std::vector<Segment> GetRandomTestPath(int startIndex) const;

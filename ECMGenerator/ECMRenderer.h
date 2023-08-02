@@ -45,6 +45,8 @@ private:
 
 	void DebugSetDrawECMCell(float screenX, float screenY);
 	void DebugDrawECMCell();
+	void DebugDrawSecondaryLines();
+	void DebugDrawCellValues();
 
 private:
 	std::shared_ptr<ECM> _ecm;
