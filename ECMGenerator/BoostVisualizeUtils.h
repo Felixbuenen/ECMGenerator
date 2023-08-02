@@ -59,7 +59,7 @@ namespace boost {
                 >::type
                 >::type,
                 void
-                >::type discretize(
+                >::type* discretize(
                     const Point<InCT1>& point,
                     const Segment<InCT2>& segment,
                     const CT max_dist,
@@ -131,6 +131,8 @@ namespace boost {
 
                 // Update last point.
                 discretization->back() = last_point;
+
+                return nullptr;
             }
 
         private:

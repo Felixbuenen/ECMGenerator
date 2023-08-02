@@ -5,6 +5,8 @@
 #include "UtilityFunctions.h"
 
 #include "boost/polygon/voronoi.hpp"
+#include "BoostVisualizeUtils.h"
+#include <boost/polygon/polygon.hpp>
 
 #include <cstddef>
 #include <memory>
@@ -29,8 +31,6 @@ using boost::polygon::SourceCategory;
 
 
 namespace bp = boost::polygon;
-
-
 template <>
 struct geometry_concept<Point> { typedef point_concept type; };
 
@@ -264,7 +264,47 @@ std::shared_ptr<ECM> ECMGenerator::GenerateECM(const Environment& environment) c
 	printf("Done\n");
 
 	ECMGraph& graph = ecm->GetECMGraph();
-	
+	/*
+	using namespace boost::polygon;
+	typedef double coordinate_type;
+	typedef boost::polygon::point_data<coordinate_type> point_type;
+	typedef boost::polygon::segment_data<coordinate_type> segment_type;
+
+	for (const ECMEdge& e : graph.GetEdges())
+	{
+		if (e.IsArc())
+		{
+			if (MathUtility::SquareDistance(e.NearestLeftV0(), e.NearestLeftV1()) < ECM_EPSILON)
+			{
+				point_type p = e.NearestLeftV0();
+				segment_type seg(e.NearestRightV0(), e.NearestRightV1());
+				const double maxDist = 0.1;
+
+				std::vector<point_type> discr;
+				discr.push_back(graph.GetVertex(e.V0()).Position());
+				discr.push_back(graph.GetVertex(e.V1()).Position());
+
+				//auto c = boost::polygon::voronoi_visual_utils<double>::discretize(p, s, maxDist, &discr);
+				boost::polygon::voronoi_visual_utils<coordinate_type>::discretize(p, seg, maxDist, &discr);
+			}
+			else
+			{
+				point_type p = e.NearestRightV0();
+				segment_type seg(e.NearestLeftV0(), e.NearestLeftV1());
+				const double maxDist = 0.1;
+
+				std::vector<point_type> discr;
+				discr.push_back(graph.GetVertex(e.V0()).Position());
+				discr.push_back(graph.GetVertex(e.V1()).Position());
+
+				//auto c = boost::polygon::voronoi_visual_utils<double>::discretize(p, s, maxDist, &discr);
+				boost::polygon::voronoi_visual_utils<coordinate_type>::discretize(p, seg, maxDist, &discr);
+			}
+
+			break;
+		}
+	}
+	*/
 
 	// Traversing Voronoi Graph.
 

@@ -2,11 +2,15 @@
 #include "ECM.h"
 #include "Environment.h"
 #include "ECMCellCollection.h"
+#include "UtilityFunctions.h"
 
 #include "SDL.h"
 #include "boost/polygon/voronoi.hpp"
+#include <boost/polygon/polygon.hpp>
+#include "BoostVisualizeUtils.h"
 
 #include <stdio.h>
+
 
 void ECMRenderer::Initialize(int screenWidth, int screenHeight, const char* title, std::shared_ptr<ECM> ecm, Environment* env, ECMRendererColorSettings colorSettings, float zoomFactor)
 {
@@ -171,22 +175,66 @@ void ECMRenderer::DrawMedialAxis()
 	const std::vector<ECMEdge>& edges = graph.GetEdges();
 	const std::vector<ECMVertex>& verts = graph.GetVertices();
 
-	for (auto edge : edges)
+	// TODO: 
+	// > figure out how we can use the point_type / segment_type for all calculations
+	// > refactor code to prevent code duplication
+	using namespace boost::polygon;
+	typedef double coordinate_type;
+	typedef boost::polygon::point_data<coordinate_type> point_type;
+	typedef boost::polygon::segment_data<coordinate_type> segment_type;
+
+	for (const ECMEdge& edge : edges)
 	{
 		if (edge.IsArc())
 		{
-			SDL_SetRenderDrawColor(_renderer, 0x00, 0xff, 0x00, 0xff);
+			std::vector<point_type> discr;
+			point_type pt1(graph.GetVertex(edge.V0()).Position().x, graph.GetVertex(edge.V0()).Position().y);
+			point_type pt2(graph.GetVertex(edge.V1()).Position().x, graph.GetVertex(edge.V1()).Position().y);
+			discr.push_back(pt1);
+			discr.push_back(pt2);
+
+			const double maxDist = 0.5;
+
+			if (MathUtility::SquareDistance(edge.NearestLeftV0(), edge.NearestLeftV1()) < ECM_EPSILON)
+			{
+				point_type p(edge.NearestLeftV0().x, edge.NearestLeftV0().y);
+				point_type nr0(edge.NearestRightV0().x, edge.NearestRightV0().y);
+				point_type nr1(edge.NearestRightV1().x, edge.NearestRightV1().y);
+				segment_type seg(nr0, nr1);
+				
+				boost::polygon::voronoi_visual_utils<coordinate_type>::discretize(p, seg, maxDist, &discr);
+			}
+			else
+			{
+				point_type p(edge.NearestRightV0().x, edge.NearestRightV0().y);
+				point_type nl0(edge.NearestLeftV0().x, edge.NearestLeftV0().y);
+				point_type nl1(edge.NearestLeftV1().x, edge.NearestLeftV1().y);
+				segment_type seg(nl0, nl1);
+
+				boost::polygon::voronoi_visual_utils<coordinate_type>::discretize(p, seg, maxDist, &discr);
+			}
+
+			int numEdges = discr.size() - 1;
+			for (int i = 0; i < numEdges; i++)
+			{
+				int x1 = discr[i].x()	   * _zoomFactor + _offsetX;
+				int y1 = discr[i].y()	   * _zoomFactor + _offsetY;
+				int x2 = discr[i + 1].x()  * _zoomFactor + _offsetX;
+				int y2 = discr[i + 1].y()  * _zoomFactor + _offsetY;
+				
+				SDL_RenderDrawLine(_renderer, x1, y1, x2, y2);
+			}
 		}
 		else
 		{
-			SDL_SetRenderDrawColor(_renderer, 0x00, 0x00, 0x00, 0xff);
-		}
-		int x1 = verts[edge.V0()].Position().x * _zoomFactor + _offsetX;
-		int y1 = verts[edge.V0()].Position().y * _zoomFactor + _offsetY;
-		int x2 = verts[edge.V1()].Position().x * _zoomFactor + _offsetX;
-		int y2 = verts[edge.V1()].Position().y * _zoomFactor + _offsetY;
+			int x1 = verts[edge.V0()].Position().x * _zoomFactor + _offsetX;
+			int y1 = verts[edge.V0()].Position().y * _zoomFactor + _offsetY;
+			int x2 = verts[edge.V1()].Position().x * _zoomFactor + _offsetX;
+			int y2 = verts[edge.V1()].Position().y * _zoomFactor + _offsetY;
 
-		SDL_RenderDrawLine(_renderer, x1, y1, x2, y2);
+			SDL_RenderDrawLine(_renderer, x1, y1, x2, y2);
+		}
+		
 	}
 }
 
@@ -288,6 +336,7 @@ void ECMRenderer::DebugDrawECMCell()
 		float x1 = s.p1.x * _zoomFactor + _offsetX;
 		float y0 = s.p0.y * _zoomFactor + _offsetY;
 		float y1 = s.p1.y * _zoomFactor + _offsetY;
+
 		SDL_RenderDrawLine(_renderer, x0, y0, x1, y1);
 	}
 }
