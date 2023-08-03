@@ -4,6 +4,7 @@
 #include "Environment.h"
 #include "ECMGenerator.h"
 #include "ECM.h"
+#include "ECMPathPlanner.h"
 
 #include "SDL.h"
 
@@ -16,6 +17,7 @@ namespace ECM
 			if (!InitializeEnvironment(environment)) return false;
 			if (!InitializeWindow(title, screenWidth, screenHeight, zoomFactor)) return false;
 			if (!InitializeRenderer()) return false;
+
 
 			return true;
 		}
@@ -35,12 +37,33 @@ namespace ECM
 					if (e.type == SDL_QUIT) quit = true;
 
 					// EVENT: CLICK CELL
-					if (e.type == SDL_MOUSEBUTTONDOWN)
+					if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT)
 					{
 						float worldX = (e.button.x - m_ApplicationState.camOffsetX) / m_ApplicationState.camZoomFactor;
 						float worldY = (e.button.y - m_ApplicationState.camOffsetY) / m_ApplicationState.camZoomFactor;
 
+						printf("world X: %f\n", worldX);
+						printf("world Y: %f\n", worldY);
+
 						m_ApplicationState.cellToDraw = m_ApplicationState.ecm->GetECMCell(worldX, worldY);
+					}
+
+					// EVENT: CLICK START/GOAL/RESET PATH
+					if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT)
+					{
+						float worldX = (e.button.x - m_ApplicationState.camOffsetX) / m_ApplicationState.camZoomFactor;
+						float worldY = (e.button.y - m_ApplicationState.camOffsetY) / m_ApplicationState.camZoomFactor;
+
+						if (!m_ApplicationState.pathToDraw.empty())
+						{
+							m_ApplicationState.pathToDraw.clear();
+							m_ApplicationState.pathStartPoint = Point(worldX, worldY);
+						}
+						else
+						{
+							m_ApplicationState.pathGoalPoint = Point(worldX, worldY);
+							m_ApplicationState.pathToDraw = PathPlanning::ECMPathPlanner::GetPath(m_ApplicationState.environment, m_ApplicationState.pathStartPoint, m_ApplicationState.pathGoalPoint, 5.0f);
+						}
 					}
 
 					else

@@ -8,6 +8,7 @@
 namespace ECM {
 
 	class ECMEdge;
+	class ECMCell;
 	class ECM;
 
 	class Environment
@@ -45,9 +46,11 @@ namespace ECM {
 		inline const std::vector<Segment>& GetWalkableArea() const { return _walkableArea; }
 		inline const std::vector<std::vector<Segment>>& GetObstacles() const { return _obstacles; }
 		inline BBOX GetBBOX() const { return _bbox; }
+		inline const std::vector<Segment>& GetEnvironmentObstacleUnion() const { return _environmentObstacleUnion; }
+		inline std::shared_ptr<ECM> GetECM(int index = 0) { return m_EcmList[index]; }
+
 		std::vector<Point> GetClosestObstaclePoints(const Point& location) const;
-		const std::vector<Segment>& GetEnvironmentObstacleUnion() const { return _environmentObstacleUnion; }
-		std::shared_ptr<ECM> GetECM(int index = 0) { return m_EcmList[index]; }
+		std::shared_ptr<ECM> QueryECM(Point position) const;
 
 		bool InsideObstacle(const Point& p) const;
 

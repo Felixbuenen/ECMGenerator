@@ -11,8 +11,6 @@ namespace ECM {
 		_walkableArea = waEdges;
 
 		for (Segment s : waEdges) _environmentObstacleUnion.push_back(s);
-		// the edges of the walkable area should be considered an 'object'
-		//AddObstacle(waEdges);
 
 		UpdateBbox(waEdges);
 	}
@@ -125,4 +123,9 @@ namespace ECM {
 		return result;
 	}
 
+	// for now just return the only ECM we have. However, this method can be expanded to be used with multiple ECM graphs.
+	std::shared_ptr<ECM> Environment::QueryECM(Point position) const
+	{
+		return m_EcmList[0];
+	}
 }

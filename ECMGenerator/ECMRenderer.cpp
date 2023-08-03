@@ -44,6 +44,8 @@ namespace ECM {
 			//DebugDrawSecondaryLines();
 			//DebugDrawCellValues();
 
+			DrawPath();
+
 			// render window
 			SDL_RenderPresent(m_Renderer);
 		}
@@ -339,6 +341,24 @@ namespace ECM {
 
 					SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
 				}
+			}
+		}
+
+		void ECMRenderer::DrawPath()
+		{
+			PathPlanning::Path& path = m_AppState->pathToDraw;
+
+			if (path.empty()) return;
+
+			SDL_SetRenderDrawColor(m_Renderer, 0x00, 0xaa, 0x00, 0xff);
+			for (int i = 0 ; i < path.size() - 1; i++)
+			{
+				float x0 = path[i].x * m_CamZoomFactor + m_CamOffsetX;
+				float x1 = path[i+1].x * m_CamZoomFactor + m_CamOffsetX;
+				float y0 = path[i].y * m_CamZoomFactor + m_CamOffsetY;
+				float y1 = path[i+1].y * m_CamZoomFactor + m_CamOffsetY;
+
+				SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
 			}
 		}
 

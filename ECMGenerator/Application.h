@@ -13,6 +13,11 @@ namespace ECM
 	class ECMRendererColorSettings;
 	class ECMCell;
 
+	namespace PathPlanning
+	{
+		typedef std::vector<Point> Path;
+	}
+
 	namespace WindowApplication
 	{
 		struct ApplicationState
@@ -28,6 +33,11 @@ namespace ECM
 
 			// misc
 			const ECMCell* cellToDraw;
+
+			// path
+			Point pathStartPoint;
+			Point pathGoalPoint;
+			PathPlanning::Path pathToDraw;
 		};
 
 		class Application
