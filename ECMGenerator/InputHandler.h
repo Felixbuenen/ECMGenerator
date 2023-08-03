@@ -1,5 +1,7 @@
 #pragma once
 
+#include "SDL.h"
+
 /*
 * WINDOW AND INTERACTION STRUCTURE
 * > Application: starts the SDL window, reads (or manually sets up) environment and creates the ECM. Contains main loop.
@@ -9,3 +11,14 @@
 */
 
 // TODO: key/event binding struct. 
+
+namespace ECM {
+	namespace WindowApplication {
+
+		class InputHandler
+		{
+
+		};
+
+	}
+}

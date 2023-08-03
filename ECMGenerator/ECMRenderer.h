@@ -81,8 +81,6 @@ namespace ECM {
 		private:
 			SDL_Renderer* m_Renderer;
 			SDL_Surface* m_ScreenSurface;
-
-			const ECMCell* m_CellToDraw;
 		};
 
 

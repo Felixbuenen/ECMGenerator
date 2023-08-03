@@ -271,11 +271,11 @@ namespace ECM {
 
 		void ECMRenderer::DebugDrawECMCell()
 		{
-			if (!m_CellToDraw) return;
+			if (!m_AppState->cellToDraw) return;
 
 			SDL_SetRenderDrawColor(m_Renderer, 0xc4, 0x77, 0x02, 0xff);
 
-			const std::vector<Segment>& segs = m_CellToDraw->boundary;
+			const std::vector<Segment>& segs = m_AppState->cellToDraw->boundary;
 
 			for (const Segment& s : segs)
 			{
@@ -288,14 +288,6 @@ namespace ECM {
 			}
 		}
 
-
-		void ECMRenderer::DebugSetDrawECMCell(float screenX, float screenY)
-		{
-			float worldX = (screenX - m_CamOffsetX) / m_CamZoomFactor;
-			float worldY = (screenY - m_CamOffsetY) / m_CamZoomFactor;
-
-			m_CellToDraw = m_Ecm->GetECMCell(worldX, worldY);
-		}
 
 		void ECMRenderer::DebugDrawSecondaryLines()
 		{

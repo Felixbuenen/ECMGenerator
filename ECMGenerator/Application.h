@@ -11,6 +11,7 @@ namespace ECM
 	class ECMGenerator;
 	class ECM;
 	class ECMRendererColorSettings;
+	class ECMCell;
 
 	namespace WindowApplication
 	{
@@ -24,6 +25,9 @@ namespace ECM
 			// ECM state
 			Environment environment;
 			std::shared_ptr<ECM> ecm;
+
+			// misc
+			const ECMCell* cellToDraw;
 		};
 
 		class Application

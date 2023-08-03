@@ -3,6 +3,7 @@
 #include "ECMDataTypes.h"
 #include "Environment.h"
 #include "ECMGenerator.h"
+#include "ECM.h"
 
 #include "SDL.h"
 
@@ -18,15 +19,19 @@ namespace ECM
 
 			m_Renderer.Render();
 
-			//Hack to get window to stay up
+			// start main loop
 			SDL_Event e; bool quit = false; while (quit == false)
 			{
 				while (SDL_PollEvent(&e)) {
 					if (e.type == SDL_QUIT) quit = true;
 
+					// EVENT: CLICK CELL
 					if (e.type == SDL_MOUSEBUTTONDOWN)
 					{
-						//DebugSetDrawECMCell(e.button.x, e.button.y);
+						float worldX = (e.button.x - m_ApplicationState.camOffsetX) / m_ApplicationState.camZoomFactor;
+						float worldY = (e.button.y - m_ApplicationState.camOffsetY) / m_ApplicationState.camZoomFactor;
+
+						m_ApplicationState.cellToDraw = m_ApplicationState.ecm->GetECMCell(worldX, worldY);
 					}
 
 					else
