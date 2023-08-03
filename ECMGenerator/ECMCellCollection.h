@@ -2,27 +2,31 @@
 
 #include <vector>
 
-class ECMGraph;
+namespace ECM {
 
-struct Segment;
-struct Point;
+	class ECMGraph;
 
-// an ECM cell is defined by a boundary and the ECM edge it contains
-struct ECMCell
-{
-	std::vector<Segment> boundary;
-	int ecmEdge;
-};
+	struct Segment;
+	struct Point;
 
-// stores the ECM cells and provides an API to perform operations (such as point location query).
-// TODO: 
-// > right now this is a very simple implementation, make it into a trapezoidal decomposition.
-class ECMCellCollection
-{
-public:
-	void Construct(const ECMGraph& graph);
-	const ECMCell* PointLocationQuery(const Point& location) const;
+	// an ECM cell is defined by a boundary and the ECM edge it contains
+	struct ECMCell
+	{
+		std::vector<Segment> boundary;
+		int ecmEdge;
+	};
 
-private:
-	std::vector<ECMCell> m_ECMCells; // todo: trapezoidal decomp
-};
+	// stores the ECM cells and provides an API to perform operations (such as point location query).
+	// TODO: 
+	// > right now this is a very simple implementation, make it into a trapezoidal decomposition.
+	class ECMCellCollection
+	{
+	public:
+		void Construct(const ECMGraph& graph);
+		const ECMCell* PointLocationQuery(const Point& location) const;
+
+	private:
+		std::vector<ECMCell> m_ECMCells; // todo: trapezoidal decomp
+	};
+
+}

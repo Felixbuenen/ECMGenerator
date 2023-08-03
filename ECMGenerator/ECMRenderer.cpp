@@ -11,394 +11,399 @@
 
 #include <stdio.h>
 
+namespace ECM {
+	namespace WindowApplication {
 
-void ECMRenderer::Initialize(int screenWidth, int screenHeight, const char* title, std::shared_ptr<ECM> ecm, Environment* env, ECMRendererColorSettings colorSettings, float zoomFactor)
-{
-	// set member vars
-	_ecm = ecm;
-	_env = env;
-	_zoomFactor = zoomFactor;
-
-	int bboxW = (env->GetBBOX().max.x - env->GetBBOX().min.x) * zoomFactor;
-	int bboxH = (env->GetBBOX().max.y - env->GetBBOX().min.y) * zoomFactor;
-
-	_offsetX = -env->GetBBOX().min.x * zoomFactor + screenWidth * 0.5f - bboxW * 0.5f;
-	_offsetY = -env->GetBBOX().min.y * zoomFactor + screenHeight * 0.5f - bboxH * 0.5f;
-
-	_colorSettings = colorSettings;
-
-	//The window we'll be rendering to
-	_window = NULL;
-	_renderer = NULL;
-
-	//The surface contained by the window
-	_screenSurface = NULL;
-
-	InitializeRenderContext(screenWidth, screenHeight, title);
-
-	//Destroy window
-	SDL_DestroyWindow(_window);
-	SDL_DestroyRenderer(_renderer);
-
-	//Quit SDL subsystems
-	SDL_Quit();
-}
-
-void ECMRenderer::InitializeRenderContext(int width, int height, const char* title)
-{
-	//Initialize SDL
-	if (SDL_Init(SDL_INIT_VIDEO) < 0)
-	{
-		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
-	}
-	else
-	{
-		//Create window
-		_window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_SHOWN);
-		if (_window == NULL)
+		void ECMRenderer::Initialize(int screenWidth, int screenHeight, const char* title, std::shared_ptr<ECM> ecm, Environment* env, ECMRendererColorSettings colorSettings, float zoomFactor)
 		{
-			printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
+			// set member vars
+			m_Ecm = ecm;
+			m_Env = env;
+			m_CamZoomFactor = zoomFactor;
+
+			int bboxW = (m_Env->GetBBOX().max.x - m_Env->GetBBOX().min.x) * zoomFactor;
+			int bboxH = (m_Env->GetBBOX().max.y - m_Env->GetBBOX().min.y) * zoomFactor;
+
+			m_CamOffsetX = -m_Env->GetBBOX().min.x * zoomFactor + screenWidth * 0.5f - bboxW * 0.5f;
+			m_CamOffsetY = -m_Env->GetBBOX().min.y * zoomFactor + screenHeight * 0.5f - bboxH * 0.5f;
+
+			m_ColorSettings = colorSettings;
+
+			//The window we'll be rendering to
+			m_Window = NULL;
+			m_Renderer = NULL;
+
+			//The surface contained by the window
+			m_ScreenSurface = NULL;
+
+			InitializeRenderContext(screenWidth, screenHeight, title);
+
+			//Destroy window
+			SDL_DestroyWindow(m_Window);
+			SDL_DestroyRenderer(m_Renderer);
+
+			//Quit SDL subsystems
+			SDL_Quit();
 		}
-		else
+
+		void ECMRenderer::InitializeRenderContext(int width, int height, const char* title)
 		{
-			_renderer = SDL_CreateRenderer(_window, -1, 0);
-
-			//Get window surface
-			_screenSurface = SDL_GetWindowSurface(_window);
-
-
-			//Update the surface
-			SDL_UpdateWindowSurface(_window);
-
-			Render();
-
-			//Hack to get window to stay up
-			SDL_Event e; bool quit = false; while (quit == false) 
-			{ 
-				while (SDL_PollEvent(&e)) { 
-					if (e.type == SDL_QUIT) quit = true; 
-
-					if (e.type == SDL_MOUSEBUTTONDOWN)
-					{
-						DebugSetDrawECMCell(e.button.x, e.button.y);
-					}
-
-					else
-					{
-						Render();
-					}
-				} 
-			}
-		}
-	}
-}
-
-void ECMRenderer::Render()
-{
-	DrawBackground();
-	DrawWalkableArea();
-	DrawObstacles();
-	DrawMedialAxis();
-	DrawECMVertices();
-	//DrawClosestObstaclePoints();
-	
-	// TEST
-	//DrawRandomTestPath();
-	//DrawInsideVerts();
-	DebugDrawECMCell();
-	//DebugDrawSecondaryLines();
-	//DebugDrawCellValues();
-
-	// render window
-	SDL_RenderPresent(_renderer);
-}
-
-void ECMRenderer::DrawBackground()
-{
-	SDL_SetRenderDrawColor(_renderer, _colorSettings.background_R, _colorSettings.background_G, _colorSettings.background_B, 0xff);
-	SDL_RenderClear(_renderer);
-}
-
-void ECMRenderer::DrawWalkableArea()
-{
-	SDL_SetRenderDrawColor(_renderer, _colorSettings.walkableArea_R, _colorSettings.walkableArea_G, _colorSettings.walkableArea_B, 0xff);
-	const std::vector<Segment>& walkableArea = _env->GetWalkableArea();
-
-	// this code only works for this specific test case! make sure to encapsulate it in a walkable area struct 
-	int x = walkableArea[0].p0.x * _zoomFactor + _offsetX;
-	int y = walkableArea[0].p0.y* _zoomFactor + _offsetY;
-	int w =  (walkableArea[0].p1.x - walkableArea[0].p0.x);
-	int h = (walkableArea[1].p1.y - walkableArea[1].p0.y);
-
-	w *= _zoomFactor;
-	h *= _zoomFactor;
-
-	SDL_Rect testWalkableArea;
-	testWalkableArea.x = x;
-	testWalkableArea.y = y;
-	testWalkableArea.w = w;
-	testWalkableArea.h = h;
-
-	SDL_RenderDrawRect(_renderer, &testWalkableArea);
-	SDL_RenderFillRect(_renderer, &testWalkableArea);
-}
-
-void ECMRenderer::DrawObstacles()
-{
-	SDL_SetRenderDrawColor(_renderer, _colorSettings.obstacle_R, _colorSettings.obstacle_G, _colorSettings.obstacle_B, 0xff);
-
-	const std::vector<std::vector<Segment>>& obstacles = _env->GetObstacles();
-	for (const std::vector<Segment>& obstacle : obstacles) {
-		for (const Segment& edge : obstacle) {
-
-			int x1 = edge.p0.x * _zoomFactor + _offsetX;
-			int y1 = edge.p0.y * _zoomFactor + _offsetY;
-			int x2 = edge.p1.x * _zoomFactor + _offsetX;
-			int y2 = edge.p1.y * _zoomFactor + _offsetY;
-
-			SDL_RenderDrawLine(_renderer, x1, y1, x2, y2);
-		}
-	}
-
-	// _ecm->GetObstacles();
-}
-
-void ECMRenderer::DrawMedialAxis()
-{
-	// TODO: loop through all edges. For non-linear edges (arcs), sample the arc.
-	auto ma = _ecm->GetMedialAxis();
-	ECMGraph& graph = _ecm->GetECMGraph();
-
-	// TODO: add colour to properties
-	SDL_SetRenderDrawColor(_renderer, 0x00,0x00, 0x00, 0xff);
-
-	const std::vector<ECMEdge>& edges = graph.GetEdges();
-	const std::vector<ECMVertex>& verts = graph.GetVertices();
-
-	// TODO: 
-	// > figure out how we can use the point_type / segment_type for all calculations
-	// > refactor code to prevent code duplication
-	using namespace boost::polygon;
-	typedef double coordinate_type;
-	typedef boost::polygon::point_data<coordinate_type> point_type;
-	typedef boost::polygon::segment_data<coordinate_type> segment_type;
-
-	for (const ECMEdge& edge : edges)
-	{
-		if (edge.IsArc())
-		{
-			std::vector<point_type> discr;
-			point_type pt1(graph.GetVertex(edge.V0()).Position().x, graph.GetVertex(edge.V0()).Position().y);
-			point_type pt2(graph.GetVertex(edge.V1()).Position().x, graph.GetVertex(edge.V1()).Position().y);
-			discr.push_back(pt1);
-			discr.push_back(pt2);
-
-			const double maxDist = 0.5;
-
-			if (MathUtility::SquareDistance(edge.NearestLeftV0(), edge.NearestLeftV1()) < ECM_EPSILON)
+			//Initialize SDL
+			if (SDL_Init(SDL_INIT_VIDEO) < 0)
 			{
-				point_type p(edge.NearestLeftV0().x, edge.NearestLeftV0().y);
-				point_type nr0(edge.NearestRightV0().x, edge.NearestRightV0().y);
-				point_type nr1(edge.NearestRightV1().x, edge.NearestRightV1().y);
-				segment_type seg(nr0, nr1);
-				
-				boost::polygon::voronoi_visual_utils<coordinate_type>::discretize(p, seg, maxDist, &discr);
+				printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 			}
 			else
 			{
-				point_type p(edge.NearestRightV0().x, edge.NearestRightV0().y);
-				point_type nl0(edge.NearestLeftV0().x, edge.NearestLeftV0().y);
-				point_type nl1(edge.NearestLeftV1().x, edge.NearestLeftV1().y);
-				segment_type seg(nl0, nl1);
+				//Create window
+				m_Window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_SHOWN);
+				if (m_Window == NULL)
+				{
+					printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
+				}
+				else
+				{
+					m_Renderer = SDL_CreateRenderer(m_Window, -1, 0);
 
-				boost::polygon::voronoi_visual_utils<coordinate_type>::discretize(p, seg, maxDist, &discr);
+					//Get window surface
+					m_ScreenSurface = SDL_GetWindowSurface(m_Window);
+
+
+					//Update the surface
+					SDL_UpdateWindowSurface(m_Window);
+
+					Render();
+
+					//Hack to get window to stay up
+					SDL_Event e; bool quit = false; while (quit == false)
+					{
+						while (SDL_PollEvent(&e)) {
+							if (e.type == SDL_QUIT) quit = true;
+
+							if (e.type == SDL_MOUSEBUTTONDOWN)
+							{
+								DebugSetDrawECMCell(e.button.x, e.button.y);
+							}
+
+							else
+							{
+								Render();
+							}
+						}
+					}
+				}
+			}
+		}
+
+		void ECMRenderer::Render()
+		{
+			DrawBackground();
+			DrawWalkableArea();
+			DrawObstacles();
+			DrawMedialAxis();
+			DrawECMVertices();
+			//DrawClosestObstaclePoints();
+
+			// TEST
+			//DrawRandomTestPath();
+			//DrawInsideVerts();
+			DebugDrawECMCell();
+			//DebugDrawSecondaryLines();
+			//DebugDrawCellValues();
+
+			// render window
+			SDL_RenderPresent(m_Renderer);
+		}
+
+		void ECMRenderer::DrawBackground()
+		{
+			SDL_SetRenderDrawColor(m_Renderer, m_ColorSettings.background_R, m_ColorSettings.background_G, m_ColorSettings.background_B, 0xff);
+			SDL_RenderClear(m_Renderer);
+		}
+
+		void ECMRenderer::DrawWalkableArea()
+		{
+			SDL_SetRenderDrawColor(m_Renderer, m_ColorSettings.walkableArea_R, m_ColorSettings.walkableArea_G, m_ColorSettings.walkableArea_B, 0xff);
+			const std::vector<Segment>& walkableArea = m_Env->GetWalkableArea();
+
+			// this code only works for this specific test case! make sure to encapsulate it in a walkable area struct 
+			int x = walkableArea[0].p0.x * m_CamZoomFactor + m_CamOffsetX;
+			int y = walkableArea[0].p0.y * m_CamZoomFactor + m_CamOffsetY;
+			int w = (walkableArea[0].p1.x - walkableArea[0].p0.x);
+			int h = (walkableArea[1].p1.y - walkableArea[1].p0.y);
+
+			w *= m_CamZoomFactor;
+			h *= m_CamZoomFactor;
+
+			SDL_Rect testWalkableArea;
+			testWalkableArea.x = x;
+			testWalkableArea.y = y;
+			testWalkableArea.w = w;
+			testWalkableArea.h = h;
+
+			SDL_RenderDrawRect(m_Renderer, &testWalkableArea);
+			SDL_RenderFillRect(m_Renderer, &testWalkableArea);
+		}
+
+		void ECMRenderer::DrawObstacles()
+		{
+			SDL_SetRenderDrawColor(m_Renderer, m_ColorSettings.obstacle_R, m_ColorSettings.obstacle_G, m_ColorSettings.obstacle_B, 0xff);
+
+			const std::vector<std::vector<Segment>>& obstacles = m_Env->GetObstacles();
+			for (const std::vector<Segment>& obstacle : obstacles) {
+				for (const Segment& edge : obstacle) {
+
+					int x1 = edge.p0.x * m_CamZoomFactor + m_CamOffsetX;
+					int y1 = edge.p0.y * m_CamZoomFactor + m_CamOffsetY;
+					int x2 = edge.p1.x * m_CamZoomFactor + m_CamOffsetX;
+					int y2 = edge.p1.y * m_CamZoomFactor + m_CamOffsetY;
+
+					SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
+				}
 			}
 
-			int numEdges = discr.size() - 1;
-			for (int i = 0; i < numEdges; i++)
+			// _ecm->GetObstacles();
+		}
+
+		void ECMRenderer::DrawMedialAxis()
+		{
+			// TODO: loop through all edges. For non-linear edges (arcs), sample the arc.
+			auto ma = m_Ecm->GetMedialAxis();
+			ECMGraph& graph = m_Ecm->GetECMGraph();
+
+			// TODO: add colour to properties
+			SDL_SetRenderDrawColor(m_Renderer, 0x00, 0x00, 0x00, 0xff);
+
+			const std::vector<ECMEdge>& edges = graph.GetEdges();
+			const std::vector<ECMVertex>& verts = graph.GetVertices();
+
+			// TODO: 
+			// > figure out how we can use the point_type / segment_type for all calculations
+			// > refactor code to prevent code duplication
+			using namespace boost::polygon;
+			typedef double coordinate_type;
+			typedef boost::polygon::point_data<coordinate_type> point_type;
+			typedef boost::polygon::segment_data<coordinate_type> segment_type;
+
+			for (const ECMEdge& edge : edges)
 			{
-				int x1 = discr[i].x()	   * _zoomFactor + _offsetX;
-				int y1 = discr[i].y()	   * _zoomFactor + _offsetY;
-				int x2 = discr[i + 1].x()  * _zoomFactor + _offsetX;
-				int y2 = discr[i + 1].y()  * _zoomFactor + _offsetY;
-				
-				SDL_RenderDrawLine(_renderer, x1, y1, x2, y2);
+				if (edge.IsArc())
+				{
+					std::vector<point_type> discr;
+					point_type pt1(graph.GetVertex(edge.V0()).Position().x, graph.GetVertex(edge.V0()).Position().y);
+					point_type pt2(graph.GetVertex(edge.V1()).Position().x, graph.GetVertex(edge.V1()).Position().y);
+					discr.push_back(pt1);
+					discr.push_back(pt2);
+
+					const double maxDist = 0.5;
+
+					if (Utility::MathUtility::SquareDistance(edge.NearestLeftV0(), edge.NearestLeftV1()) < Utility::EPSILON)
+					{
+						point_type p(edge.NearestLeftV0().x, edge.NearestLeftV0().y);
+						point_type nr0(edge.NearestRightV0().x, edge.NearestRightV0().y);
+						point_type nr1(edge.NearestRightV1().x, edge.NearestRightV1().y);
+						segment_type seg(nr0, nr1);
+
+						boost::polygon::voronoi_visual_utils<coordinate_type>::discretize(p, seg, maxDist, &discr);
+					}
+					else
+					{
+						point_type p(edge.NearestRightV0().x, edge.NearestRightV0().y);
+						point_type nl0(edge.NearestLeftV0().x, edge.NearestLeftV0().y);
+						point_type nl1(edge.NearestLeftV1().x, edge.NearestLeftV1().y);
+						segment_type seg(nl0, nl1);
+
+						boost::polygon::voronoi_visual_utils<coordinate_type>::discretize(p, seg, maxDist, &discr);
+					}
+
+					int numEdges = discr.size() - 1;
+					for (int i = 0; i < numEdges; i++)
+					{
+						int x1 = discr[i].x() * m_CamZoomFactor + m_CamOffsetX;
+						int y1 = discr[i].y() * m_CamZoomFactor + m_CamOffsetY;
+						int x2 = discr[i + 1].x() * m_CamZoomFactor + m_CamOffsetX;
+						int y2 = discr[i + 1].y() * m_CamZoomFactor + m_CamOffsetY;
+
+						SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
+					}
+				}
+				else
+				{
+					int x1 = verts[edge.V0()].Position().x * m_CamZoomFactor + m_CamOffsetX;
+					int y1 = verts[edge.V0()].Position().y * m_CamZoomFactor + m_CamOffsetY;
+					int x2 = verts[edge.V1()].Position().x * m_CamZoomFactor + m_CamOffsetX;
+					int y2 = verts[edge.V1()].Position().y * m_CamZoomFactor + m_CamOffsetY;
+
+					SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
+				}
+
 			}
 		}
-		else
+
+		void ECMRenderer::DrawRandomTestPath()
 		{
-			int x1 = verts[edge.V0()].Position().x * _zoomFactor + _offsetX;
-			int y1 = verts[edge.V0()].Position().y * _zoomFactor + _offsetY;
-			int x2 = verts[edge.V1()].Position().x * _zoomFactor + _offsetX;
-			int y2 = verts[edge.V1()].Position().y * _zoomFactor + _offsetY;
+			SDL_SetRenderDrawColor(m_Renderer, 0x00, 0xff, 0x00, 0xff);
 
-			SDL_RenderDrawLine(_renderer, x1, y1, x2, y2);
+			std::vector<Segment> path = m_Ecm->GetRandomTestPath();
+
+			for (const Segment& s : path)
+			{
+				float x0 = s.p0.x * m_CamZoomFactor + m_CamOffsetX;
+				float x1 = s.p1.x * m_CamZoomFactor + m_CamOffsetX;
+				float y0 = s.p0.y * m_CamZoomFactor + m_CamOffsetY;
+				float y1 = s.p1.y * m_CamZoomFactor + m_CamOffsetY;
+
+				SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
+			}
 		}
-		
-	}
-}
 
-void ECMRenderer::DrawRandomTestPath()
-{
-	SDL_SetRenderDrawColor(_renderer, 0x00, 0xff, 0x00, 0xff);
-
-	std::vector<Segment> path = _ecm->GetRandomTestPath();
-
-	for (const Segment& s : path)
-	{
-		float x0 = s.p0.x * _zoomFactor + _offsetX;
-		float x1 = s.p1.x * _zoomFactor + _offsetX;
-		float y0 = s.p0.y * _zoomFactor + _offsetY;
-		float y1 = s.p1.y * _zoomFactor + _offsetY;
-
-		SDL_RenderDrawLine(_renderer, x0, y0, x1, y1);
-	}
-}
-
-void ECMRenderer::DrawECMVertices()
-{
-	auto verts = _ecm->GetECMGraph().GetVertices();
-
-	SDL_SetRenderDrawColor(_renderer, 0xff, 0x00, 0xff, 0xff);
-	//SDL_RenderSetScale(_renderer, 2.0f, 2.0f);
-
-	for (auto vert : verts)
-	{
-		float x = vert.Position().x * _zoomFactor + _offsetX;
-		float y = vert.Position().y * _zoomFactor + _offsetY;
-
-		SDL_RenderDrawPoint(_renderer, x, y);
-	}
-
-	int result = SDL_RenderDrawPoint(_renderer, _offsetX, _offsetY);
-
-
-	//SDL_RenderSetScale(_renderer, 1.0f, 1.0f);
-
-}
-
-void ECMRenderer::DrawInsideVerts()
-{
-	auto verts = _ecm->GetECMGraph().GetVertices();
-
-	SDL_SetRenderDrawColor(_renderer, 0xff, 0x00, 0x00, 0xff);
-	//SDL_RenderSetScale(_renderer, 2.0f, 2.0f);
-
-	for (auto vert : verts)
-	{
-		if (_env->InsideObstacle(vert.Position()))
+		void ECMRenderer::DrawECMVertices()
 		{
-			float x = vert.Position().x * _zoomFactor + _offsetX;
-			float y = vert.Position().y * _zoomFactor + _offsetY;
+			auto verts = m_Ecm->GetECMGraph().GetVertices();
 
-			const int size = 5;
+			SDL_SetRenderDrawColor(m_Renderer, 0xff, 0x00, 0xff, 0xff);
+			//SDL_RenderSetScale(_renderer, 2.0f, 2.0f);
 
-			SDL_RenderDrawLine(_renderer, (x - size), y, (x + size), y);
-			SDL_RenderDrawLine(_renderer, (x), (y- size), x, (y+ size));
+			for (auto vert : verts)
+			{
+				float x = vert.Position().x * m_CamZoomFactor + m_CamOffsetX;
+				float y = vert.Position().y * m_CamZoomFactor + m_CamOffsetY;
+
+				SDL_RenderDrawPoint(m_Renderer, x, y);
+			}
+
+			int result = SDL_RenderDrawPoint(m_Renderer, m_CamOffsetX, m_CamOffsetY);
+
+
+			//SDL_RenderSetScale(_renderer, 1.0f, 1.0f);
+
 		}
-	}
 
-	//SDL_RenderSetScale(_renderer, 1.0f, 1.0f);
-}
-
-void ECMRenderer::DrawClosestObstaclePoints()
-{
-	auto verts = _ecm->GetECMGraph().GetVertices();
-	SDL_SetRenderDrawColor(_renderer, 0xff, 0x8c, 0x00, 0xff);
-
-	for (const auto& vert : verts)
-	{
-		float startX = vert.Position().x * _zoomFactor + _offsetX;
-		float startY = vert.Position().y * _zoomFactor + _offsetY;
-
-		const auto& clPoints = vert.GetClosestPoints();
-		for (const auto& clPoint : clPoints)
+		void ECMRenderer::DrawInsideVerts()
 		{
-			float x = clPoint.x * _zoomFactor + _offsetX;
-			float y = clPoint.y * _zoomFactor + _offsetY;
+			auto verts = m_Ecm->GetECMGraph().GetVertices();
 
-			SDL_RenderDrawLine(_renderer, startX, startY, x, y);
+			SDL_SetRenderDrawColor(m_Renderer, 0xff, 0x00, 0x00, 0xff);
+			//SDL_RenderSetScale(_renderer, 2.0f, 2.0f);
+
+			for (auto vert : verts)
+			{
+				if (m_Env->InsideObstacle(vert.Position()))
+				{
+					float x = vert.Position().x * m_CamZoomFactor + m_CamOffsetX;
+					float y = vert.Position().y * m_CamZoomFactor + m_CamOffsetY;
+
+					const int size = 5;
+
+					SDL_RenderDrawLine(m_Renderer, (x - size), y, (x + size), y);
+					SDL_RenderDrawLine(m_Renderer, (x), (y - size), x, (y + size));
+				}
+			}
+
+			//SDL_RenderSetScale(_renderer, 1.0f, 1.0f);
 		}
-	}
-}
 
-void ECMRenderer::DebugDrawECMCell()
-{
-	if (!cellToDraw) return;
-
-	SDL_SetRenderDrawColor(_renderer, 0xc4, 0x77, 0x02, 0xff);
-
-	const std::vector<Segment>& segs = cellToDraw->boundary;
-
-	for (const Segment& s : segs)
-	{
-		float x0 = s.p0.x * _zoomFactor + _offsetX;
-		float x1 = s.p1.x * _zoomFactor + _offsetX;
-		float y0 = s.p0.y * _zoomFactor + _offsetY;
-		float y1 = s.p1.y * _zoomFactor + _offsetY;
-
-		SDL_RenderDrawLine(_renderer, x0, y0, x1, y1);
-	}
-}
-
-
-void ECMRenderer::DebugSetDrawECMCell(float screenX, float screenY)
-{
-	float worldX = (screenX - _offsetX) / _zoomFactor;
-	float worldY = (screenY - _offsetY) / _zoomFactor;
-
-	cellToDraw = _ecm->GetECMCell(worldX, worldY);
-}
-
-void ECMRenderer::DebugDrawSecondaryLines()
-{
-	using boost::polygon::voronoi_diagram;
-	const auto& vd = _ecm->GetMedialAxis()->VD;
-	
-	SDL_SetRenderDrawColor(_renderer, 0x55, 0x55, 0xff, 0xff);
-
-	for (boost::polygon::voronoi_diagram<double>::const_edge_iterator it =
-		vd.edges().begin(); it != vd.edges().end(); ++it)
-	{
-		if (it->is_finite() && it->is_secondary())
+		void ECMRenderer::DrawClosestObstaclePoints()
 		{
-			float x0 = it->vertex0()->x() * _zoomFactor + _offsetX;
-			float x1 = it->vertex1()->x() * _zoomFactor + _offsetX;
-			float y0 = it->vertex0()->y() * _zoomFactor + _offsetY;
-			float y1 = it->vertex1()->y() * _zoomFactor + _offsetY;
+			auto verts = m_Ecm->GetECMGraph().GetVertices();
+			SDL_SetRenderDrawColor(m_Renderer, 0xff, 0x8c, 0x00, 0xff);
 
-			SDL_RenderDrawLine(_renderer, x0, y0, x1, y1);
+			for (const auto& vert : verts)
+			{
+				float startX = vert.Position().x * m_CamZoomFactor + m_CamOffsetX;
+				float startY = vert.Position().y * m_CamZoomFactor + m_CamOffsetY;
+
+				const auto& clPoints = vert.GetClosestPoints();
+				for (const auto& clPoint : clPoints)
+				{
+					float x = clPoint.x * m_CamZoomFactor + m_CamOffsetX;
+					float y = clPoint.y * m_CamZoomFactor + m_CamOffsetY;
+
+					SDL_RenderDrawLine(m_Renderer, startX, startY, x, y);
+				}
+			}
 		}
-	}
-}
 
-void ECMRenderer::DebugDrawCellValues()
-{
-	using boost::polygon::voronoi_diagram;
-	const auto& vd = _ecm->GetMedialAxis()->VD;
-
-	SDL_SetRenderDrawColor(_renderer, 0x55, 0x55, 0xff, 0xff);
-
-	for (boost::polygon::voronoi_diagram<double>::const_edge_iterator it =
-		vd.edges().begin(); it != vd.edges().end(); ++it)
-	{
-		if (it->cell()->contains_point()) continue;
-
-		if (it->is_finite() && it->is_secondary())
+		void ECMRenderer::DebugDrawECMCell()
 		{
-			// TODO:
-			// > this demonstrates that we can find the closest segments in constant time.
-			// > update the ecm construction algorithm such that it utilizes this information.
-			int segmentIndex = it->cell()->source_index();
+			if (!m_CellToDraw) return;
 
-			const Segment& s = _env->GetEnvironmentObstacleUnion()[segmentIndex];
+			SDL_SetRenderDrawColor(m_Renderer, 0xc4, 0x77, 0x02, 0xff);
 
-			float x0 = s.p0.x * _zoomFactor + _offsetX;
-			float x1 = s.p1.x * _zoomFactor + _offsetX;
-			float y0 = s.p0.y * _zoomFactor + _offsetY;
-			float y1 = s.p1.y * _zoomFactor + _offsetY;
-			
-			SDL_RenderDrawLine(_renderer, x0, y0, x1, y1);
+			const std::vector<Segment>& segs = m_CellToDraw->boundary;
+
+			for (const Segment& s : segs)
+			{
+				float x0 = s.p0.x * m_CamZoomFactor + m_CamOffsetX;
+				float x1 = s.p1.x * m_CamZoomFactor + m_CamOffsetX;
+				float y0 = s.p0.y * m_CamZoomFactor + m_CamOffsetY;
+				float y1 = s.p1.y * m_CamZoomFactor + m_CamOffsetY;
+
+				SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
+			}
 		}
+
+
+		void ECMRenderer::DebugSetDrawECMCell(float screenX, float screenY)
+		{
+			float worldX = (screenX - m_CamOffsetX) / m_CamZoomFactor;
+			float worldY = (screenY - m_CamOffsetY) / m_CamZoomFactor;
+
+			m_CellToDraw = m_Ecm->GetECMCell(worldX, worldY);
+		}
+
+		void ECMRenderer::DebugDrawSecondaryLines()
+		{
+			using boost::polygon::voronoi_diagram;
+			const auto& vd = m_Ecm->GetMedialAxis()->VD;
+
+			SDL_SetRenderDrawColor(m_Renderer, 0x55, 0x55, 0xff, 0xff);
+
+			for (boost::polygon::voronoi_diagram<double>::const_edge_iterator it =
+				vd.edges().begin(); it != vd.edges().end(); ++it)
+			{
+				if (it->is_finite() && it->is_secondary())
+				{
+					float x0 = it->vertex0()->x() * m_CamZoomFactor + m_CamOffsetX;
+					float x1 = it->vertex1()->x() * m_CamZoomFactor + m_CamOffsetX;
+					float y0 = it->vertex0()->y() * m_CamZoomFactor + m_CamOffsetY;
+					float y1 = it->vertex1()->y() * m_CamZoomFactor + m_CamOffsetY;
+
+					SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
+				}
+			}
+		}
+
+		void ECMRenderer::DebugDrawCellValues()
+		{
+			using boost::polygon::voronoi_diagram;
+			const auto& vd = m_Ecm->GetMedialAxis()->VD;
+
+			SDL_SetRenderDrawColor(m_Renderer, 0x55, 0x55, 0xff, 0xff);
+
+			for (boost::polygon::voronoi_diagram<double>::const_edge_iterator it =
+				vd.edges().begin(); it != vd.edges().end(); ++it)
+			{
+				if (it->cell()->contains_point()) continue;
+
+				if (it->is_finite() && it->is_secondary())
+				{
+					// TODO:
+					// > this demonstrates that we can find the closest segments in constant time.
+					// > update the ecm construction algorithm such that it utilizes this information.
+					int segmentIndex = it->cell()->source_index();
+
+					const Segment& s = m_Env->GetEnvironmentObstacleUnion()[segmentIndex];
+
+					float x0 = s.p0.x * m_CamZoomFactor + m_CamOffsetX;
+					float x1 = s.p1.x * m_CamZoomFactor + m_CamOffsetX;
+					float y0 = s.p0.y * m_CamZoomFactor + m_CamOffsetY;
+					float y1 = s.p1.y * m_CamZoomFactor + m_CamOffsetY;
+
+					SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
+				}
+			}
+		}
+
 	}
 }

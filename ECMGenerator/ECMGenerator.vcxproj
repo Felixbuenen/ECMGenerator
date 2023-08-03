@@ -130,6 +130,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Application.cpp" />
     <ClCompile Include="ECM.cpp" />
     <ClCompile Include="ECMCellCollection.cpp" />
     <ClCompile Include="ECMGenerator.cpp" />
@@ -141,6 +142,8 @@
     <ClCompile Include="UtilityFunctions.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Application.h" />
+    <ClInclude Include="Configuration.h" />
     <ClInclude Include="ECM.h" />
     <ClInclude Include="ECMCellCollection.h" />
     <ClInclude Include="ECMDataTypes.h" />
@@ -148,8 +151,8 @@
     <ClInclude Include="ECMPathPlanner.h" />
     <ClInclude Include="ECMRenderer.h" />
     <ClInclude Include="Environment.h" />
-    <ClInclude Include="main.h" />
     <ClInclude Include="BoostVisualizeUtils.h" />
+    <ClInclude Include="InputHandler.h" />
     <ClInclude Include="UtilityFunctions.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
