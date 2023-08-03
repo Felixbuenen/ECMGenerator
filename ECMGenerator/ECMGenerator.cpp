@@ -57,7 +57,7 @@ struct segment_traits<ECM::Segment> {
 
 namespace ECM {
 
-	void ECMGenerator::ConstructECMGraph(ECM& ecm, const Environment& environment) const
+	void ECMGenerator::ConstructECMGraph(ECM& ecm, const Environment& environment)
 	{
 		const MedialAxis& ma = *ecm.GetMedialAxis();
 
@@ -74,8 +74,6 @@ namespace ECM {
 			ECMVertex vertex(vertLocation);
 			ecmGraph.AddVertex(vertex);
 		}
-
-		printf("Number of vertices: {%d}\n", ecmGraph.GetVertices().size());
 
 		int counter = 0;
 		// then create all ECM edges. Note that we do not have to check for edges inside obstacles. This is
@@ -189,14 +187,12 @@ namespace ECM {
 			}
 		}
 
-		printf("number of edges: %d\n", counter);
-
 		// finally construct the cells
 		ecmGraph.ConstructECMCells();
 	}
 
 
-	std::shared_ptr<ECM> ECMGenerator::GenerateECM(const Environment& environment) const
+	std::shared_ptr<ECM> ECMGenerator::GenerateECM(const Environment& environment)
 	{
 		std::shared_ptr<ECM> ecm = std::make_shared<ECM>();
 

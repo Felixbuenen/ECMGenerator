@@ -13,7 +13,11 @@ int main()
 	using namespace ECM;
 
 	WindowApplication::Application app;
-	app.InitializeApplication("ECM generation tool", Environment::TestEnvironment::CLASSIC, 1080, 720);
+	if (!app.InitializeApplication("ECM generation tool", Environment::TestEnvironment::CLASSIC, 1080, 720))
+	{
+		printf("ERROR: could not initialize ECM applciation.\n");
+		return -1;
+	}
 	app.Run();
 	app.Clear();
 

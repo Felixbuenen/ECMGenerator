@@ -3,10 +3,12 @@
 #include "ECMDataTypes.h"
 
 #include <vector>
+#include <memory>
 
 namespace ECM {
 
 	class ECMEdge;
+	class ECM;
 
 	class Environment
 	{
@@ -38,24 +40,28 @@ namespace ECM {
 		void AddWalkableArea(std::vector<Segment> waEdges); // for now just allow 1 walkable area
 		void AddObstacle(std::vector<Segment> obstacleEdges);
 
+		void ComputeECM();
+
 		inline const std::vector<Segment>& GetWalkableArea() const { return _walkableArea; }
 		inline const std::vector<std::vector<Segment>>& GetObstacles() const { return _obstacles; }
 		inline BBOX GetBBOX() const { return _bbox; }
+		std::vector<Point> GetClosestObstaclePoints(const Point& location) const;
+		const std::vector<Segment>& GetEnvironmentObstacleUnion() const { return _environmentObstacleUnion; }
+		std::shared_ptr<ECM> GetECM(int index = 0) { return m_EcmList[index]; }
 
 		bool InsideObstacle(const Point& p) const;
-
-		std::vector<Point> GetClosestObstaclePoints(const Point& location) const;
-
-		const std::vector<Segment>& GetEnvironmentObstacleUnion() const { return _environmentObstacleUnion; }
 
 	private:
 		void UpdateBbox(const std::vector<Segment>& newEdges);
 
 	private:
+		BBOX _bbox;
+
 		std::vector<Segment> _walkableArea;
 		std::vector<std::vector<Segment>> _obstacles;
 		std::vector<Segment> _environmentObstacleUnion;
-		BBOX _bbox;
+
+		std::vector<std::shared_ptr<ECM>> m_EcmList;
 	};
 
 }

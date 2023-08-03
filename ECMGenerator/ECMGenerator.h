@@ -14,12 +14,12 @@ namespace ECM {
 		// generates the ECM model
 
 	public:
-		std::shared_ptr<ECM> GenerateECM(const Environment& environment) const; // takes in a set of points/segments/obstacles and returns the ECM model 
-		void AddObstacle(ECM* ecm, int obstacle) const;
+		static std::shared_ptr<ECM> GenerateECM(const Environment& environment); // takes in a set of points/segments/obstacles and returns the ECM model 
+		static void AddObstacle(ECM* ecm, int obstacle);
 
 	private:
 
-		void ConstructECMGraph(ECM& ecm, const Environment& environment) const;
+		static void ConstructECMGraph(ECM& ecm, const Environment& environment);
 
 	};
 

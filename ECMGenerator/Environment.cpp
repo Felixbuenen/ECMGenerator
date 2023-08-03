@@ -2,6 +2,7 @@
 #include "UtilityFunctions.h"
 #include "ECMDataTypes.h"
 #include "ECM.h"
+#include "ECMGenerator.h"
 
 namespace ECM {
 
@@ -22,6 +23,12 @@ namespace ECM {
 		for (Segment s : obstacleEdges) _environmentObstacleUnion.push_back(s);
 
 		UpdateBbox(obstacleEdges);
+	}
+
+	void Environment::ComputeECM()
+	{		
+		// for now just support generation of 1 ecm. However, an environment may contain various ECM graphs.
+		m_EcmList.push_back(ECMGenerator::GenerateECM(*this));
 	}
 
 	void Environment::UpdateBbox(const std::vector<Segment>& newEdges)

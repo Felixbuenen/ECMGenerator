@@ -11,6 +11,15 @@ namespace ECM
 {
 	namespace WindowApplication
 	{
+		bool Application::InitializeApplication(const char* title, Environment::TestEnvironment environment, int screenWidth, int screenHeight, float zoomFactor)
+		{
+			if (!InitializeEnvironment(environment)) return false;
+			if (!InitializeWindow(title, screenWidth, screenHeight, zoomFactor)) return false;
+			if (!InitializeRenderer()) return false;
+
+			return true;
+		}
+
 		void Application::Run()
 		{
 
@@ -50,16 +59,6 @@ namespace ECM
 
 			//Quit SDL subsystems
 			SDL_Quit();
-		}
-
-
-		bool Application::InitializeApplication(const char* title, Environment::TestEnvironment environment, int screenWidth, int screenHeight, float zoomFactor)
-		{
-			InitializeEnvironment(environment);
-			InitializeWindow(title, screenWidth, screenHeight, zoomFactor);
-			InitializeRenderer();
-
-			return true;
 		}
 
 		bool Application::InitializeRenderer()
@@ -129,8 +128,8 @@ namespace ECM
 			}
 
 			// generate ECM from environment
-			ECMGenerator gen;
-			m_ApplicationState.ecm = gen.GenerateECM(m_ApplicationState.environment);
+			m_ApplicationState.environment.ComputeECM();
+			m_ApplicationState.ecm = m_ApplicationState.environment.GetECM();
 
 			return true;
 		}
