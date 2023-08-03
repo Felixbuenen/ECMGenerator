@@ -1,30 +1,54 @@
 #pragma once
 
+// note: forward declare of Environment::TestEnvironment (enum) and ECMRenderer::ECMRendererColorSettings (struct) not possible
+#include "Environment.h" 
+#include "ECMRenderer.h"
+
+class SDL_Window;
+
 namespace ECM
 {
-	// not sure if 'visualisation' is a good name, but I want to detach the core ECM logic from the application/visualisation part
+	class ECMGenerator;
+	class ECM;
+	class ECMRendererColorSettings;
+
 	namespace WindowApplication
 	{
-		class ApplicationState
+		struct ApplicationState
 		{
-		public:
-			ApplicationState() { } // prevent making instance
+			// window state
+			float camZoomFactor;
+			float camOffsetX;
+			float camOffsetY;
+			
+			// ECM state
+			Environment environment;
+			std::shared_ptr<ECM> ecm;
 		};
 
 		class Application
-		{
+		{		
 		public:
 			Application() { }
 
-			bool InitializeEnvironment(const char* file);
-			bool InitializeTestEnvironment();
+			bool InitializeApplication(const char* title, const char* environment_path, int screenWidth, int screenHeight, float zoomFactor = 0.65f);
+			bool InitializeApplication(const char* title, Environment::TestEnvironment environment, int screenWidth, int screenHeight, float zoomFactor = 0.65f);
+			void Run();
+			void Clear();
 
-			bool InitializeApplication(const char* title);
+			ApplicationState* GetApplicationState() { return &m_ApplicationState; }
+			SDL_Window* GetWindow() { return m_Window; }
 
-			const ApplicationState& GetApplicationState() const { return m_ApplicationState; }
 
 		private:
+			bool InitializeEnvironment(const char* file);
+			bool InitializeEnvironment(Environment::TestEnvironment environment);
+			bool InitializeWindow(const char* title, int screenWidth, int screenHeight, float zoomFactor);
+			bool InitializeRenderer();
+
 			ApplicationState m_ApplicationState;
+			ECMRenderer m_Renderer;
+			SDL_Window* m_Window;
 		};
 	}
 }

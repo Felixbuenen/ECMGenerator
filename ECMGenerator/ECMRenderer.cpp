@@ -3,6 +3,7 @@
 #include "Environment.h"
 #include "ECMCellCollection.h"
 #include "UtilityFunctions.h"
+#include "Application.h"
 
 #include "SDL.h"
 #include "boost/polygon/voronoi.hpp"
@@ -14,96 +15,28 @@
 namespace ECM {
 	namespace WindowApplication {
 
-		void ECMRenderer::Initialize(int screenWidth, int screenHeight, const char* title, std::shared_ptr<ECM> ecm, Environment* env, ECMRendererColorSettings colorSettings, float zoomFactor)
+		void ECMRenderer::Initialize(Application* app)
 		{
-			// set member vars
-			m_Ecm = ecm;
-			m_Env = env;
-			m_CamZoomFactor = zoomFactor;
-
-			int bboxW = (m_Env->GetBBOX().max.x - m_Env->GetBBOX().min.x) * zoomFactor;
-			int bboxH = (m_Env->GetBBOX().max.y - m_Env->GetBBOX().min.y) * zoomFactor;
-
-			m_CamOffsetX = -m_Env->GetBBOX().min.x * zoomFactor + screenWidth * 0.5f - bboxW * 0.5f;
-			m_CamOffsetY = -m_Env->GetBBOX().min.y * zoomFactor + screenHeight * 0.5f - bboxH * 0.5f;
-
-			m_ColorSettings = colorSettings;
-
-			//The window we'll be rendering to
-			m_Window = NULL;
-			m_Renderer = NULL;
-
-			//The surface contained by the window
-			m_ScreenSurface = NULL;
-
-			InitializeRenderContext(screenWidth, screenHeight, title);
-
-			//Destroy window
-			SDL_DestroyWindow(m_Window);
-			SDL_DestroyRenderer(m_Renderer);
-
-			//Quit SDL subsystems
-			SDL_Quit();
+			m_Renderer = SDL_CreateRenderer(app->GetWindow(), -1, 0);
+			m_AppState = app->GetApplicationState();
 		}
 
-		void ECMRenderer::InitializeRenderContext(int width, int height, const char* title)
+		void ECMRenderer::Clear()
 		{
-			//Initialize SDL
-			if (SDL_Init(SDL_INIT_VIDEO) < 0)
-			{
-				printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
-			}
-			else
-			{
-				//Create window
-				m_Window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, width, height, SDL_WINDOW_SHOWN);
-				if (m_Window == NULL)
-				{
-					printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
-				}
-				else
-				{
-					m_Renderer = SDL_CreateRenderer(m_Window, -1, 0);
-
-					//Get window surface
-					m_ScreenSurface = SDL_GetWindowSurface(m_Window);
-
-
-					//Update the surface
-					SDL_UpdateWindowSurface(m_Window);
-
-					Render();
-
-					//Hack to get window to stay up
-					SDL_Event e; bool quit = false; while (quit == false)
-					{
-						while (SDL_PollEvent(&e)) {
-							if (e.type == SDL_QUIT) quit = true;
-
-							if (e.type == SDL_MOUSEBUTTONDOWN)
-							{
-								DebugSetDrawECMCell(e.button.x, e.button.y);
-							}
-
-							else
-							{
-								Render();
-							}
-						}
-					}
-				}
-			}
+			SDL_DestroyRenderer(m_Renderer);
 		}
 
 		void ECMRenderer::Render()
 		{
+			UpdateRenderState();
+
 			DrawBackground();
 			DrawWalkableArea();
 			DrawObstacles();
 			DrawMedialAxis();
 			DrawECMVertices();
 			//DrawClosestObstaclePoints();
-
+			
 			// TEST
 			//DrawRandomTestPath();
 			//DrawInsideVerts();
@@ -114,6 +47,18 @@ namespace ECM {
 			// render window
 			SDL_RenderPresent(m_Renderer);
 		}
+
+		// Cache render-state variables, easier to reference the app state everywhere
+		void ECMRenderer::UpdateRenderState()
+		{
+			m_CamZoomFactor = m_AppState->camZoomFactor;
+			m_CamOffsetX = m_AppState->camOffsetX, 
+			m_CamOffsetY = m_AppState->camOffsetY;
+
+			m_Env = &m_AppState->environment;
+			m_Ecm = m_AppState->ecm;
+		}
+
 
 		void ECMRenderer::DrawBackground()
 		{

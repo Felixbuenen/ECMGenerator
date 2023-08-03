@@ -30,6 +30,11 @@ namespace ECM {
 		// > create walkable area and obstacle structs
 
 	public:
+		enum class TestEnvironment
+		{
+			CLASSIC
+		};
+
 		void AddWalkableArea(std::vector<Segment> waEdges); // for now just allow 1 walkable area
 		void AddObstacle(std::vector<Segment> obstacleEdges);
 

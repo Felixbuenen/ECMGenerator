@@ -26,23 +26,29 @@ namespace ECM {
 
 	namespace WindowApplication {
 
-		struct ECMRendererColorSettings
-		{
-			int background_R = 0x22, background_G = 0x22, background_B = 0x22;
-			int walkableArea_R = 0xff, walkableArea_G = 0xff, walkableArea_B = 0xff;
-			int obstacle_R = 0xaa, obstacle_G = 0x11, obstacle_B = 0x11;
-			// etc....
-		};
+		class Application;
+		struct ApplicationState;
 
 		class ECMRenderer
 		{
 		public:
-			void Initialize(int screenWidth, int screenHeight, const char* title, std::shared_ptr<ECM> ecm, Environment* env, ECMRendererColorSettings colorSettings, float zoomFactor);
-			void Refresh();
+			struct ECMRendererColorSettings
+			{
+				int background_R = 0x22, background_G = 0x22, background_B = 0x22;
+				int walkableArea_R = 0xff, walkableArea_G = 0xff, walkableArea_B = 0xff;
+				int obstacle_R = 0xaa, obstacle_G = 0x11, obstacle_B = 0x11;
+				// etc....
+			};
+
+		public:
+			void Initialize(Application* app);
+			void Render();
+			void Clear();
 
 		private:
 			void InitializeRenderContext(int width, int height, const char* title);
-			void Render(); // (re-)render the window
+
+			void UpdateRenderState();
 
 			// different draw calls
 			void SetupSDLWindow();
@@ -69,9 +75,10 @@ namespace ECM {
 			float m_CamZoomFactor;
 			int m_CamOffsetX, m_CamOffsetY;
 
+			ApplicationState* m_AppState;
+
 			// SDL member variables
 		private:
-			SDL_Window* m_Window;
 			SDL_Renderer* m_Renderer;
 			SDL_Surface* m_ScreenSurface;
 
