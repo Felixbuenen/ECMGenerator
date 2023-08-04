@@ -21,11 +21,14 @@ namespace ECM {
 			static bool Contains(const Segment& p, const std::vector<Segment>& polygon);
 			static float Dot(const Vec2& v1, const Vec2& v2);
 			static float Dot(float x0, float y0, float x1, float y1);
+			static float Cross(const Vec2& v1, const Vec2& v2);
+			static bool IsLeftOfSegment(const Segment& s, const Point& p);
 			static Vec2 Right(const Vec2& v);
 			static Vec2 Right(float x, float y);
 			static float SquaredLength(const Vec2& v);
 			static float SquaredLength(float x, float y);
 			static Point GetClosestPointOnSegment(const Point& point, const Segment& segment);
+			static bool GetRayToLineSegmentIntersection(const Point& rayOrigin, const Vec2& rayDirection, const Point& point1, const Point& point2, Point& outPoint);
 
 		};
 	}

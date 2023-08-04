@@ -34,7 +34,7 @@ namespace ECM {
 			DrawWalkableArea();
 			DrawObstacles();
 			DrawMedialAxis();
-			DrawECMVertices();
+			//DrawECMVertices();
 			//DrawClosestObstaclePoints();
 			
 			// TEST

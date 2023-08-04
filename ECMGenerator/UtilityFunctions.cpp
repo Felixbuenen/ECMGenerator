@@ -90,6 +90,18 @@ namespace ECM {
 			return x0 * x1 + y0 * y1;
 		}
 
+		float MathUtility::Cross(const Vec2& v1, const Vec2& v2)
+		{
+			return v1.x * v2.y - v1.y * v2.x;
+		}
+
+
+		bool MathUtility::IsLeftOfSegment(const Segment& s, const Point& p)
+		{
+			return (s.p1.x - s.p0.x) * (p.y - s.p0.y) - (s.p1.y - s.p0.y) * (p.x - s.p0.x) > 0;
+		}
+
+
 		// TODO: maybe it's nicer to include these type-specific functions as static type methods (e.g. Vec2::Right(..)).
 		Vec2 MathUtility::Right(const Vec2& v)
 		{
@@ -135,6 +147,33 @@ namespace ECM {
 
 			return posOnSegment;
 		}
+
+		bool MathUtility::GetRayToLineSegmentIntersection(const Point& rayOrigin, const Vec2& rayDirection, const Point& point1, const Point& point2, Point& outPoint)
+		{
+			Vec2 v1 = rayOrigin - point1;
+			Vec2 v2 = point2 - point1;
+			Vec2 v3(-rayDirection.y, rayDirection.x);
+
+			float dot = MathUtility::Dot(v2, v3);
+			if (abs(dot) < 0.000001)
+			{
+				return false;
+			}
+			
+			float t1 = MathUtility::Cross(v2, v1) / dot;
+			float t2 = MathUtility::Dot(v1, v3) / dot;
+
+
+			if (t1 >= 0.0 && (t2 >= 0.0 && t2 <= 1.0))
+			{
+				outPoint.x = rayOrigin.x + rayDirection.x * t1; // TODO: fix operator overloading error
+				outPoint.y = rayOrigin.y + rayDirection.y * t1; // TODO: fix operator overloading error
+				return true;
+			}
+
+			return false;
+		}
+
 
 	}
 }

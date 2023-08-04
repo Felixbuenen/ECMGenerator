@@ -49,8 +49,14 @@ namespace ECM {
 
 			Point retrStart, retrGoal;
 			ECMEdge startEdge, goalEdge;
-			ecm->RetractPoint(start, *startCell, retrStart, startEdge);
-			ecm->RetractPoint(goal, *goalCell, retrGoal, goalEdge);
+			if (!ecm->RetractPoint(start, *startCell, retrStart, startEdge))
+			{
+				printf("retraction failed");
+			}
+			if (!ecm->RetractPoint(goal, *goalCell, retrGoal, goalEdge))
+			{
+				printf("retraction failed");
+			}
 
 			// DEBUG
 			result.push_back(start);

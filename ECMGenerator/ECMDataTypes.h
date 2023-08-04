@@ -6,11 +6,33 @@
 
 namespace ECM {
 
+	struct Vec2 {
+		Vec2() { }
+		Vec2(float _x, float _y)
+			: x(_x), y(_y) { }
+		float x;
+		float y;
+
+		float Length()
+		{
+			return sqrt(x * x + y * y);
+		}
+
+		void Normalize()
+		{
+			float l = Length();
+			x /= l;
+			y /= l;
+		}
+	};
+
 	struct Point {
 		float x;
 		float y;
 		Point(float x, float y) : x(x), y(y) {}
 		Point() { x = 0; y = 0; }
+
+		operator Vec2() const { return Vec2(x, y); }
 
 		Point operator -(const Point& a) const {
 			return Point(x - a.x, y - a.y);
@@ -39,13 +61,7 @@ namespace ECM {
 		Segment(Point point0, Point point1) : p0(point0), p1(point1) {}
 	};
 
-	struct Vec2 {
-		Vec2() { }
-		Vec2(float _x, float _y)
-			: x(_x), y(_y) { }
-		float x;
-		float y;
-	};
+
 
 	struct BBOX {
 		Point min;

@@ -151,8 +151,8 @@ namespace ECM {
 		void GetWalkableArea(/*point refs*/) const;
 		void GetObstacles(/*point refs*/) const;
 		const ECMCell* GetECMCell(float x, float y) const; // pointer because it can be null
-		const void RetractPoint(Point location, Point& outRetractedLocation, ECMEdge& outEdge) const;
-		const void RetractPoint(Point location, const ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge) const;
+		const bool RetractPoint(Point location, Point& outRetractedLocation, ECMEdge& outEdge) const;
+		const bool RetractPoint(Point location, const ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge) const;
 
 		inline std::shared_ptr<MedialAxis> GetMedialAxis() { return m_MedialAxis; }
 		inline ECMGraph& GetECMGraph() { return m_EcmGraph; }

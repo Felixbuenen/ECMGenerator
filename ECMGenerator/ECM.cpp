@@ -15,7 +15,7 @@ namespace ECM {
 		m_MedialAxis = std::make_shared<MedialAxis>();
 	}
 
-	const void ECM::RetractPoint(Point location, Point& outRetractedLocation, ECMEdge& outEdge) const
+	const bool ECM::RetractPoint(Point location, Point& outRetractedLocation, ECMEdge& outEdge) const
 	{
 		// TODO:
 		// Retract point on arc is currently not implemented!
@@ -25,17 +25,61 @@ namespace ECM {
 		outEdge = m_EcmGraph.GetEdge(cell->ecmEdge);
 		const ECMVertex& p1 = m_EcmGraph.GetVertex(outEdge.V0());
 		const ECMVertex& p2 = m_EcmGraph.GetVertex(outEdge.V1());
-		
-		outRetractedLocation = Utility::MathUtility::GetClosestPointOnSegment(location, Segment(p1.Position(), p2.Position()));
+
+		// get closest obstacle based on which side of the ECM edge the location is
+		Point obstacleP1, obstacleP2;
+		Vec2 rayDir;
+		if (Utility::MathUtility::IsLeftOfSegment(Segment(p1.Position(), p2.Position()), location))
+		{
+			obstacleP1 = outEdge.NearestLeftV0();
+			obstacleP2 = outEdge.NearestLeftV1();
+			Vec2 v = obstacleP2 - obstacleP1;
+			rayDir.x = v.y;
+			rayDir.y = -v.x;
+			rayDir.Normalize();
+		}
+		else
+		{
+			obstacleP1 = outEdge.NearestRightV0();
+			obstacleP2 = outEdge.NearestRightV1();
+			Vec2 v = obstacleP2 - obstacleP1;
+			rayDir.x = -v.y;
+			rayDir.y = v.x;
+			rayDir.Normalize();
+		}
+
+		return Utility::MathUtility::GetRayToLineSegmentIntersection(location, rayDir, p1.Position(), p2.Position(), outRetractedLocation);
 	}
 
-	const void ECM::RetractPoint(Point location, const ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge) const
+	const bool ECM::RetractPoint(Point location, const ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge) const
 	{
 		outEdge = m_EcmGraph.GetEdge(cell.ecmEdge);
 		const ECMVertex& p1 = m_EcmGraph.GetVertex(outEdge.V0());
 		const ECMVertex& p2 = m_EcmGraph.GetVertex(outEdge.V1());
 
-		outRetractedLocation = Utility::MathUtility::GetClosestPointOnSegment(location, Segment(p1.Position(), p2.Position()));
+		// get closest obstacle based on which side of the ECM edge the location is
+		Point obstacleP1, obstacleP2;
+		Vec2 rayDir;
+		if (Utility::MathUtility::IsLeftOfSegment(Segment(p1.Position(), p2.Position()), location))
+		{
+			obstacleP1 = outEdge.NearestLeftV0();
+			obstacleP2 = outEdge.NearestLeftV1();
+			Vec2 v = obstacleP2 - obstacleP1;
+			rayDir.x = v.y;
+			rayDir.y = -v.x;
+			rayDir.Normalize();
+		}
+		else
+		{
+			obstacleP1 = outEdge.NearestRightV0();
+			obstacleP2 = outEdge.NearestRightV1();
+			Vec2 v = obstacleP2 - obstacleP1;
+			rayDir.x = -v.y;
+			rayDir.y = v.x;
+			rayDir.Normalize();
+		}
+
+		return Utility::MathUtility::GetRayToLineSegmentIntersection(location, rayDir, p1.Position(), p2.Position(), outRetractedLocation);
 	}
 
 
