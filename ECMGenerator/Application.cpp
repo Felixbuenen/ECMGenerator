@@ -18,6 +18,7 @@ namespace ECM
 			if (!InitializeWindow(title, screenWidth, screenHeight, zoomFactor)) return false;
 			if (!InitializeRenderer()) return false;
 
+			m_Planner.Initialize(m_ApplicationState.ecm->GetECMGraph());
 
 			return true;
 		}
@@ -62,7 +63,7 @@ namespace ECM
 						else
 						{
 							m_ApplicationState.pathGoalPoint = Point(worldX, worldY);
-							m_ApplicationState.pathToDraw = PathPlanning::ECMPathPlanner::GetPath(m_ApplicationState.environment, m_ApplicationState.pathStartPoint, m_ApplicationState.pathGoalPoint, 5.0f);
+							m_ApplicationState.pathToDraw = m_Planner.GetPath(m_ApplicationState.environment, m_ApplicationState.pathStartPoint, m_ApplicationState.pathGoalPoint, 5.0f);
 						}
 					}
 

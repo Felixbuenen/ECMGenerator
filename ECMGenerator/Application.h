@@ -3,6 +3,7 @@
 // note: forward declare of Environment::TestEnvironment (enum) and ECMRenderer::ECMRendererColorSettings (struct) not possible
 #include "Environment.h" 
 #include "ECMRenderer.h"
+#include "ECMPathPlanner.h"
 
 class SDL_Window;
 
@@ -63,6 +64,7 @@ namespace ECM
 			ApplicationState m_ApplicationState;
 			ECMRenderer m_Renderer;
 			SDL_Window* m_Window;
+			PathPlanning::ECMPathPlanner m_Planner;
 		};
 	}
 }

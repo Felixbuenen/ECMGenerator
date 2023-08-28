@@ -117,6 +117,7 @@ namespace ECM {
 		const ECMVertex& GetVertex(int idx) const { return m_Vertices[idx]; }
 		const ECMEdge& GetEdge(int idx) const { return m_Edges[idx]; }
 		const std::vector<EdgeIndex>& GetIncidentEdges(int vertex_index) const;
+		const std::vector<int> GetNeighboringVertices(int vertex_index) const;
 		const ECMCell* GetCell(float x, float y) const;
 		std::vector<Segment> GetSampledEdge(const ECMEdge& edge, int samples = 10, bool inverseDirection = false) const;
 

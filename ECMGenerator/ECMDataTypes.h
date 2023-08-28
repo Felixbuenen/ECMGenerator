@@ -13,6 +13,11 @@ namespace ECM {
 		float x;
 		float y;
 
+		Vec2 operator+(const Vec2& a) const
+		{
+			return Vec2(a.x + x, a.y + y);
+		}
+
 		float Length()
 		{
 			return sqrt(x * x + y * y);

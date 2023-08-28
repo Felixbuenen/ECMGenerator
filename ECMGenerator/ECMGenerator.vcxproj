@@ -131,6 +131,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Application.cpp" />
+    <ClCompile Include="AStar.cpp" />
     <ClCompile Include="ECM.cpp" />
     <ClCompile Include="ECMCellCollection.cpp" />
     <ClCompile Include="ECMGenerator.cpp" />
@@ -143,6 +144,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Application.h" />
+    <ClInclude Include="AStar.h" />
     <ClInclude Include="Configuration.h" />
     <ClInclude Include="ECM.h" />
     <ClInclude Include="ECMCellCollection.h" />

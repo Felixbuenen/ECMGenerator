@@ -181,7 +181,12 @@ namespace ECM {
 				}
 
 				int edgeIndex = ecmGraph.AddEdge(edge);
+				if (v0_index == 4)
+				{
+					int i = 0;
+				}
 				ecmGraph.AddAdjacency(v0_index, v1_index, edgeIndex);
+				ecmGraph.AddAdjacency(v1_index, v0_index, edgeIndex);
 
 				counter++;
 			}

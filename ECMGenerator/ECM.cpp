@@ -60,22 +60,49 @@ namespace ECM {
 		// get closest obstacle based on which side of the ECM edge the location is
 		Point obstacleP1, obstacleP2;
 		Vec2 rayDir;
+
+		// TODO: deze code houdt geen rekening met point obstacles, dit gaat nu fout.
 		if (Utility::MathUtility::IsLeftOfSegment(Segment(p1.Position(), p2.Position()), location))
 		{
 			obstacleP1 = outEdge.NearestLeftV0();
 			obstacleP2 = outEdge.NearestLeftV1();
-			Vec2 v = obstacleP2 - obstacleP1;
-			rayDir.x = v.y;
-			rayDir.y = -v.x;
+
+			//point obstacle
+			if (obstacleP1.x == obstacleP2.x && obstacleP1.y == obstacleP2.y)
+			{
+				Vec2 v1 = p1.Position() - obstacleP1;
+				Vec2 v2 = p2.Position() - obstacleP1;
+				rayDir = v1 + v2;
+
+			}
+			else
+			{
+				Vec2 v = obstacleP2 - obstacleP1;
+				rayDir.x = v.y;
+				rayDir.y = -v.x;
+
+			}
+			
 			rayDir.Normalize();
 		}
 		else
 		{
 			obstacleP1 = outEdge.NearestRightV0();
 			obstacleP2 = outEdge.NearestRightV1();
-			Vec2 v = obstacleP2 - obstacleP1;
-			rayDir.x = -v.y;
-			rayDir.y = v.x;
+			//point obstacle
+			if (obstacleP1.x == obstacleP2.x && obstacleP1.y == obstacleP2.y)
+			{
+				Vec2 v1 = p1.Position() - obstacleP1;
+				Vec2 v2 = p2.Position() - obstacleP1;
+				rayDir = v1 + v2;
+			}
+			else
+			{
+				Vec2 v = obstacleP2 - obstacleP1;
+				rayDir.x = -v.y;
+				rayDir.y = v.x;
+
+			}
 			rayDir.Normalize();
 		}
 
@@ -93,9 +120,11 @@ namespace ECM {
 	// TODO: make into KD-tree insert
 	int ECMGraph::AddVertex(ECMVertex vertex)
 	{
+		int index = m_NextVertexIndex;
+
+		vertex.SetIndex(index);
 		m_Vertices.push_back(vertex);
 
-		int index = m_NextVertexIndex;
 		m_NextVertexIndex++;
 
 		return index;
@@ -168,6 +197,28 @@ namespace ECM {
 
 		return m_VertAdjacency[vertex_index];
 	}
+
+	const std::vector<int> ECMGraph::GetNeighboringVertices(int vertex_index) const
+	{
+		std::vector<int> result;
+
+		if (vertex_index >= m_VertAdjacency.size())
+		{
+			return result;
+		}
+
+		const std::vector<EdgeIndex>& edges = m_VertAdjacency[vertex_index];
+		for (const EdgeIndex& edge : edges)
+		{
+			const ECMEdge& ecmEdge = GetEdge(edge);
+			int neighbor = ecmEdge.V0() == vertex_index ? ecmEdge.V1() : ecmEdge.V0();
+
+			result.push_back(neighbor);
+		}
+
+		return result;
+	}
+
 
 
 	const ECMCell* ECMGraph::GetCell(float x, float y) const

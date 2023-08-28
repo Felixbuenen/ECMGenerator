@@ -2,13 +2,34 @@
 
 #include <vector>
 
+//#include "ECM.h"
+
+
 namespace ECM
 {
 	struct Point;
+	struct Vec2;
+	
 	class Environment;
+	class AStar;
+	class ECMGraph;
+	class ECM;
 
 	namespace PathPlanning
 	{
+		struct Corridor
+		{
+			int numDisks;
+
+			std::vector<Vec2> diskCenters;
+			std::vector<float> diskRadii;
+			std::vector<Vec2> leftBounds;
+			std::vector<Vec2> rightBounds;
+			// shrunk corridor bounds
+			std::vector<Vec2> leftCorridorBounds; 
+			std::vector<Vec2> rightCorridorBounds; 
+		};
+
 		typedef std::vector<Point> Path;
 
 		// TODO:
@@ -24,8 +45,13 @@ namespace ECM
 			// static class that uses an ECM object to plan paths
 
 		public:
+			ECMPathPlanner();
+			~ECMPathPlanner();
+
+			bool Initialize(ECMGraph& graph);
+
 			// standard path query
-			static Path GetPath(const Environment& environment, Point start, Point goal, float clearance);
+			Path GetPath(const Environment& environment, Point start, Point goal, float clearance);
 
 			// path query with a preferred clearance (and min/max clearance)
 			// probably a good idea to create a class ECMVariableClearanceCostFunction, with subclasses that calculate the cost of
@@ -36,10 +62,12 @@ namespace ECM
 			//ECMPath* GetPath(/*ECM* ecm, point& start, point& goal, prefClear, minClear, maxClear, costFunc, costMultiplier*/) const;
 
 		private:
-			static void RetractQueryPoints(const Point& start, const Point& goal, Point& outRetractedStart, Point& outRetractedGoal);
+			void RetractQueryPoints(const Point& start, const Point& goal, Point& outRetractedStart, Point& outRetractedGoal);
 
-			void GetMedialAxisPath() const; // A* search on medial axis, returns set of edges
+			void CreateCorridor(const std::vector<int>& maPath, Corridor& outCorridor, std::shared_ptr<ECM> ecm); // A* search on medial axis, returns set of edges
 			void SmoothPath(/*path*/) const; // takes the medial axis path and creates and actual path to follow
+
+			AStar* m_AStar;
 		};
 	}
 }
