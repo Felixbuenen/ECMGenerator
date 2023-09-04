@@ -34,7 +34,7 @@ namespace ECM {
 			DrawWalkableArea();
 			DrawObstacles();
 			DrawMedialAxis();
-			//DrawECMVertices();
+			DrawECMVertices();
 			//DrawClosestObstaclePoints();
 			
 			// TEST
@@ -45,6 +45,8 @@ namespace ECM {
 			//DebugDrawCellValues();
 
 			DrawPath();
+
+
 
 			// render window
 			SDL_RenderPresent(m_Renderer);
@@ -134,30 +136,37 @@ namespace ECM {
 
 			for (const ECMEdge& edge : edges)
 			{
-				if (edge.IsArc())
+				const ECMHalfEdge& edge0 = edge.half_edges[0];
+				const ECMHalfEdge& edge1 = edge.half_edges[1];
+				int v1idx = edge0.v_target_idx;
+				int v2idx = edge1.v_target_idx;
+
+				int ptLeftOfIdx;
+				if (graph.IsArc(edge, ptLeftOfIdx))
 				{
 					std::vector<point_type> discr;
-					point_type pt1(graph.GetVertex(edge.V0()).Position().x, graph.GetVertex(edge.V0()).Position().y);
-					point_type pt2(graph.GetVertex(edge.V1()).Position().x, graph.GetVertex(edge.V1()).Position().y);
+
+					point_type pt1(graph.GetVertex(v1idx)->position.x, graph.GetVertex(v1idx)->position.y);
+					point_type pt2(graph.GetVertex(v2idx)->position.x, graph.GetVertex(v2idx)->position.y);
 					discr.push_back(pt1);
 					discr.push_back(pt2);
 
 					const double maxDist = 0.5;
 
-					if (Utility::MathUtility::SquareDistance(edge.NearestLeftV0(), edge.NearestLeftV1()) < Utility::EPSILON)
+					if (ptLeftOfIdx == 0)
 					{
-						point_type p(edge.NearestLeftV0().x, edge.NearestLeftV0().y);
-						point_type nr0(edge.NearestRightV0().x, edge.NearestRightV0().y);
-						point_type nr1(edge.NearestRightV1().x, edge.NearestRightV1().y);
+						point_type p(edge0.closest_left.x, edge0.closest_left.y);
+						point_type nr0(edge0.closest_right.x, edge0.closest_right.y);
+						point_type nr1(edge1.closest_left.x, edge1.closest_left.y);
 						segment_type seg(nr0, nr1);
 
 						boost::polygon::voronoi_visual_utils<coordinate_type>::discretize(p, seg, maxDist, &discr);
 					}
 					else
 					{
-						point_type p(edge.NearestRightV0().x, edge.NearestRightV0().y);
-						point_type nl0(edge.NearestLeftV0().x, edge.NearestLeftV0().y);
-						point_type nl1(edge.NearestLeftV1().x, edge.NearestLeftV1().y);
+						point_type p(edge0.closest_right.x, edge0.closest_right.y);
+						point_type nl0(edge0.closest_left.x, edge0.closest_left.y);
+						point_type nl1(edge1.closest_right.x, edge1.closest_right.y);
 						segment_type seg(nl0, nl1);
 
 						boost::polygon::voronoi_visual_utils<coordinate_type>::discretize(p, seg, maxDist, &discr);
@@ -176,10 +185,10 @@ namespace ECM {
 				}
 				else
 				{
-					int x1 = verts[edge.V0()].Position().x * m_CamZoomFactor + m_CamOffsetX;
-					int y1 = verts[edge.V0()].Position().y * m_CamZoomFactor + m_CamOffsetY;
-					int x2 = verts[edge.V1()].Position().x * m_CamZoomFactor + m_CamOffsetX;
-					int y2 = verts[edge.V1()].Position().y * m_CamZoomFactor + m_CamOffsetY;
+					int x1 = verts[v1idx].position.x * m_CamZoomFactor + m_CamOffsetX;
+					int y1 = verts[v1idx].position.y * m_CamZoomFactor + m_CamOffsetY;
+					int x2 = verts[v2idx].position.x * m_CamZoomFactor + m_CamOffsetX;
+					int y2 = verts[v2idx].position.y * m_CamZoomFactor + m_CamOffsetY;
 
 					SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
 				}
@@ -207,22 +216,26 @@ namespace ECM {
 		void ECMRenderer::DrawECMVertices()
 		{
 			auto verts = m_Ecm->GetECMGraph().GetVertices();
-
-			SDL_SetRenderDrawColor(m_Renderer, 0xff, 0x00, 0xff, 0xff);
-			//SDL_RenderSetScale(_renderer, 2.0f, 2.0f);
-
-			for (auto vert : verts)
+			std::vector<int> toDraw{4};
+			for (const ECMVertex& vertex : verts)
 			{
-				float x = vert.Position().x * m_CamZoomFactor + m_CamOffsetX;
-				float y = vert.Position().y * m_CamZoomFactor + m_CamOffsetY;
+				Point p = vertex.position;
 
-				SDL_RenderDrawPoint(m_Renderer, x, y);
+				const int w = 12;
+				const int h = 12;
+
+				int x1 = p.x * m_CamZoomFactor + m_CamOffsetX - w/2;
+				int y1 = p.y * m_CamZoomFactor + m_CamOffsetY - h/2;
+
+				SDL_Rect rect;
+				rect.x = x1;
+				rect.y = y1;
+				rect.w = w;
+				rect.h = h;
+
+				SDL_SetRenderDrawColor(m_Renderer, 255, 0, 0, 255);
+				SDL_RenderDrawRect(m_Renderer, &rect);
 			}
-
-			int result = SDL_RenderDrawPoint(m_Renderer, m_CamOffsetX, m_CamOffsetY);
-
-
-			//SDL_RenderSetScale(_renderer, 1.0f, 1.0f);
 
 		}
 
@@ -235,10 +248,10 @@ namespace ECM {
 
 			for (auto vert : verts)
 			{
-				if (m_Env->InsideObstacle(vert.Position()))
+				if (m_Env->InsideObstacle(vert.position))
 				{
-					float x = vert.Position().x * m_CamZoomFactor + m_CamOffsetX;
-					float y = vert.Position().y * m_CamZoomFactor + m_CamOffsetY;
+					float x = vert.position.x * m_CamZoomFactor + m_CamOffsetX;
+					float y = vert.position.y * m_CamZoomFactor + m_CamOffsetY;
 
 					const int size = 5;
 
@@ -252,22 +265,30 @@ namespace ECM {
 
 		void ECMRenderer::DrawClosestObstaclePoints()
 		{
-			auto verts = m_Ecm->GetECMGraph().GetVertices();
+			ECMGraph& graph = m_Ecm->GetECMGraph();
+			auto verts = graph.GetVertices();
 			SDL_SetRenderDrawColor(m_Renderer, 0xff, 0x8c, 0x00, 0xff);
 
 			for (const auto& vert : verts)
 			{
-				float startX = vert.Position().x * m_CamZoomFactor + m_CamOffsetX;
-				float startY = vert.Position().y * m_CamZoomFactor + m_CamOffsetY;
+				float startX = vert.position.x * m_CamZoomFactor + m_CamOffsetX;
+				float startY = vert.position.y * m_CamZoomFactor + m_CamOffsetY;
 
-				const auto& clPoints = vert.GetClosestPoints();
-				for (const auto& clPoint : clPoints)
+				int firstHalfEdge = vert.half_edge_idx;
+				int currentHalfEdge = firstHalfEdge;
+				ECMHalfEdge* edge = graph.GetHalfEdge(firstHalfEdge);
+				do
 				{
+					int vertIdx = graph.GetHalfEdge(currentHalfEdge)->v_target_idx;
+					Point clPoint = graph.GetVertex(vertIdx)->position;
+
 					float x = clPoint.x * m_CamZoomFactor + m_CamOffsetX;
 					float y = clPoint.y * m_CamZoomFactor + m_CamOffsetY;
 
 					SDL_RenderDrawLine(m_Renderer, startX, startY, x, y);
-				}
+
+					currentHalfEdge = edge->next_idx;
+				} while (firstHalfEdge != currentHalfEdge);
 			}
 		}
 

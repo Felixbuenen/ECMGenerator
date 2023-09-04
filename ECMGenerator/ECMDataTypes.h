@@ -57,6 +57,11 @@ namespace ECM {
 			y += a.y;
 			return *this;
 		}
+		bool operator ==(const Point& a) const
+		{
+			using namespace Utility;
+			return (x > a.x - EPSILON && x < a.x + EPSILON && y > a.y - EPSILON && y < a.y + EPSILON);
+		}
 	};
 
 	struct Segment {

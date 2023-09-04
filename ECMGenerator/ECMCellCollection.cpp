@@ -6,25 +6,36 @@
 
 namespace ECM {
 
-	void ECMCellCollection::Construct(const ECMGraph& graph)
+	void ECMCellCollection::Construct(ECMGraph& graph)
 	{
 		for (const ECMEdge& edge : graph.GetEdges())
 		{
 			ECMCell cell;
 			std::vector<Segment> cellBounds;
 
-			Point v0 = graph.GetVertex(edge.V0()).Position();
-			Point v1 = graph.GetVertex(edge.V1()).Position();
+			const ECMHalfEdge& edge0 = edge.half_edges[0];
+			const ECMHalfEdge& edge1 = edge.half_edges[1];
 
-			cellBounds.push_back(Segment(v0, edge.NearestLeftV0()));
-			cellBounds.push_back(Segment(edge.NearestLeftV0(), edge.NearestLeftV1()));
-			cellBounds.push_back(Segment(edge.NearestLeftV1(), v1));
-			cellBounds.push_back(Segment(v1, edge.NearestRightV1()));
-			cellBounds.push_back(Segment(edge.NearestRightV1(), edge.NearestRightV0()));
-			cellBounds.push_back(Segment(edge.NearestRightV0(), v0));
+			ECMVertex* v0 = graph.GetVertex(edge.half_edges[1].v_target_idx);
+			ECMVertex* v1 = graph.GetVertex(edge.half_edges[0].v_target_idx);
+
+			Point p0 = v0->position;
+			Point p1 = v1->position;
+			
+			Point p0_left = edge0.closest_left;
+			Point p1_left = edge1.closest_right;
+			Point p0_right = edge0.closest_right;
+			Point p1_right = edge1.closest_left;
+
+			cellBounds.push_back(Segment(p0, p0_left));
+			cellBounds.push_back(Segment(p0_left, p1_left));
+			cellBounds.push_back(Segment(p1_left, p1));
+			cellBounds.push_back(Segment(p1, p1_right));
+			cellBounds.push_back(Segment(p1_right, p0_right));
+			cellBounds.push_back(Segment(p0_right, p0));
 
 			cell.boundary = cellBounds;
-			cell.ecmEdge = edge.Index();
+			cell.ecmEdge = edge.idx;
 
 			m_ECMCells.push_back(cell);
 		}
@@ -32,9 +43,9 @@ namespace ECM {
 
 
 	// todo: make more clever (trapezoidal decomposition)
-	const ECMCell* ECMCellCollection::PointLocationQuery(const Point& location) const
+	ECMCell* ECMCellCollection::PointLocationQuery(const Point& location)
 	{
-		for (const ECMCell& cell : m_ECMCells)
+		for (ECMCell& cell : m_ECMCells)
 		{
 			if (Utility::MathUtility::Contains(location, cell.boundary))
 			{

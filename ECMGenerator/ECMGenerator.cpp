@@ -64,136 +64,173 @@ namespace ECM {
 		ECMGraph& ecmGraph = ecm.GetECMGraph();
 		const boost::polygon::voronoi_diagram<double>& vd = ma.VD;
 
+		// TODO: 
+		// 1. Loop through vertices. Add all vertices that are not inside an obstacle.
+		// 2. Loop through edges. Add edges and respective half edges. Store an array of indices of size boostEdges.
+		//    In this array A, store the index of our ECM half edge, at the index of the boost edge. I.e. A[boost_edge_id] = ECMedgeID.
+		// 3. Loop through vertices again. This time, add next_incident_edge information. Use A to set the correct ecm edge ID
+		// 
 		// first create all ECM vertices
+
+		std::printf("Adding vertices... ");
+		std::vector<int> mapECMVertexIndices;
+		mapECMVertexIndices.resize(vd.num_vertices());
+		int boostVertIndex = -1;
+		int ecmVertIndex = -1;
 		for (voronoi_diagram<double>::const_vertex_iterator it =
 			vd.vertices().begin(); it != vd.vertices().end(); ++it) {
 
+			boostVertIndex++;
+			
 			Point vertLocation(it->x(), it->y());
+
+			// don't add vertex if it lies inside obstacle
 			if (environment.InsideObstacle(vertLocation)) continue;
+			
+			// don't add vertex if all its incident edges lie inside obstacle
+			const voronoi_diagram<double>::edge_type* edge = it->incident_edge();
+			bool shouldAdd = false;
+			do {
+				if (edge->is_primary())
+				{
+					Point loc;
+					loc.x = edge->vertex1()->x();
+					loc.y = edge->vertex1()->y();
+					
+					if (!environment.InsideObstacle(loc))
+					{
+						shouldAdd = true;
+						break;
+					}
+				}
+				edge = edge->rot_next();
+			} while (edge != it->incident_edge());
 
-			ECMVertex vertex(vertLocation);
-			ecmGraph.AddVertex(vertex);
+			if (!shouldAdd) continue;
+			
+			ecmVertIndex++;
+			ecmGraph.AddVertex(vertLocation);
+			mapECMVertexIndices[ecmVertIndex] = boostVertIndex;
 		}
+		std::printf("Done\n");
 
-		int counter = 0;
-		// then create all ECM edges. Note that we do not have to check for edges inside obstacles. This is
-		// automatically solved by not including vertices inside obstacles in the ecmGraph.
+
+		std::printf("Adding edges... ");
+
+		std::vector<int> mapECMEdgeIndices;
+		mapECMEdgeIndices.resize(vd.num_edges(), -1);
+		int boostEdgeIndex = -1;
+		int ecmEdgeIndex = -1;
+		std::vector<bool> handled; 
+		handled.resize(vd.num_edges());
 		for (voronoi_diagram<double>::const_edge_iterator it = vd.edges().begin();
 			it != vd.edges().end(); ++it) {
+			boostEdgeIndex++;
+
+			if (handled[boostEdgeIndex]) continue;
 
 			if (it->is_primary() && it->is_finite())
 			{
-				float x0 = it->vertex0()->x();
-				float x1 = it->vertex1()->x();
-				float y0 = it->vertex0()->y();
-				float y1 = it->vertex1()->y();
+				Point p1 = Point(it->vertex0()->x(), it->vertex0()->y());
+				Point p2 = Point(it->vertex1()->x(), it->vertex1()->y());
 
-				int v0_index = ecmGraph.GetVertexIndex(x0, y0);
-				int v1_index = ecmGraph.GetVertexIndex(x1, y1);
+				int v0_index = ecmGraph.FindVertex(p1.x, p1.y);
+				int v1_index = ecmGraph.FindVertex(p2.x, p2.y);
 
 				// skip if a vertex could not be found
 				if (v0_index == -1 || v1_index == -1) {
 					continue;
 				}
 
-				ECMVertex v0 = ecmGraph.GetVertex(v0_index);
-				ECMVertex v1 = ecmGraph.GetVertex(v1_index);
+				ECMEdge* edge = ecmGraph.AddEdge();
 
-				// if there already exists an edge between v0 and v1, then we should not construct another edge (bi-directional).
-				const std::vector<int>& edges = ecm.GetECMGraph().GetIncidentEdges(v1_index);
-				bool edgeExists = false;
-				for (int edge_index : edges)
-				{
-					if (ecm.GetECMGraph().GetEdge(edge_index).V1() == v0_index)
-					{
-						edgeExists = true;
-						break;
-					}
-				}
-				if (edgeExists) continue;
+				// check closest points to left
+				Point closestLeft1, closestLeft2;
+				int srcIdx = it->cell()->source_index();
+				bool isPoint = it->cell()->contains_point();
+				bool isStartPoint = it->cell()->source_category() == SourceCategory::SOURCE_CATEGORY_SEGMENT_START_POINT;
+				GetClosestPointsToSource(environment, srcIdx, p1, p2, isPoint, isStartPoint, closestLeft1, closestLeft2);
 
-				float cost = Utility::MathUtility::Distance(x0, y0, x1, y1);
-				ECMEdge edge(v0_index, v1_index, cost);
+				// check closest points to right
+				Point closestRight1, closestRight2;
+				srcIdx = it->twin()->cell()->source_index();
+				isPoint = it->twin()->cell()->contains_point();
+				isStartPoint = it->twin()->cell()->source_category() == SourceCategory::SOURCE_CATEGORY_SEGMENT_START_POINT;
+				GetClosestPointsToSource(environment, srcIdx, p1, p2, isPoint, isStartPoint, closestRight1, closestRight2);
 
-				// set whether or not the edge is a parabolic arc
-				edge.SetIsArc(it->is_curved());
+				// construct half-edges
+				ecmGraph.AddHalfEdge(edge->idx, v1_index, closestLeft1, closestRight1, 0);
+				ecmGraph.AddHalfEdge(edge->idx, v0_index, closestRight2, closestLeft2, 1);
 
-				// add closest obstacle information
-				// the cell incident (left) to the half-edge of the current iterator contains the closest obstacle information
-				// assume that we only have segments as input (so point must be from input segment)
+				// bookkeeping to reference boost edges later
+				ecmEdgeIndex++;
+				mapECMEdgeIndices[boostEdgeIndex] = ecmEdgeIndex;
 
-				// TODO: refactor (lots of code duplication)
-				// left side contains point
-				if (it->cell()->contains_point())
-				{
-					int sourceIdx = it->cell()->source_index();
-					Segment source = environment.GetEnvironmentObstacleUnion()[sourceIdx];
-					Point p = it->cell()->source_category() == SourceCategory::SOURCE_CATEGORY_SEGMENT_START_POINT ? source.p0 : source.p1;
-
-					v0.AddClosestObstaclePoint(p);
-					v1.AddClosestObstaclePoint(p);
-
-					edge.SetNearestLeftV0(p);
-					edge.SetNearestLeftV1(p);
-				}
-				// left side contains segment
-				else
-				{
-					int sourceIdx = it->cell()->source_index();
-					Segment source = environment.GetEnvironmentObstacleUnion()[sourceIdx];
-
-					Point closestP0 = Utility::MathUtility::GetClosestPointOnSegment(v0.Position(), source);
-					Point closestP1 = Utility::MathUtility::GetClosestPointOnSegment(v1.Position(), source);
-
-					v0.AddClosestObstaclePoint(closestP0);
-					v1.AddClosestObstaclePoint(closestP1);
-
-					edge.SetNearestLeftV0(closestP0);
-					edge.SetNearestLeftV1(closestP1);
-				}
-				// right side contains point
-				if (it->twin()->cell()->contains_point())
-				{
-					int sourceIdx = it->twin()->cell()->source_index();
-					Segment source = environment.GetEnvironmentObstacleUnion()[sourceIdx];
-					Point p = it->twin()->cell()->source_category() == SourceCategory::SOURCE_CATEGORY_SEGMENT_START_POINT ? source.p0 : source.p1;
-
-					v0.AddClosestObstaclePoint(p);
-					v1.AddClosestObstaclePoint(p);
-
-					edge.SetNearestRightV0(p);
-					edge.SetNearestRightV1(p);
-				}
-				// right side contains segment
-				else
-				{
-					int sourceIdx = it->twin()->cell()->source_index();
-					Segment source = environment.GetEnvironmentObstacleUnion()[sourceIdx];
-
-					Point closestP0 = Utility::MathUtility::GetClosestPointOnSegment(v0.Position(), source);
-					Point closestP1 = Utility::MathUtility::GetClosestPointOnSegment(v1.Position(), source);
-
-					v0.AddClosestObstaclePoint(closestP0);
-					v1.AddClosestObstaclePoint(closestP1);
-
-					edge.SetNearestRightV0(closestP0);
-					edge.SetNearestRightV1(closestP1);
-				}
-
-				int edgeIndex = ecmGraph.AddEdge(edge);
-				if (v0_index == 4)
-				{
-					int i = 0;
-				}
-				ecmGraph.AddAdjacency(v0_index, v1_index, edgeIndex);
-				ecmGraph.AddAdjacency(v1_index, v0_index, edgeIndex);
-
-				counter++;
+				// remove twin of this half-edge -> we already added it
+				int twinIdx = it->twin() - &vd.edges()[0];
+				handled[twinIdx] = true;
+				mapECMEdgeIndices[twinIdx] = ecmEdgeIndex;
 			}
 		}
+		std::printf("Done\n");
+
+
+
+		std::printf("add incident edge info...");
+
+		// add incident edge info
+		const auto& boostVerts = vd.vertices();
+		for (int i = 0; i < ecmGraph.GetVertices().size(); i++) {
+			int boostVertIdx = mapECMVertexIndices[i];
+			auto incEdge = boostVerts[boostVertIdx].incident_edge();
+			int boostEdgeIdx = incEdge - &vd.edges()[0];
+			int ecmEdgeIdx = mapECMEdgeIndices[boostEdgeIdx];
+			while (ecmEdgeIdx == -1)
+			{
+				incEdge = boostVerts[boostVertIdx].incident_edge()->rot_next();
+				boostEdgeIdx = incEdge - &vd.edges()[0];
+				ecmEdgeIdx = mapECMEdgeIndices[boostEdgeIdx];
+			}
+
+			ECMEdge* edge = ecmGraph.GetEdge(ecmEdgeIdx);
+			int halfEdgeOffset = edge->half_edges[0].v_target_idx == i ? 1 : 0;
+			ECMHalfEdge* halfEdge = &edge->half_edges[halfEdgeOffset];
+
+			ECMVertex* vert = ecmGraph.GetVertex(i);
+			vert->half_edge_idx = ecmEdgeIdx * 2 + halfEdgeOffset; // refactor?
+
+			int startHalfEdgeIdx = vert->half_edge_idx;
+			int nextHalfEdgeIndex = startHalfEdgeIdx;
+
+			auto* e = &vd.edges()[boostEdgeIdx];
+			auto* eStart = e;
+			do {
+				e = e->rot_next();
+				int nextBoostEdgeIdx = e - &vd.edges()[0];
+				int nextEcmEdgeIdx = mapECMEdgeIndices[nextBoostEdgeIdx];
+				if (nextEcmEdgeIdx == -1)
+				{
+					continue;
+				}
+
+				ECMEdge* nextEdge = ecmGraph.GetEdge(nextEcmEdgeIdx);
+				int nextHalfEdgeOffset = nextEdge->half_edges[0].v_target_idx == i ? 1 : 0;
+				nextHalfEdgeIndex = nextEcmEdgeIdx * 2 + nextHalfEdgeOffset;
+
+				halfEdge->next_idx = nextHalfEdgeIndex;
+				halfEdge = &nextEdge->half_edges[nextHalfEdgeOffset];
+			} while (e != eStart);
+		
+		}
+		std::printf("Done\n");
+
+		std::printf("construct ecm cells...");
 
 		// finally construct the cells
 		ecmGraph.ConstructECMCells();
+
+		std::printf("Done\n");
+
 	}
 
 
@@ -214,4 +251,24 @@ namespace ECM {
 		return ecm;
 	}
 
+	void ECMGenerator::GetClosestPointsToSource(const Environment& environment, int sourceIdx, const Point& p1, const Point& p2, bool isPoint, bool isStartPoint, Point& outClosestP1, Point& outClosestP2)
+	{
+		Segment source = environment.GetEnvironmentObstacleUnion()[sourceIdx];
+
+		if (isPoint)
+		{
+			Point p = isStartPoint ? source.p0 : source.p1;
+
+			outClosestP1 = p;
+			outClosestP2 = p;
+		}
+		else
+		{
+			Point closestP1 = Utility::MathUtility::GetClosestPointOnSegment(p1, source);
+			Point closestP2 = Utility::MathUtility::GetClosestPointOnSegment(p2, source);
+
+			outClosestP1 = closestP1;
+			outClosestP2 = closestP2;
+		}
+	}
 }

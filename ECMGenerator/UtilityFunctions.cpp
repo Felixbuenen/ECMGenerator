@@ -6,6 +6,8 @@
 namespace ECM {
 	namespace Utility {
 
+		const float MathUtility::PI = 3.141593f;
+
 		float MathUtility::Distance(const Point& p1, const Point& p2)
 		{
 			Point diff;
@@ -130,6 +132,12 @@ namespace ECM {
 		{
 			return x * x + y * y;
 		}
+
+		float MathUtility::Length(float x, float y)
+		{
+			return sqrt(x * x + y * y);
+		}
+
 
 		Point MathUtility::GetClosestPointOnSegment(const Point& point, const Segment& segment)
 		{

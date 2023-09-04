@@ -23,8 +23,6 @@ namespace ECM {
 		uint32_t parentIndex;
 		float gCost;
 		float fCost;
-
-		std::vector<int> neighbors;
 	};
 
 	class AStarCompare
@@ -43,7 +41,7 @@ namespace ECM {
 
 		bool Initialize(); // set ECM and other variables
 		bool Update();
-		bool FindPath(const Point& startLocation, const Point& goalLocation, const ECMEdge& startEdge, const ECMEdge& goalEdge, float clearance, std::vector<int>& outPath); // params: startEdge, goalEdge, clearance, vec<ECMEdge>& outPath
+		bool FindPath(const Point& startLocation, const Point& goalLocation, const ECMEdge* startEdge, const ECMEdge* goalEdge, float clearance, std::vector<int>& outPath); // params: startEdge, goalEdge, clearance, vec<ECMEdge>& outPath
 
 		void SetHeuristic();
 		float Heuristic(Point start, Point goal) const;
@@ -51,7 +49,7 @@ namespace ECM {
 	private:
 		void ConstructPath(AStarNode& goal, std::vector<int>& outPath);
 		void CleanData();
-		void CleanRequestData(int goalNeighborA, int goalNeighborB);
+		void CleanRequestData();
 		inline bool IsVisited(int index) const;
 		inline void SetVisited(int index);
 
@@ -60,8 +58,6 @@ namespace ECM {
 		std::vector<bool> m_Visited;
 
 		uint32_t INVALID_NODE_INDEX;
-		uint32_t START_NODE_INDEX;
-		uint32_t GOAL_NODE_INDEX;
 	};
 
 }

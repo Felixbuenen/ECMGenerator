@@ -43,8 +43,8 @@ namespace ECM {
 			}
 
 			auto ecm = ecmStart;
-			auto startCell = ecm->GetECMGraph().GetCell(start.x, start.y);
-			auto goalCell = ecm->GetECMGraph().GetCell(goal.x, goal.y);
+			auto startCell = ecm->GetECMGraph().FindCell(start.x, start.y);
+			auto goalCell = ecm->GetECMGraph().FindCell(goal.x, goal.y);
 
 			if (!startCell || !goalCell)
 			{
@@ -66,7 +66,8 @@ namespace ECM {
 			}
 
 			Point retrStart, retrGoal;
-			ECMEdge startEdge, goalEdge;
+			ECMEdge startEdge;
+			ECMEdge goalEdge;
 			if (!ecm->RetractPoint(start, *startCell, retrStart, startEdge))
 			{
 				printf("retraction for start point failed");
@@ -81,12 +82,10 @@ namespace ECM {
 			// TODO: currently de astar path returns a list of ECM vertices. However, this does not make sense. We want to return ECM edges, because only then
 			// do we have the right left/right closest obstacle information. This requires us to adapt the astar pathfinding algorithm.
 			std::vector<int> astarPath;
-			if(!m_AStar->FindPath(retrStart, retrGoal, startEdge, goalEdge, 1.0f, astarPath))
+			if(!m_AStar->FindPath(retrStart, retrGoal, &startEdge, &goalEdge, 1.0f, astarPath))
 			{
 				printf("couldn't find path!\n");
 			}
-
-
 
 			// DEBUG
 			result.push_back(start);
@@ -94,7 +93,7 @@ namespace ECM {
 			for (int i = 0; i < astarPath.size(); i++)
 			{
 				const auto& vert = ecm->GetECMGraph().GetVertex(astarPath[i]);
-				result.push_back(vert.Position());
+				result.push_back(vert->position);
 			}
 			result.push_back(retrGoal);
 			result.push_back(goal);
@@ -117,12 +116,8 @@ namespace ECM {
 			{
 				const auto& vert = ecm->GetECMGraph().GetVertex(maPath[i]);
 
-				outCorridor.diskCenters.push_back(vert.Position());
-				outCorridor.diskRadii.push_back(vert.Clearance());
-
-				vert.
-
-				result.push_back(vert.Position());
+				outCorridor.diskCenters.push_back(vert->position);
+				outCorridor.diskRadii.push_back(vert->clearance);
 			}
 		}
 

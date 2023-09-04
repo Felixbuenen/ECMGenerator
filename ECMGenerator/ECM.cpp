@@ -15,24 +15,27 @@ namespace ECM {
 		m_MedialAxis = std::make_shared<MedialAxis>();
 	}
 
-	const bool ECM::RetractPoint(Point location, Point& outRetractedLocation, ECMEdge& outEdge) const
+	bool ECM::RetractPoint(Point location, Point& outRetractedLocation, ECMEdge* outEdge)
 	{
 		// TODO:
 		// Retract point on arc is currently not implemented!
 
 
-		const ECMCell* cell = m_EcmGraph.GetCell(location.x, location.y);
+		const ECMCell* cell = m_EcmGraph.FindCell(location.x, location.y);
 		outEdge = m_EcmGraph.GetEdge(cell->ecmEdge);
-		const ECMVertex& p1 = m_EcmGraph.GetVertex(outEdge.V0());
-		const ECMVertex& p2 = m_EcmGraph.GetVertex(outEdge.V1());
+		const ECMVertex* p1 = m_EcmGraph.GetVertex(outEdge->half_edges[1].v_target_idx);
+		const ECMVertex* p2 = m_EcmGraph.GetVertex(outEdge->half_edges[0].v_target_idx);
 
 		// get closest obstacle based on which side of the ECM edge the location is
 		Point obstacleP1, obstacleP2;
 		Vec2 rayDir;
-		if (Utility::MathUtility::IsLeftOfSegment(Segment(p1.Position(), p2.Position()), location))
+		int halfEdgeToP2Idx = outEdge->half_edges[0].v_target_idx == p2->idx ? 0 : 1;
+		int halfEdgeToP1Idx = (halfEdgeToP2Idx + 1) % 2;
+
+		if (Utility::MathUtility::IsLeftOfSegment(Segment(p1->position, p2->position), location))
 		{
-			obstacleP1 = outEdge.NearestLeftV0();
-			obstacleP2 = outEdge.NearestLeftV1();
+			obstacleP1 = outEdge->half_edges[halfEdgeToP2Idx].closest_left;
+			obstacleP2 = outEdge->half_edges[halfEdgeToP1Idx].closest_right;
 			Vec2 v = obstacleP2 - obstacleP1;
 			rayDir.x = v.y;
 			rayDir.y = -v.x;
@@ -40,38 +43,40 @@ namespace ECM {
 		}
 		else
 		{
-			obstacleP1 = outEdge.NearestRightV0();
-			obstacleP2 = outEdge.NearestRightV1();
+			obstacleP1 = outEdge->half_edges[halfEdgeToP2Idx].closest_right;
+			obstacleP2 = outEdge->half_edges[halfEdgeToP1Idx].closest_left;
 			Vec2 v = obstacleP2 - obstacleP1;
 			rayDir.x = -v.y;
 			rayDir.y = v.x;
 			rayDir.Normalize();
 		}
 
-		return Utility::MathUtility::GetRayToLineSegmentIntersection(location, rayDir, p1.Position(), p2.Position(), outRetractedLocation);
+		return Utility::MathUtility::GetRayToLineSegmentIntersection(location, rayDir, p1->position, p2->position, outRetractedLocation);
 	}
 
-	const bool ECM::RetractPoint(Point location, const ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge) const
+	bool ECM::RetractPoint(Point location, ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge)
 	{
-		outEdge = m_EcmGraph.GetEdge(cell.ecmEdge);
-		const ECMVertex& p1 = m_EcmGraph.GetVertex(outEdge.V0());
-		const ECMVertex& p2 = m_EcmGraph.GetVertex(outEdge.V1());
+		outEdge = *m_EcmGraph.GetEdge(cell.ecmEdge);
+		const ECMVertex* p1 = m_EcmGraph.GetVertex(outEdge.half_edges[1].v_target_idx);
+		const ECMVertex* p2 = m_EcmGraph.GetVertex(outEdge.half_edges[0].v_target_idx);
 
 		// get closest obstacle based on which side of the ECM edge the location is
 		Point obstacleP1, obstacleP2;
 		Vec2 rayDir;
+		int halfEdgeToP2Idx = outEdge.half_edges[0].v_target_idx == p2->idx ? 0 : 1;
+		int halfEdgeToP1Idx = (halfEdgeToP2Idx + 1) % 2;
 
 		// TODO: deze code houdt geen rekening met point obstacles, dit gaat nu fout.
-		if (Utility::MathUtility::IsLeftOfSegment(Segment(p1.Position(), p2.Position()), location))
+		if (Utility::MathUtility::IsLeftOfSegment(Segment(p1->position, p2->position), location))
 		{
-			obstacleP1 = outEdge.NearestLeftV0();
-			obstacleP2 = outEdge.NearestLeftV1();
+			obstacleP1 = outEdge.half_edges[halfEdgeToP2Idx].closest_left;
+			obstacleP2 = outEdge.half_edges[halfEdgeToP1Idx].closest_right;
 
 			//point obstacle
 			if (obstacleP1.x == obstacleP2.x && obstacleP1.y == obstacleP2.y)
 			{
-				Vec2 v1 = p1.Position() - obstacleP1;
-				Vec2 v2 = p2.Position() - obstacleP1;
+				Vec2 v1 = p1->position - obstacleP1;
+				Vec2 v2 = p2->position - obstacleP1;
 				rayDir = v1 + v2;
 
 			}
@@ -87,13 +92,13 @@ namespace ECM {
 		}
 		else
 		{
-			obstacleP1 = outEdge.NearestRightV0();
-			obstacleP2 = outEdge.NearestRightV1();
+			obstacleP1 = outEdge.half_edges[halfEdgeToP2Idx].closest_right;
+			obstacleP2 = outEdge.half_edges[halfEdgeToP1Idx].closest_left;
 			//point obstacle
 			if (obstacleP1.x == obstacleP2.x && obstacleP1.y == obstacleP2.y)
 			{
-				Vec2 v1 = p1.Position() - obstacleP1;
-				Vec2 v2 = p2.Position() - obstacleP1;
+				Vec2 v1 = p1->position - obstacleP1;
+				Vec2 v2 = p2->position - obstacleP1;
 				rayDir = v1 + v2;
 			}
 			else
@@ -106,7 +111,7 @@ namespace ECM {
 			rayDir.Normalize();
 		}
 
-		return Utility::MathUtility::GetRayToLineSegmentIntersection(location, rayDir, p1.Position(), p2.Position(), outRetractedLocation);
+		return Utility::MathUtility::GetRayToLineSegmentIntersection(location, rayDir, p1->position, p2->position, outRetractedLocation);
 	}
 
 
@@ -117,64 +122,65 @@ namespace ECM {
 		m_Cells = std::make_unique<ECMCellCollection>();
 	}
 
-	// TODO: make into KD-tree insert
-	int ECMGraph::AddVertex(ECMVertex vertex)
+	ECMVertex* ECMGraph::AddVertex(Point position)
 	{
 		int index = m_NextVertexIndex;
 
-		vertex.SetIndex(index);
-		m_Vertices.push_back(vertex);
+		// TODO: can we make an assumption based on the environment how many edges/vertices there will be?
+		m_Vertices.push_back(ECMVertex());
+		m_Vertices[index].idx = index;
+		m_Vertices[index].position = position;
 
 		m_NextVertexIndex++;
 
-		return index;
+		return &m_Vertices[index];
 	}
 
 	// TODO: make into KD-tree insert
-	int ECMGraph::AddEdge(ECMEdge edge)
+	ECMEdge* ECMGraph::AddEdge()
 	{
 		int index = m_NextEdgeIndex;
+
+		// TODO: can we make an assumption based on the environment how many edges/vertices there will be?
+		m_Edges.push_back(ECMEdge());
+		m_Edges[index].idx = index;
+
 		m_NextEdgeIndex++;
-		edge.SetIndex(index);
 
-		m_Edges.push_back(edge);
-
-		return index;
+		return &m_Edges[index];
 	}
+
+	ECMHalfEdge* ECMGraph::AddHalfEdge(int edgeIdx, int targetIdx, Point closestLeft, Point closestRight, short idx)
+	{
+		if (idx != 0 && idx != 1) {
+			printf("ERROR in AddHalfEdge: idx represents the local half-edge index for the edge and should be 0 or 1");
+			return nullptr;
+		}
+
+		ECMEdge& edge = m_Edges[edgeIdx];
+		edge.half_edges[idx].closest_left = closestLeft;
+		edge.half_edges[idx].closest_right = closestRight;
+		edge.half_edges[idx].v_target_idx = targetIdx;
+
+		return &(edge.half_edges[idx]);
+	}
+
 
 	void ECMGraph::ConstructECMCells()
 	{
 		m_Cells->Construct(*this);
 	}
 
-
-
-	//void ECMGraph::AddAdjacency(int vertexIndex, int edgeIndex)
-	//{
-	//	m_Vertices[vertexIndex].AddIncidentEdge(edgeIndex);
-	//}
-
-
-
-	void ECMGraph::AddAdjacency(int v0, int v1, int edge)
-	{
-		if (m_VertAdjacency.size() < (v0 + 1)) m_VertAdjacency.resize(v0 + 1);
-		m_VertAdjacency[v0].push_back(edge);
-
-		//printf("m_VertAdjacency.size(): %d\n", m_VertAdjacency.size());
-	}
-
-
 	// TODO: make KD-tree query
-	int ECMGraph::GetVertexIndex(float x, float y) const
+	int ECMGraph::FindVertex(float x, float y) const
 	{
 		using Utility::EPSILON;
 
 		int index = 0;
 		for (const ECMVertex& vert : m_Vertices)
 		{
-			const Point& pos = vert.Position();
-			bool isSamePosition = abs(x - vert.Position().x) < EPSILON && abs(y - vert.Position().y) < EPSILON;
+			const Point& pos = vert.position;
+			bool isSamePosition = abs(x - vert.position.x) < EPSILON && abs(y - vert.position.y) < EPSILON;
 
 			if (isSamePosition)
 			{
@@ -188,63 +194,24 @@ namespace ECM {
 		return -1;
 	}
 
-	const std::vector<EdgeIndex>& ECMGraph::GetIncidentEdges(int vertex_index) const
-	{
-		if (vertex_index >= m_VertAdjacency.size())
-		{
-			return std::vector<EdgeIndex>();
-		}
 
-		return m_VertAdjacency[vertex_index];
-	}
-
-	const std::vector<int> ECMGraph::GetNeighboringVertices(int vertex_index) const
-	{
-		std::vector<int> result;
-
-		if (vertex_index >= m_VertAdjacency.size())
-		{
-			return result;
-		}
-
-		const std::vector<EdgeIndex>& edges = m_VertAdjacency[vertex_index];
-		for (const EdgeIndex& edge : edges)
-		{
-			const ECMEdge& ecmEdge = GetEdge(edge);
-			int neighbor = ecmEdge.V0() == vertex_index ? ecmEdge.V1() : ecmEdge.V0();
-
-			result.push_back(neighbor);
-		}
-
-		return result;
-	}
-
-
-
-	const ECMCell* ECMGraph::GetCell(float x, float y) const
+	ECMCell* ECMGraph::FindCell(float x, float y)
 	{
 		return m_Cells->PointLocationQuery(Point(x, y));
 	}
 
-
-
-
-	std::vector<Segment> ECMGraph::GetSampledEdge(const ECMEdge& edge, int samples, bool inverseDirection) const
+	bool ECMGraph::IsArc(const ECMEdge& edge, int& outPtLeftOfIdx) const
 	{
-		std::vector<Segment> result;
+		bool leftBoundIsPoint = edge.half_edges[0].closest_left == edge.half_edges[1].closest_right;
+		bool rightBoundIsPoint = edge.half_edges[0].closest_right == edge.half_edges[1].closest_left;
 
-		const ECMVertex& v1 = inverseDirection ? m_Vertices[edge.V1()] : m_Vertices[edge.V0()];
-		const ECMVertex& v2 = inverseDirection ? m_Vertices[edge.V0()] : m_Vertices[edge.V1()];
-		Point p1 = v1.Position();
-		Point p2 = v2.Position();
+		if (leftBoundIsPoint) outPtLeftOfIdx = 0;
+		else if (rightBoundIsPoint) outPtLeftOfIdx = 1;
+		else outPtLeftOfIdx = -1;
 
-		if (!edge.IsArc())
-		{
-			result.push_back(Segment(p1, p2));
-			return result;
-		}
+		// the edge is only an arc if either one of the two boundaries is a point
+		return (leftBoundIsPoint || rightBoundIsPoint) && (leftBoundIsPoint != rightBoundIsPoint);
 	}
-
 
 	// TESTY TESTY
 	std::vector<Segment> ECM::GetRandomTestPath() const
@@ -258,9 +225,10 @@ namespace ECM {
 		//return _ecmGraph.GetRandomTestPath(startIdx);
 	}
 
-	const ECMCell* ECM::GetECMCell(float x, float y) const
+	ECMCell* ECM::GetECMCell(float x, float y)
 	{
-		return m_EcmGraph.GetCell(x, y);
+		return m_EcmGraph.FindCell(x, y);
 	}
+
 
 }

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory> // TODO: check of memory inlcuded moet zijn, of kunnen we het forward declaren?
+#include <memory>
 
 namespace ECM {
 
@@ -8,6 +8,8 @@ namespace ECM {
 	class ECMGraph;
 	class Environment;
 	class MedialAxis;
+
+	struct Point;
 
 	class ECMGenerator
 	{
@@ -20,6 +22,7 @@ namespace ECM {
 	private:
 
 		static void ConstructECMGraph(ECM& ecm, const Environment& environment);
+		static void GetClosestPointsToSource(const Environment& environment, int sourceIdx, const Point& p1, const Point& p2, bool isPoint, bool isStartPoint, Point& outClosestP1, Point& outClosestP2);
 
 	};
 

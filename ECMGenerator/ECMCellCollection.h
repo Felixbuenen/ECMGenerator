@@ -22,8 +22,8 @@ namespace ECM {
 	class ECMCellCollection
 	{
 	public:
-		void Construct(const ECMGraph& graph);
-		const ECMCell* PointLocationQuery(const Point& location) const;
+		void Construct(ECMGraph& graph);
+		ECMCell* PointLocationQuery(const Point& location);
 
 	private:
 		std::vector<ECMCell> m_ECMCells; // todo: trapezoidal decomp

@@ -10,29 +10,18 @@ namespace ECM {
 		// initialize astar node array
 		const auto& ecmVerts = m_Graph.GetVertices();
 		int numVerts = ecmVerts.size();
-		m_Nodes.resize(numVerts + 2); // add two for extra start and goal nodes
-		m_Visited.resize(numVerts + 2);
+		m_Nodes.resize(numVerts);
+		m_Visited.resize(numVerts);
 		
-		int noNeighCounter = 0;
 		for (int i = 0; i < numVerts; i++)
 		{
-			int index = ecmVerts[i].Index();
+			int index = ecmVerts[i].idx;
 			m_Nodes[index].index = index;
-			m_Nodes[index].neighbors = m_Graph.GetNeighboringVertices(index);
 			m_Nodes[index].gCost = Utility::MAX_FLOAT;
 			m_Nodes[index].fCost = Utility::MAX_FLOAT;
-
-			if (m_Nodes[index].neighbors.size() == 0) noNeighCounter++;
-		}
-
-		if (true)
-		{
-			int i = noNeighCounter;
 		}
 		
-		START_NODE_INDEX = numVerts;
-		GOAL_NODE_INDEX = numVerts + 1;
-		INVALID_NODE_INDEX = numVerts + 2;
+		INVALID_NODE_INDEX = numVerts;
 		
 		return true;
 	}
@@ -50,7 +39,7 @@ namespace ECM {
 	}
 
 
-	bool AStar::FindPath(const Point& startLocation, const Point& goalLocation, const ECMEdge& startEdge, const ECMEdge& goalEdge, float clearance, std::vector<int>& outPath)
+	bool AStar::FindPath(const Point& startLocation, const Point& goalLocation, const ECMEdge* startEdge, const ECMEdge* goalEdge, float clearance, std::vector<int>& outPath)
 	{
 		/*
 		*	TODO: nu worden node pointers niet opgeslagen op een centrale plek. Denk na hoe we dit efficient kunnen doen.
@@ -63,34 +52,34 @@ namespace ECM {
 		// create the list of open nodes as a priority queue
 		std::priority_queue<AStarNode*, std::vector<AStarNode*>, AStarCompare> openList;
 		
-		// initialize the first nodes
-		const ECMVertex& nodeA = m_Graph.GetVertex(startEdge.V0());
-		const ECMVertex& nodeB = m_Graph.GetVertex(startEdge.V1());
+		// init first nodes
+		const ECMVertex* startVertA = m_Graph.GetVertex(startEdge->half_edges[0].v_target_idx);
+		const ECMVertex* startVertB = m_Graph.GetVertex(startEdge->half_edges[1].v_target_idx);
 
-		int idxA = nodeA.Index();
-		int idxB = nodeB.Index();
+		int idxA = startVertA->idx;
+		int idxB = startVertB->idx;
+		m_Nodes[idxA].index = idxA;
+		m_Nodes[idxA].gCost = Utility::MathUtility::Distance(startLocation, startVertA->position);
+		m_Nodes[idxA].fCost = m_Nodes[idxA].gCost + Heuristic(startVertA->position, goalLocation);
+		m_Nodes[idxB].index = idxB;
+		m_Nodes[idxB].gCost = Utility::MathUtility::Distance(startLocation, startVertB->position);
+		m_Nodes[idxB].fCost = m_Nodes[idxB].gCost + Heuristic(startVertB->position, goalLocation);
 
-		m_Nodes[START_NODE_INDEX].index = START_NODE_INDEX;
-		m_Nodes[START_NODE_INDEX].neighbors.push_back(idxA);
-		m_Nodes[START_NODE_INDEX].neighbors.push_back(idxB);
-		m_Nodes[START_NODE_INDEX].gCost = 0.0f;
-		m_Nodes[START_NODE_INDEX].fCost = Heuristic(startLocation, goalLocation);
+		openList.push(&m_Nodes[idxA]);
+		openList.push(&m_Nodes[idxB]);
 
-		openList.push(&m_Nodes[START_NODE_INDEX]);
+		// if we reach any two of the nodes of the goal edge, we found the path
+		// this is because once we have reached A or B, our heuristic perfectly describes the shortest distance
+		// so the premise that up to this point, this is the shortest path, still holds true.
+		int goal_idx_a = goalEdge->half_edges[0].v_target_idx;
+		int goal_idx_b = goalEdge->half_edges[1].v_target_idx;
 
-		// check from which two ECM vertices the goal location can be reached
-		const ECMVertex& goalNodeA = m_Graph.GetVertex(goalEdge.V0());
-		const ECMVertex& goalNodeB = m_Graph.GetVertex(goalEdge.V1());
-		int goalIdxA = goalNodeA.Index();
-		int goalIdxB = goalNodeB.Index();
+		// TODO:
+		// we don't need to be difficult about reaching the goal node..
+		// once we reach either goal node A or B, we have found the shortest path
+		// this is because once we have reached A or B, our heuristic perfectly describes the shortest distance
+		// so the premise that up to this point, this is the shortest path, still holds true.
 
-		m_Nodes[GOAL_NODE_INDEX].index = GOAL_NODE_INDEX;
-		m_Nodes[GOAL_NODE_INDEX].gCost = Utility::MAX_FLOAT;
-		m_Nodes[GOAL_NODE_INDEX].fCost = Utility::MAX_FLOAT;
-		m_Nodes[GOAL_NODE_INDEX].neighbors.push_back(goalIdxA);
-		m_Nodes[GOAL_NODE_INDEX].neighbors.push_back(goalIdxB);
-		m_Nodes[goalIdxA].neighbors.push_back(GOAL_NODE_INDEX);
-		m_Nodes[goalIdxB].neighbors.push_back(GOAL_NODE_INDEX);
 
 		// then start AStar search loop
 		while (!openList.empty())
@@ -104,7 +93,7 @@ namespace ECM {
 
 			if (openList.empty())
 			{
-				CleanRequestData(goalIdxA, goalIdxB);
+				CleanRequestData();
 
 				return false;
 			}
@@ -115,69 +104,71 @@ namespace ECM {
 			SetVisited(current.index);
 
 			// if we're at the final node, this means we have found the optimal path: construct path and return
-			if (current.index == GOAL_NODE_INDEX)
+			if (current.index == goal_idx_a || current.index == goal_idx_b)
 			{
 				ConstructPath(current, outPath);
-				CleanRequestData(goalIdxA, goalIdxB);
+				CleanRequestData();
 
 				return true;
 			}
 
-			// loop through neighbors 
-			for (int n : current.neighbors)
+
+			int halfEdgeIdx = m_Graph.GetVertex(current.index)->half_edge_idx;
+			ECMHalfEdge* incidentEdge = m_Graph.GetHalfEdge(halfEdgeIdx);
+			int startNeighborV = incidentEdge->v_target_idx;
+			int nextNeighborV = startNeighborV;
+
+			std::vector<int> neighbors;
+			do
 			{
-				//AStarNode& neighbor = m_Nodes[n];
+				neighbors.push_back(nextNeighborV);
+				
+				int nextEdgeIdx = incidentEdge->next_idx;
+				incidentEdge = m_Graph.GetHalfEdge(nextEdgeIdx);
+				nextNeighborV = incidentEdge->v_target_idx;
 
-				if (IsVisited(n)) continue;
+			} while (startNeighborV != nextNeighborV);
 
-				openList.push(&m_Nodes[n]);
 
-				if (n == GOAL_NODE_INDEX)
-				{
-					int i = 0;
+			do {
+				if (IsVisited(nextNeighborV)) {
+					incidentEdge = m_Graph.GetHalfEdge(incidentEdge->next_idx);
+					nextNeighborV = incidentEdge->v_target_idx;
+					continue;
 				}
 
-				Point currentPosition;
-				if (current.index == GOAL_NODE_INDEX) currentPosition = goalLocation;
-				else if (current.index == START_NODE_INDEX) currentPosition = startLocation;
-				else currentPosition = m_Graph.GetVertex(current.index).Position();
+				openList.push(&m_Nodes[nextNeighborV]);
 
-				Point position;
-				if (n == GOAL_NODE_INDEX) position = goalLocation;
-				else if (n == START_NODE_INDEX) position = startLocation;
-				else position = m_Graph.GetVertex(n).Position();
+				Point currentPosition = m_Graph.GetVertex(current.index)->position;
+				Point position = m_Graph.GetVertex(nextNeighborV)->position;
 
 				// update G cost (actual cost to this node) and F cost (G cost + heuristic)
 				//float newG = current.gCost + nEdge->Cost();
 				float newG = current.gCost + Utility::MathUtility::Distance(currentPosition, position);
 
-				if (newG < m_Nodes[n].gCost)
+				if (newG < m_Nodes[nextNeighborV].gCost)
 				{
 					float newF = newG + Heuristic(position, goalLocation);
 
-					m_Nodes[n].parentIndex = current.index;
-					m_Nodes[n].fCost = newF;
-					m_Nodes[n].gCost = newG;
+					m_Nodes[nextNeighborV].parentIndex = current.index;
+					m_Nodes[nextNeighborV].fCost = newF;
+					m_Nodes[nextNeighborV].gCost = newG;
 				}
 
+				incidentEdge = m_Graph.GetHalfEdge(incidentEdge->next_idx);
+				nextNeighborV = incidentEdge->v_target_idx;
+			} while (nextNeighborV != startNeighborV);
 
-			}
 		}
 
-		CleanRequestData(goalIdxA, goalIdxB);
+		CleanRequestData();
 		
 		// no path found
 		return false;
 	}
 
-	void AStar::CleanRequestData(int goalNeighborA, int goalNeighborB)
+	void AStar::CleanRequestData()
 	{
-		m_Nodes[START_NODE_INDEX].neighbors.clear();
-		m_Nodes[GOAL_NODE_INDEX].neighbors.clear();
-
-		m_Nodes[goalNeighborA].neighbors.pop_back();
-		m_Nodes[goalNeighborB].neighbors.pop_back();
-
 		for (int i = 0; i < m_Nodes.size(); i++)
 		{
 			m_Nodes[i].fCost = Utility::MAX_FLOAT;
@@ -203,6 +194,7 @@ namespace ECM {
 		// ignore start and goal nodes, they do not exist in the ECM
 
 		std::vector<int> reversedPath;
+		reversedPath.push_back(goal.index);
 
 		int nextIndex = goal.parentIndex;
 		while (nextIndex < INVALID_NODE_INDEX)
@@ -210,8 +202,6 @@ namespace ECM {
 			reversedPath.push_back(nextIndex);
 			nextIndex = m_Nodes[nextIndex].parentIndex;
 		}
-
-		reversedPath.pop_back();
 
 		for (int i = reversedPath.size() - 1; i >= 0; i--)
 		{
@@ -221,10 +211,6 @@ namespace ECM {
 
 	bool AStar::IsVisited(int index) const
 	{
-		if (index >= m_Visited.size() || index < 0)
-		{
-			int i = 3;
-		}
 		return m_Visited[index];
 		//int idx = index >> 3;
 		//int remainder = index - idx << 3;
