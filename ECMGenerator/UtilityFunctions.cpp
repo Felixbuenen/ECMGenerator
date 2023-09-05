@@ -133,6 +133,11 @@ namespace ECM {
 			return x * x + y * y;
 		}
 
+		float MathUtility::Length(const Vec2& v)
+		{
+			return sqrt(v.x * v.x + v.y * v.y);
+		}
+
 		float MathUtility::Length(float x, float y)
 		{
 			return sqrt(x * x + y * y);

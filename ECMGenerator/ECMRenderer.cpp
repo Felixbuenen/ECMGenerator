@@ -35,7 +35,11 @@ namespace ECM {
 			DrawObstacles();
 			DrawMedialAxis();
 			DrawECMVertices();
-			//DrawClosestObstaclePoints();
+			DrawClosestObstaclePoints();
+			DrawCorridor();
+			DrawPortals();
+			HighlightECMVertex(4);
+			HighlightECMVertex(2);
 			
 			// TEST
 			//DrawRandomTestPath();
@@ -216,7 +220,6 @@ namespace ECM {
 		void ECMRenderer::DrawECMVertices()
 		{
 			auto verts = m_Ecm->GetECMGraph().GetVertices();
-			std::vector<int> toDraw{4};
 			for (const ECMVertex& vertex : verts)
 			{
 				Point p = vertex.position;
@@ -237,6 +240,29 @@ namespace ECM {
 				SDL_RenderDrawRect(m_Renderer, &rect);
 			}
 
+		}
+
+		void ECMRenderer::HighlightECMVertex(int index)
+		{
+			auto verts = m_Ecm->GetECMGraph().GetVertices();
+			const ECMVertex& vertex = verts[index];
+
+			Point p = vertex.position;
+
+			const int w = 30;
+			const int h = 30;
+
+			int x1 = p.x * m_CamZoomFactor + m_CamOffsetX - w / 2;
+			int y1 = p.y * m_CamZoomFactor + m_CamOffsetY - h / 2;
+
+			SDL_Rect rect;
+			rect.x = x1;
+			rect.y = y1;
+			rect.w = w;
+			rect.h = h;
+
+			SDL_SetRenderDrawColor(m_Renderer, 255, 0, 0, 255);
+			SDL_RenderDrawRect(m_Renderer, &rect);
 		}
 
 		void ECMRenderer::DrawInsideVerts()
@@ -271,6 +297,10 @@ namespace ECM {
 
 			for (const auto& vert : verts)
 			{
+				if (vert.idx == 4)
+				{
+					bool stop = true;
+				}
 				float startX = vert.position.x * m_CamZoomFactor + m_CamOffsetX;
 				float startY = vert.position.y * m_CamZoomFactor + m_CamOffsetY;
 
@@ -279,18 +309,67 @@ namespace ECM {
 				ECMHalfEdge* edge = graph.GetHalfEdge(firstHalfEdge);
 				do
 				{
-					int vertIdx = graph.GetHalfEdge(currentHalfEdge)->v_target_idx;
-					Point clPoint = graph.GetVertex(vertIdx)->position;
+					edge = graph.GetHalfEdge(currentHalfEdge);
 
-					float x = clPoint.x * m_CamZoomFactor + m_CamOffsetX;
-					float y = clPoint.y * m_CamZoomFactor + m_CamOffsetY;
+					float xl = edge->closest_left.x * m_CamZoomFactor + m_CamOffsetX;
+					float yl = edge->closest_left.y * m_CamZoomFactor + m_CamOffsetY;
+					SDL_RenderDrawLine(m_Renderer, startX, startY, xl, yl);
 
-					SDL_RenderDrawLine(m_Renderer, startX, startY, x, y);
+					float xr = edge->closest_right.x * m_CamZoomFactor + m_CamOffsetX;
+					float yr = edge->closest_right.y * m_CamZoomFactor + m_CamOffsetY;
+					SDL_RenderDrawLine(m_Renderer, startX, startY, xr, yr);
 
 					currentHalfEdge = edge->next_idx;
 				} while (firstHalfEdge != currentHalfEdge);
 			}
 		}
+
+		void ECMRenderer::DrawCorridor()
+		{
+			const PathPlanning::Corridor& c = m_AppState->corridorToDraw;
+			SDL_SetRenderDrawColor(m_Renderer, 215, 152, 0x00, 0xff);
+
+			int leftSize = c.leftCorridorBounds.size() - 1;
+			// left bounds
+			for (int i = 0; i < leftSize; ++i)
+			{
+				float x1 = c.leftCorridorBounds[i].x * m_CamZoomFactor + m_CamOffsetX;
+				float y1 = c.leftCorridorBounds[i].y * m_CamZoomFactor + m_CamOffsetY;
+				float x2 = c.leftCorridorBounds[i+1].x * m_CamZoomFactor + m_CamOffsetX;
+				float y2 = c.leftCorridorBounds[i+1].y * m_CamZoomFactor + m_CamOffsetY;
+			
+				SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
+			}
+			
+			int rightSize = c.rightCorridorBounds.size() - 1;
+			// right bounds
+			for (int i = 0; i < rightSize; i++)
+			{
+				float x1 = c.rightCorridorBounds[i].x * m_CamZoomFactor + m_CamOffsetX;
+				float y1 = c.rightCorridorBounds[i].y * m_CamZoomFactor + m_CamOffsetY;
+				float x2 = c.rightCorridorBounds[i + 1].x * m_CamZoomFactor + m_CamOffsetX;
+				float y2 = c.rightCorridorBounds[i + 1].y * m_CamZoomFactor + m_CamOffsetY;
+			
+				SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
+			}
+		}
+
+		void ECMRenderer::DrawPortals()
+		{
+			const std::vector<Segment>& portals = m_AppState->portalsToDraw;
+			SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 0xff);
+
+			for (const Segment& portal : portals)
+			{
+				float x1 = portal.p0.x * m_CamZoomFactor + m_CamOffsetX;
+				float y1 = portal.p0.y * m_CamZoomFactor + m_CamOffsetY;
+				float x2 = portal.p1.x * m_CamZoomFactor + m_CamOffsetX;
+				float y2 = portal.p1.y * m_CamZoomFactor + m_CamOffsetY;
+
+				SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
+			}
+		}
+
 
 		void ECMRenderer::DebugDrawECMCell()
 		{

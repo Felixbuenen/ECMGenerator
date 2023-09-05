@@ -47,7 +47,7 @@ namespace ECM {
 		float Heuristic(Point start, Point goal) const;
 
 	private:
-		void ConstructPath(AStarNode& goal, std::vector<int>& outPath);
+		void ConstructPath(int startEdgeStart, int startEdgeGoal, int goalEdgeStart, int goalEdgeGoal, AStarNode& lastNode, std::vector<int>& outPath);
 		void CleanData();
 		void CleanRequestData();
 		inline bool IsVisited(int index) const;

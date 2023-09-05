@@ -10,7 +10,9 @@ namespace ECM
 {
 	struct Point;
 	struct Vec2;
-	
+	struct Segment;
+	struct ECMHalfEdge;
+
 	class Environment;
 	class AStar;
 	class ECMGraph;
@@ -18,17 +20,24 @@ namespace ECM
 
 	namespace PathPlanning
 	{
+		enum CorridorBoundCurve
+		{
+			LINEAR,
+			LEFT_ARC,
+			RIGHT_ARC
+		};
+
 		struct Corridor
 		{
-			int numDisks;
-
-			std::vector<Vec2> diskCenters;
+			std::vector<Point> diskCenters;
 			std::vector<float> diskRadii;
-			std::vector<Vec2> leftBounds;
-			std::vector<Vec2> rightBounds;
+			std::vector<Point> leftBounds;
+			std::vector<Point> rightBounds;
 			// shrunk corridor bounds
-			std::vector<Vec2> leftCorridorBounds; 
-			std::vector<Vec2> rightCorridorBounds; 
+			std::vector<Point> leftCorridorBounds;
+			std::vector<Point> rightCorridorBounds;
+
+			std::vector<CorridorBoundCurve> curveTypes;
 		};
 
 		typedef std::vector<Point> Path;
@@ -52,7 +61,7 @@ namespace ECM
 			bool Initialize(ECMGraph& graph);
 
 			// standard path query
-			Path GetPath(const Environment& environment, Point start, Point goal, float clearance);
+			Path GetPath(const Environment& environment, Point start, Point goal, float clearance, Corridor& outCorridor, std::vector<Segment>& outPortals);
 
 			// path query with a preferred clearance (and min/max clearance)
 			// probably a good idea to create a class ECMVariableClearanceCostFunction, with subclasses that calculate the cost of
@@ -65,7 +74,11 @@ namespace ECM
 		private:
 			void RetractQueryPoints(const Point& start, const Point& goal, Point& outRetractedStart, Point& outRetractedGoal);
 
-			void CreateCorridor(const std::vector<int>& maPath, Corridor& outCorridor, std::shared_ptr<ECM> ecm); // A* search on medial axis, returns set of edges
+			void CreateCorridor(const std::vector<ECMHalfEdge*>& maPath, Corridor& outCorridor, std::shared_ptr<ECM> ecm); // A* search on medial axis, returns set of edges
+			void ShrinkCorridor(Corridor& corridor, float clearance);
+			void TriangulateCorridor(const Corridor& corridor, std::vector<Segment>& outPortals, float clearance);
+			void SampleCorridorArc(const Point& p1, const Point& p2, const Point& o1, const Point& o2, const Point& c, float radius, std::vector<Segment>& portals);
+			void Funnel(const std::vector<Segment>& portals, std::vector<Point>& outShortestPath);
 			void SmoothPath(/*path*/) const; // takes the medial axis path and creates and actual path to follow
 
 			AStar* m_AStar;

@@ -56,17 +56,17 @@ namespace ECM {
 		const ECMVertex* startVertA = m_Graph.GetVertex(startEdge->half_edges[0].v_target_idx);
 		const ECMVertex* startVertB = m_Graph.GetVertex(startEdge->half_edges[1].v_target_idx);
 
-		int idxA = startVertA->idx;
-		int idxB = startVertB->idx;
-		m_Nodes[idxA].index = idxA;
-		m_Nodes[idxA].gCost = Utility::MathUtility::Distance(startLocation, startVertA->position);
-		m_Nodes[idxA].fCost = m_Nodes[idxA].gCost + Heuristic(startVertA->position, goalLocation);
-		m_Nodes[idxB].index = idxB;
-		m_Nodes[idxB].gCost = Utility::MathUtility::Distance(startLocation, startVertB->position);
-		m_Nodes[idxB].fCost = m_Nodes[idxB].gCost + Heuristic(startVertB->position, goalLocation);
+		int start_idx_a = startVertA->idx;
+		int start_idx_b = startVertB->idx;
+		m_Nodes[start_idx_a].index = start_idx_a;
+		m_Nodes[start_idx_a].gCost = Utility::MathUtility::Distance(startLocation, startVertA->position);
+		m_Nodes[start_idx_a].fCost = m_Nodes[start_idx_a].gCost + Heuristic(startVertA->position, goalLocation);
+		m_Nodes[start_idx_b].index = start_idx_b;
+		m_Nodes[start_idx_b].gCost = Utility::MathUtility::Distance(startLocation, startVertB->position);
+		m_Nodes[start_idx_b].fCost = m_Nodes[start_idx_b].gCost + Heuristic(startVertB->position, goalLocation);
 
-		openList.push(&m_Nodes[idxA]);
-		openList.push(&m_Nodes[idxB]);
+		openList.push(&m_Nodes[start_idx_a]);
+		openList.push(&m_Nodes[start_idx_b]);
 
 		// if we reach any two of the nodes of the goal edge, we found the path
 		// this is because once we have reached A or B, our heuristic perfectly describes the shortest distance
@@ -106,7 +106,7 @@ namespace ECM {
 			// if we're at the final node, this means we have found the optimal path: construct path and return
 			if (current.index == goal_idx_a || current.index == goal_idx_b)
 			{
-				ConstructPath(current, outPath);
+				ConstructPath(start_idx_a, start_idx_b, goal_idx_a, goal_idx_b, current, outPath);
 				CleanRequestData();
 
 				return true;
@@ -189,20 +189,47 @@ namespace ECM {
 		return Utility::MathUtility::Distance(start, goal);
 	}
 
-	void AStar::ConstructPath(AStarNode& goal, std::vector<int>& outPath)
+	void AStar::ConstructPath(int startV1, int startV2, int goalV1, int goalV2, AStarNode& lastNode, std::vector<int>& outPath)
 	{
 		// ignore start and goal nodes, they do not exist in the ECM
 
 		std::vector<int> reversedPath;
-		reversedPath.push_back(goal.index);
 
-		int nextIndex = goal.parentIndex;
+		if (lastNode.index == goalV1)
+		{
+			reversedPath.push_back(goalV2);
+			reversedPath.push_back(goalV1);
+		}
+		else
+		{
+			reversedPath.push_back(goalV1);
+			reversedPath.push_back(goalV2);
+		}
+
+		//reversedPath.push_back(lastNode.index);
+
+		int nextIndex = lastNode.parentIndex;
 		while (nextIndex < INVALID_NODE_INDEX)
 		{
 			reversedPath.push_back(nextIndex);
 			nextIndex = m_Nodes[nextIndex].parentIndex;
 		}
 
+		//const AStarNode& firstNode = m_Nodes[reversedPath.back()];
+		//reversedPath.pop_back();
+
+
+		//if (firstNode.index == startV1)
+		//{
+		//	reversedPath.push_back(startV1);
+		//	reversedPath.push_back(startV2);
+		//}
+		//else
+		//{
+		//	reversedPath.push_back(startV2);
+		//	reversedPath.push_back(startV1);
+		//}
+		
 		for (int i = reversedPath.size() - 1; i >= 0; i--)
 		{
 			outPath.push_back(reversedPath[i]);

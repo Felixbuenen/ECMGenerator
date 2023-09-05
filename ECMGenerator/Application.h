@@ -14,6 +14,8 @@ namespace ECM
 	class ECMRendererColorSettings;
 	class ECMCell;
 
+	struct Segment;
+
 	namespace PathPlanning
 	{
 		typedef std::vector<Point> Path;
@@ -39,6 +41,8 @@ namespace ECM
 			Point pathStartPoint;
 			Point pathGoalPoint;
 			PathPlanning::Path pathToDraw;
+			PathPlanning::Corridor corridorToDraw;
+			std::vector<Segment> portalsToDraw;
 		};
 
 		class Application

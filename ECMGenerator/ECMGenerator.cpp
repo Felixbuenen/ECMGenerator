@@ -142,12 +142,18 @@ namespace ECM {
 					continue;
 				}
 
+				if (v0_index == 4 && v1_index == 2)
+				{
+					bool stop = true;
+				}
+
 				ECMEdge* edge = ecmGraph.AddEdge();
 
 				// check closest points to left
 				Point closestLeft1, closestLeft2;
 				int srcIdx = it->cell()->source_index();
 				bool isPoint = it->cell()->contains_point();
+				SourceCategory cat1 = it->cell()->source_category();
 				bool isStartPoint = it->cell()->source_category() == SourceCategory::SOURCE_CATEGORY_SEGMENT_START_POINT;
 				GetClosestPointsToSource(environment, srcIdx, p1, p2, isPoint, isStartPoint, closestLeft1, closestLeft2);
 
@@ -155,6 +161,7 @@ namespace ECM {
 				Point closestRight1, closestRight2;
 				srcIdx = it->twin()->cell()->source_index();
 				isPoint = it->twin()->cell()->contains_point();
+				SourceCategory cat2 = it->cell()->source_category();
 				isStartPoint = it->twin()->cell()->source_category() == SourceCategory::SOURCE_CATEGORY_SEGMENT_START_POINT;
 				GetClosestPointsToSource(environment, srcIdx, p1, p2, isPoint, isStartPoint, closestRight1, closestRight2);
 
@@ -266,7 +273,7 @@ namespace ECM {
 		{
 			Point closestP1 = Utility::MathUtility::GetClosestPointOnSegment(p1, source);
 			Point closestP2 = Utility::MathUtility::GetClosestPointOnSegment(p2, source);
-
+			
 			outClosestP1 = closestP1;
 			outClosestP2 = closestP2;
 		}

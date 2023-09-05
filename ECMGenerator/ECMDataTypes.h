@@ -17,6 +17,9 @@ namespace ECM {
 		{
 			return Vec2(a.x + x, a.y + y);
 		}
+		Vec2 operator *(const float& a) const {
+			return Vec2(x * a, y * a);
+		}
 
 		float Length()
 		{
@@ -26,6 +29,8 @@ namespace ECM {
 		void Normalize()
 		{
 			float l = Length();
+			if (l == 0.0f) return;
+
 			x /= l;
 			y /= l;
 		}
@@ -39,23 +44,25 @@ namespace ECM {
 
 		operator Vec2() const { return Vec2(x, y); }
 
-		Point operator -(const Point& a) const {
-			return Point(x - a.x, y - a.y);
-		}
 		Point operator =(const Point& a) {
 			x = a.x;
 			y = a.y;
-			return *this;;
-		}
-		Point operator *(const float& a) {
-			x *= a;
-			y *= a;
 			return *this;
 		}
-		Point operator +(const Point& a) {
-			x += a.x;
-			y += a.y;
-			return *this;
+		Point operator -(const Point& a) const {
+			return Point(x - a.x, y - a.y);
+		}
+		Point operator *(const float& a) const {
+			return Point(x * a, y * a);
+		}
+		Point operator /(const float& a) const {
+			return Point(x / a, y / a);
+		}
+		Point operator +(const Point& a) const {
+			return Point(x + a.x, y + a.y);
+		}
+		Point operator +(const Vec2& a) const {
+			return Point(x + a.x, y + a.y);
 		}
 		bool operator ==(const Point& a) const
 		{

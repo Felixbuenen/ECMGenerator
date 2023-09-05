@@ -63,7 +63,9 @@ namespace ECM
 						else
 						{
 							m_ApplicationState.pathGoalPoint = Point(worldX, worldY);
-							m_ApplicationState.pathToDraw = m_Planner.GetPath(m_ApplicationState.environment, m_ApplicationState.pathStartPoint, m_ApplicationState.pathGoalPoint, 5.0f);
+							m_ApplicationState.corridorToDraw = PathPlanning::Corridor();
+							m_ApplicationState.portalsToDraw = std::vector<Segment>();
+							m_ApplicationState.pathToDraw = m_Planner.GetPath(m_ApplicationState.environment, m_ApplicationState.pathStartPoint, m_ApplicationState.pathGoalPoint, 25.0f, m_ApplicationState.corridorToDraw, m_ApplicationState.portalsToDraw);
 						}
 					}
 

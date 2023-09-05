@@ -87,16 +87,19 @@ namespace ECM {
 		inline ECMEdge* GetEdge(int idx) { return &(m_Edges[idx]); }
 		inline ECMHalfEdge* GetHalfEdge(int idx) { return &(m_Edges[idx >> 1].half_edges[idx & 1]); };
 
-		inline ECMVertex* GetSource(int halfEdgeIdx) 
+		inline ECMVertex* GetSource(ECMHalfEdge* halfEdge)
 		{
-			int sourceIdx = m_Edges[halfEdgeIdx >> 1].half_edges[halfEdgeIdx ^ 1].v_target_idx;
-			return GetVertex(sourceIdx);
-		}
+			// get the byte position of the half edge pointer in memory (relative to the start of the edge list)
+			const char* firstEdge = reinterpret_cast<const char*>(&m_Edges[0]);
+			const char* thisEdge = reinterpret_cast<const char*>(halfEdge);
+			int diff = int(thisEdge - firstEdge);
 
-		inline ECMVertex* GetTarget(int halfEdgeIdx)
-		{
-			int targetIdx = m_Edges[halfEdgeIdx >> 1].half_edges[halfEdgeIdx & 1].v_target_idx;
-			return GetVertex(targetIdx);
+			// get the edge by dividing this relative byte position to the size of ECMEdge. this way you get a pointer to the edge
+			//  that holds the half edge
+			ECMEdge* edge = &m_Edges[0] + diff / sizeof(ECMEdge);
+			int sourceIdx = &edge->half_edges[0] == halfEdge ? edge->half_edges[1].v_target_idx : edge->half_edges[0].v_target_idx;
+
+			return GetVertex(sourceIdx);
 		}
 
 		inline std::vector<ECMVertex>& GetVertices() { return m_Vertices; }

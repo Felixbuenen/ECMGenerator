@@ -57,10 +57,13 @@ namespace ECM {
 			void DrawObstacles();
 			void DrawMedialAxis();
 			void DrawECMVertices();
+			void HighlightECMVertex(int idx);
 			void DrawPath(); // bij deze even kijken hoe ik dat ga doen, want het pad is in principe geen onderdeel van ECM, wellicht met ref van pad
 			void DrawRandomTestPath();
 			void DrawInsideVerts();
 			void DrawClosestObstaclePoints();
+			void DrawCorridor();
+			void DrawPortals();
 
 			void DebugSetDrawECMCell(float screenX, float screenY);
 			void DebugDrawECMCell();
