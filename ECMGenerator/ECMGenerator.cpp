@@ -142,11 +142,6 @@ namespace ECM {
 					continue;
 				}
 
-				if (v0_index == 4 && v1_index == 2)
-				{
-					bool stop = true;
-				}
-
 				ECMEdge* edge = ecmGraph.AddEdge();
 
 				// check closest points to left
@@ -164,6 +159,13 @@ namespace ECM {
 				SourceCategory cat2 = it->cell()->source_category();
 				isStartPoint = it->twin()->cell()->source_category() == SourceCategory::SOURCE_CATEGORY_SEGMENT_START_POINT;
 				GetClosestPointsToSource(environment, srcIdx, p1, p2, isPoint, isStartPoint, closestRight1, closestRight2);
+
+				// TODO
+				// fucking around with what is left and right. for some reason boost gives me the right obstacle when i expect left.
+				// i.e. it->cell()->srcIdx() gives me the right obstacle of this half-edge, which is weird?
+				
+				// the next thing I should do is to start with using normal y-notation. If you go up, then y increases. This makes it more straightforward
+				// to understand things like cross product / what is left/right of a line, etc.
 
 				// construct half-edges
 				ecmGraph.AddHalfEdge(edge->idx, v1_index, closestLeft1, closestRight1, 0);

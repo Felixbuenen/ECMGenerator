@@ -103,6 +103,22 @@ namespace ECM {
 				} while (incEdgeStart != incEdge);
 			}
 
+			for (const auto& e : edgePath)
+			{
+				printf("closest left: (%f, %f). closest right: (%f, %f)\n", e->closest_left.x, e->closest_left.y, e->closest_right.x, e->closest_right.y);
+			}
+
+			// DEBUG
+			//result.push_back(start);
+			//result.push_back(retrStart);
+			//for (int i = 0; i < edgePath.size(); i++)
+			//{
+			//	result.push_back(ecm->GetECMGraph().GetVertex(edgePath[i]->v_target_idx)->position);
+			//}
+			//result.push_back(retrGoal);
+			//result.push_back(goal);
+			//return result;
+
 			// 4. Create and shrink the corridor
 			CreateCorridor(edgePath, outCorridor, ecm);
 			ShrinkCorridor(outCorridor, clearance);
@@ -111,21 +127,16 @@ namespace ECM {
 			TriangulateCorridor(outCorridor, outPortals, clearance);
 
 			// 7. Use the funnel algorithm to generate a path over these triangles
+			int firstPortal, lastPortal;
+			FindFirstAndLastPortal(outPortals, start, goal, firstPortal, lastPortal);
 			std::vector<Point> shortestPath;
-			Funnel(outPortals, shortestPath);
+			Funnel(outPortals, firstPortal, lastPortal, start, goal, shortestPath);
 			
-			// 8. smooth path.
-			// -- done.
 
-			// DEBUG
-			result.push_back(start);
-			result.push_back(retrStart);
-			for (int i = 0; i < edgePath.size(); i++)
+			for (const auto& p : shortestPath)
 			{
-				result.push_back(ecm->GetECMGraph().GetVertex(edgePath[i]->v_target_idx)->position);
+				result.push_back(p);
 			}
-			result.push_back(retrGoal);
-			result.push_back(goal);
 
 
 			return result;
@@ -213,31 +224,35 @@ namespace ECM {
 				switch (corridor.curveTypes[i])
 				{
 				case(CorridorBoundCurve::LINEAR):
-					outPortals.push_back(Segment(corridor.rightCorridorBounds[i], corridor.leftCorridorBounds[i]));
-					outPortals.push_back(Segment(corridor.rightCorridorBounds[i], corridor.leftCorridorBounds[i+1]));
+					//outPortalsLeft.push_back(corridor.leftCorridorBounds[i]);
+					//outPortalsLeft.push_back(corridor.leftCorridorBounds[i + 1]);
+					//outPortalsRight.push_back(corridor.rightCorridorBounds[i]);
+					outPortals.push_back(Segment(corridor.leftCorridorBounds[i], corridor.rightCorridorBounds[i]));
+					outPortals.push_back(Segment(corridor.leftCorridorBounds[i + 1], corridor.rightCorridorBounds[i]));
 					break;
 
 				case(CorridorBoundCurve::LEFT_ARC):
-					SampleCorridorArc(corridor.leftCorridorBounds[i], corridor.leftCorridorBounds[i + 1], corridor.rightCorridorBounds[i], corridor.rightCorridorBounds[i+1], corridor.leftBounds[i], clearance, outPortals);
+					SampleCorridorArc(corridor.leftCorridorBounds[i], corridor.leftCorridorBounds[i + 1], corridor.rightCorridorBounds[i], corridor.rightCorridorBounds[i+1], corridor.leftBounds[i], clearance, true, outPortals);
 					break;
 
 				case(CorridorBoundCurve::RIGHT_ARC):
-					SampleCorridorArc(corridor.rightCorridorBounds[i], corridor.rightCorridorBounds[i+1], corridor.leftCorridorBounds[i], corridor.leftCorridorBounds[i+1], corridor.rightBounds[i], clearance, outPortals);
+					SampleCorridorArc(corridor.rightCorridorBounds[i], corridor.rightCorridorBounds[i+1], corridor.leftCorridorBounds[i], corridor.leftCorridorBounds[i+1], corridor.rightBounds[i], clearance, false, outPortals);
 					break;
 
-				default:
+				default: 
 					break;
 				}
 			}
 
 			// add final portal
-			outPortals.push_back(Segment(corridor.rightCorridorBounds.back(), corridor.leftCorridorBounds.back()));
+			outPortals.push_back(Segment(corridor.leftCorridorBounds.back(), corridor.rightCorridorBounds.back()));
 		}
 
-		void ECMPathPlanner::SampleCorridorArc(const Point& p1, const Point& p2, const Point& o1, const Point& o2, const Point& c, float radius, std::vector<Segment>& portals)
+		void ECMPathPlanner::SampleCorridorArc(const Point& p1, const Point& p2, const Point& o1, const Point& o2, const Point& c, float radius, bool leftArc, std::vector<Segment>& portals)
 		{
 			const float maxCurveSampleLength = 10.0f;
-			portals.push_back(Segment(o1, p1));
+			if (leftArc) portals.push_back(Segment(p1, o1));
+			else portals.push_back(Segment(o1, p1));
 
 			float edgeLength = Utility::MathUtility::Length(p2 - p1);
 			int numSamples = std::ceil(edgeLength / maxCurveSampleLength);
@@ -251,15 +266,143 @@ namespace ECM {
 				arcDirection.Normalize();
 				
 				p = c + arcDirection * radius;
-				portals.push_back(Segment(p, o2));
+				
+				if (leftArc) portals.push_back(Segment(p, o2));
+				else portals.push_back(Segment(o2, p));
 			}
 
-			portals.push_back(Segment(p2, o2));
+			// don't push back last edge segment -> this is sampled in next corridor
+			// 
+			//if (leftArc) portals.push_back(Segment(p2, o2));
+			//else portals.push_back(Segment(o2, p2));
 		}
 
-		void ECMPathPlanner::Funnel(const std::vector<Segment>& portals, std::vector<Point>& outShortestPath)
+		void ECMPathPlanner::FindFirstAndLastPortal(const std::vector<Segment>& portals, const Point& start, const Point& goal, int& outFirst, int& outLast)
 		{
+			// start portal
+			outFirst = 0;
+			for (int i = 0; i < portals.size(); i++)
+			{
+				const Segment& portal = portals[i];
+				if (!Utility::MathUtility::IsLeftOfSegment(portal, start))
+				{
+					outFirst = i;
+					break;
+				}
+			}
 
+			// end portal
+			outLast = portals.size() - 1;
+			for (int i = portals.size() - 1; i >= 0; i--)
+			{
+				const Segment& portal = portals[i];
+				if (Utility::MathUtility::IsLeftOfSegment(portal, goal))
+				{
+					outLast = i;
+					break;
+				}
+			}
+		}
+
+		// Reference: https://digestingduck.blogspot.com/2010/03/simple-stupid-funnel-algorithm.html
+		void ECMPathPlanner::Funnel(const std::vector<Segment>& portals, int firstPortal, int lastPortal, const Point& start, const Point& goal, std::vector<Point>& outShortestPath)
+		{
+			std::printf("we're gonna work with %d portals\n", portals.size());
+			for (const auto& p : portals)
+			{
+				std::printf("(%f, %f) -> (%f, %f)\n", p.p0.x, p.p0.y, p.p1.x, p.p1.y);
+			}
+
+			// init vectors: left, right, apex (= left)
+			// init indices: left, right, apex
+			Point portalLeft, portalRight, portalApex;
+			int leftIdx = 0;
+			int rightIdx = 0;
+			int apexIdx = 0;
+
+			portalApex = start;
+			portalLeft = start;
+			portalRight = start;
+
+			int numPortals = portals.size();
+
+			// add start point
+			outShortestPath.push_back(start);
+			
+			// <begin loop, i=1 en i < numPortals>
+			for (int i = firstPortal; i <= lastPortal; i++)
+			{
+				Point left = portals[i].p0;
+				Point right = portals[i].p1;
+
+				// 1) first update RIGHT
+				// first check: does this right point make the current funnel (portalApex, portalRight, right) wider? Then skip right for this iteration...
+				if (Utility::MathUtility::TriangleArea(portalApex, portalRight, right) <= 0.0f)
+				{
+					if (portalApex == portalRight || Utility::MathUtility::TriangleArea(portalApex, portalLeft, right) > 0.0f)
+					{
+						portalRight = right;
+						rightIdx = i;
+						std::printf("right: update right index\n");
+					}
+					else
+					{
+						std::printf("right: found new apex, reset\n");
+
+						outShortestPath.push_back(portalLeft);
+
+						// Make current left the new apex.
+						portalApex = portalLeft;
+						apexIdx = leftIdx;
+
+						// Reset portal
+						portalLeft = portalApex;
+						portalRight = portalApex;
+						leftIdx = apexIdx;
+						rightIdx = apexIdx;
+
+						// Restart scan
+						i = apexIdx;
+						continue;
+					}
+				}
+
+				// 2) then update LEFT
+				// of course the same checks apply
+				if (Utility::MathUtility::TriangleArea(portalApex, portalLeft, left) >= 0.0f)
+				{
+					if (portalApex == portalLeft || Utility::MathUtility::TriangleArea(portalApex, portalRight, left) < 0.0f)
+					{
+						std::printf("left: update left index\n");
+
+						portalLeft = left;
+						leftIdx = i;
+					}
+					else
+					{
+						std::printf("left: found new apex, reset\n");
+
+						outShortestPath.push_back(portalRight);
+
+						// Make current right the new apex.
+						portalApex = portalRight;
+						apexIdx = rightIdx;
+
+						// Reset portal
+						portalLeft = portalApex;
+						portalRight = portalApex;
+						leftIdx = apexIdx;
+						rightIdx = apexIdx;
+
+						// Restart scan
+						i = apexIdx;
+						continue;
+					}
+				}
+			}
+
+			// append last point
+			outShortestPath.push_back(goal);
 		}
 
 	}

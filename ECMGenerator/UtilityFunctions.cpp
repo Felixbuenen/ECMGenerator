@@ -103,6 +103,21 @@ namespace ECM {
 			return (s.p1.x - s.p0.x) * (p.y - s.p0.y) - (s.p1.y - s.p0.y) * (p.x - s.p0.x) > 0;
 		}
 
+		bool MathUtility::IsLeftOfVector(const Vec2& base, const Vec2& vecToCheck)
+		{
+			return base.x * vecToCheck.y - base.y * vecToCheck.x > 0;
+		}
+
+		float MathUtility::TriangleArea(const Point& p1, const Point& p2, const Point& p3)
+		{
+			float ax = p2.x - p1.x;
+			float ay = p2.y - p1.y;
+			float bx = p3.x - p1.x;
+			float by = p3.y - p1.y;
+			return bx * ay - ax * by;
+		}
+
+
 
 		// TODO: maybe it's nicer to include these type-specific functions as static type methods (e.g. Vec2::Right(..)).
 		Vec2 MathUtility::Right(const Vec2& v)

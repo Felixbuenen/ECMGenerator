@@ -34,17 +34,17 @@ namespace ECM {
 			DrawWalkableArea();
 			DrawObstacles();
 			DrawMedialAxis();
-			DrawECMVertices();
-			DrawClosestObstaclePoints();
-			DrawCorridor();
+			//DrawECMVertices();
+			//DrawClosestObstaclePoints();
+			//DrawCorridor();
 			DrawPortals();
-			HighlightECMVertex(4);
-			HighlightECMVertex(2);
+			HighlightECMVertex(19);
+			HighlightECMVertex(21);
 			
 			// TEST
 			//DrawRandomTestPath();
 			//DrawInsideVerts();
-			DebugDrawECMCell();
+			//DebugDrawECMCell();
 			//DebugDrawSecondaryLines();
 			//DebugDrawCellValues();
 
@@ -327,7 +327,8 @@ namespace ECM {
 		void ECMRenderer::DrawCorridor()
 		{
 			const PathPlanning::Corridor& c = m_AppState->corridorToDraw;
-			SDL_SetRenderDrawColor(m_Renderer, 215, 152, 0x00, 0xff);
+			//SDL_SetRenderDrawColor(m_Renderer, 215, 152, 0x00, 0xff);
+			SDL_SetRenderDrawColor(m_Renderer, 215, 0x00, 0x00, 0xff);
 
 			int leftSize = c.leftCorridorBounds.size() - 1;
 			// left bounds
@@ -341,6 +342,7 @@ namespace ECM {
 				SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
 			}
 			
+			SDL_SetRenderDrawColor(m_Renderer, 0x00, 0x00, 215, 0xff);
 			int rightSize = c.rightCorridorBounds.size() - 1;
 			// right bounds
 			for (int i = 0; i < rightSize; i++)
@@ -357,7 +359,18 @@ namespace ECM {
 		void ECMRenderer::DrawPortals()
 		{
 			const std::vector<Segment>& portals = m_AppState->portalsToDraw;
-			SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 0xff);
+			//SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 0xff);
+			//
+			//for (const Segment& portal : portals)
+			//{
+			//	float x1 = portal.p0.x * m_CamZoomFactor + m_CamOffsetX;
+			//	float y1 = portal.p0.y * m_CamZoomFactor + m_CamOffsetY;
+			//	float x2 = portal.p1.x * m_CamZoomFactor + m_CamOffsetX;
+			//	float y2 = portal.p1.y * m_CamZoomFactor + m_CamOffsetY;
+			//
+			//	SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
+			//}
+
 
 			for (const Segment& portal : portals)
 			{
@@ -365,9 +378,15 @@ namespace ECM {
 				float y1 = portal.p0.y * m_CamZoomFactor + m_CamOffsetY;
 				float x2 = portal.p1.x * m_CamZoomFactor + m_CamOffsetX;
 				float y2 = portal.p1.y * m_CamZoomFactor + m_CamOffsetY;
+				float midx = x1 + (x2 - x1) * 0.5f;
+				float midy = y1 + (y2 - y1) * 0.5f;
 
-				SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
+				SDL_SetRenderDrawColor(m_Renderer, 215, 0x00, 0x00, 0xff);
+				SDL_RenderDrawLine(m_Renderer, x1, y1, midx, midy);
+				SDL_SetRenderDrawColor(m_Renderer, 0x00, 0x00, 215, 0xff);
+				SDL_RenderDrawLine(m_Renderer, x2, y2, midx, midy);
 			}
+
 		}
 
 
