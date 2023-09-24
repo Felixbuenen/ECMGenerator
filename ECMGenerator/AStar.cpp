@@ -26,29 +26,8 @@ namespace ECM {
 		return true;
 	}
 
-	bool AStar::Update()
-	{
-		/*
-		* TODO:
-		* This method must be implemented if we implement dynamic changes in the ECM.
-		* We should:
-		* 1) resize m_Nodes and add the new ECM vertex nodes.
-		* 2) update the INVALID_NODE_INDEX value.
-		*/
-		return false;
-	}
-
-
 	bool AStar::FindPath(const Point& startLocation, const Point& goalLocation, const ECMEdge* startEdge, const ECMEdge* goalEdge, float clearance, std::vector<int>& outPath)
 	{
-		/*
-		*	TODO: nu worden node pointers niet opgeslagen op een centrale plek. Denk na hoe we dit efficient kunnen doen.
-		*	Optie 1: maak een array van a star nodes, de size van alle ECM vertices. de index van een ECM vertex representeert de index van de astar node in de array.
-		*            je hebt dus constante tijd lookup. dit is de snelste methode, echter bij grote navigation meshes met veel ecm vertices kost het veel geheugen (echter is
-		*            geheugen vaak niet het probleem). je hoeft dan ook geen closed list lookup te doen. dit is op dit moment een gigantische kostenpost in grote omgevingen. 
-		*			 in plaats daarvan zou je een byte array kunnen opslaan waarbij de individuele bits de 'visited' flag representeren (bespaar je geheugen mee).
-		*/
-
 		// create the list of open nodes as a priority queue
 		std::priority_queue<AStarNode*, std::vector<AStarNode*>, AStarCompare> openList;
 		
@@ -73,12 +52,6 @@ namespace ECM {
 		// so the premise that up to this point, this is the shortest path, still holds true.
 		int goal_idx_a = goalEdge->half_edges[0].v_target_idx;
 		int goal_idx_b = goalEdge->half_edges[1].v_target_idx;
-
-		// TODO:
-		// we don't need to be difficult about reaching the goal node..
-		// once we reach either goal node A or B, we have found the shortest path
-		// this is because once we have reached A or B, our heuristic perfectly describes the shortest distance
-		// so the premise that up to this point, this is the shortest path, still holds true.
 
 
 		// then start AStar search loop

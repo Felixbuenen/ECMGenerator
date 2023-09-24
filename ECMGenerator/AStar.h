@@ -40,7 +40,6 @@ namespace ECM {
 		AStar(ECMGraph& graph) : m_Graph(graph) { }
 
 		bool Initialize(); // set ECM and other variables
-		bool Update();
 		bool FindPath(const Point& startLocation, const Point& goalLocation, const ECMEdge* startEdge, const ECMEdge* goalEdge, float clearance, std::vector<int>& outPath); // params: startEdge, goalEdge, clearance, vec<ECMEdge>& outPath
 
 		void SetHeuristic();

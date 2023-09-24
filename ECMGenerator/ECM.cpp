@@ -66,7 +66,6 @@ namespace ECM {
 		int halfEdgeToP2Idx = outEdge.half_edges[0].v_target_idx == p2->idx ? 0 : 1;
 		int halfEdgeToP1Idx = (halfEdgeToP2Idx + 1) % 2;
 
-		// TODO: deze code houdt geen rekening met point obstacles, dit gaat nu fout.
 		if (Utility::MathUtility::IsLeftOfSegment(Segment(p1->position, p2->position), location))
 		{
 			obstacleP1 = outEdge.half_edges[halfEdgeToP2Idx].closest_left;
@@ -136,7 +135,6 @@ namespace ECM {
 		return &m_Vertices[index];
 	}
 
-	// TODO: make into KD-tree insert
 	ECMEdge* ECMGraph::AddEdge()
 	{
 		int index = m_NextEdgeIndex;
@@ -171,7 +169,7 @@ namespace ECM {
 		m_Cells->Construct(*this);
 	}
 
-	// TODO: make KD-tree query
+	// TODO: make KD-tree query (?)
 	int ECMGraph::FindVertex(float x, float y) const
 	{
 		using Utility::EPSILON;

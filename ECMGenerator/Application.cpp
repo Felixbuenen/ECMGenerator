@@ -12,10 +12,10 @@ namespace ECM
 {
 	namespace WindowApplication
 	{
-		bool Application::InitializeApplication(const char* title, Environment::TestEnvironment environment, int screenWidth, int screenHeight, float zoomFactor)
+		bool Application::InitializeApplication(const char* title, Environment::TestEnvironment environment, int screenWidth, int screenHeight)
 		{
 			if (!InitializeEnvironment(environment)) return false;
-			if (!InitializeWindow(title, screenWidth, screenHeight, zoomFactor)) return false;
+			if (!InitializeWindow(title, screenWidth, screenHeight)) return false;
 			if (!InitializeRenderer()) return false;
 
 			m_Planner.Initialize(m_ApplicationState.ecm->GetECMGraph());
@@ -55,8 +55,9 @@ namespace ECM
 						float worldX = (e.button.x - m_ApplicationState.camOffsetX) / m_ApplicationState.camZoomFactor;
 						float worldY = (e.button.y - m_ApplicationState.camOffsetY) / m_ApplicationState.camZoomFactor * -1.0f; // -1.0 because inversed y-axis (TODO: refactor)
 
-						if (!m_ApplicationState.pathToDraw.empty())
+						if (!m_ApplicationState.startPointSelected)
 						{
+							m_ApplicationState.startPointSelected = true;
 							m_ApplicationState.pathToDraw.clear();
 							m_ApplicationState.pathStartPoint = Point(worldX, worldY);
 						}
@@ -64,8 +65,13 @@ namespace ECM
 						{
 							m_ApplicationState.pathGoalPoint = Point(worldX, worldY);
 							m_ApplicationState.corridorToDraw = PathPlanning::Corridor();
-							m_ApplicationState.portalsToDraw = std::vector<Segment>();		
-							m_ApplicationState.pathToDraw = m_Planner.GetPath(m_ApplicationState.environment, m_ApplicationState.pathStartPoint, m_ApplicationState.pathGoalPoint, 25.0f, m_ApplicationState.corridorToDraw, m_ApplicationState.portalsToDraw);
+							m_ApplicationState.portalsToDraw = std::vector<Segment>();
+
+							m_ApplicationState.pathToDraw = PathPlanning::Path();
+							if (!m_Planner.GetPath(m_ApplicationState.environment, m_ApplicationState.pathStartPoint, m_ApplicationState.pathGoalPoint, 25.0f, m_ApplicationState.corridorToDraw, m_ApplicationState.portalsToDraw, m_ApplicationState.pathToDraw))
+							{
+								m_ApplicationState.startPointSelected = false;
+							}
 						}
 					}
 
@@ -93,16 +99,24 @@ namespace ECM
 			return true;
 		}
 
-		bool Application::InitializeWindow(const char* title, int screenWidth, int screenHeight, float zoomFactor)
+		bool Application::InitializeWindow(const char* title, int screenWidth, int screenHeight)
 		{
-			m_ApplicationState.camZoomFactor = zoomFactor;
-
 			const Environment& env = m_ApplicationState.environment;
-			int bboxW = (env.GetBBOX().max.x - env.GetBBOX().min.x) * zoomFactor;
-			int bboxH = (env.GetBBOX().max.y - env.GetBBOX().min.y) * zoomFactor;
 
-			m_ApplicationState.camOffsetX = -env.GetBBOX().min.x * zoomFactor + screenWidth * 0.5f - bboxW * 0.5f;
-			m_ApplicationState.camOffsetY = -env.GetBBOX().min.y * zoomFactor + screenHeight * 0.5f - bboxH * 0.5f;
+			float bboxW = (env.GetBBOX().max.x - env.GetBBOX().min.x);
+			float bboxH = (env.GetBBOX().max.y - env.GetBBOX().min.y);
+			float zoomW = screenWidth / bboxW;
+			float zoomH = screenHeight / bboxH;
+			m_ApplicationState.camZoomFactor = zoomW < zoomH ? zoomW : zoomH;
+			m_ApplicationState.camZoomFactor *= 0.95f;
+
+			m_ApplicationState.camZoomFactor = m_ApplicationState.camZoomFactor;
+
+			bboxW *= m_ApplicationState.camZoomFactor;
+			bboxH *= m_ApplicationState.camZoomFactor;
+
+			m_ApplicationState.camOffsetX = -env.GetBBOX().min.x * m_ApplicationState.camZoomFactor + screenWidth * 0.5f - bboxW * 0.5f;
+			m_ApplicationState.camOffsetY = -env.GetBBOX().min.y * m_ApplicationState.camZoomFactor + screenHeight * 0.5f - bboxH * 0.5f;
 
 			//Initialize SDL
 			if (SDL_Init(SDL_INIT_VIDEO) < 0)
@@ -152,10 +166,45 @@ namespace ECM
 				m_ApplicationState.environment.AddWalkableArea(walkableArea);
 				m_ApplicationState.environment.AddObstacle(obstacle);
 			}
+			if (environment == Environment::TestEnvironment::BIG)
+			{
+				std::vector<Segment> walkableArea;
+				walkableArea.push_back(Segment(-2500, -2500, 2500, -2500));
+				walkableArea.push_back(Segment(2500, -2500, 2500, 2500));
+				walkableArea.push_back(Segment(-2500, 2500, 2500, 2500));
+				walkableArea.push_back(Segment(-2500, 2500, -2500, -2500));
+				m_ApplicationState.environment.AddWalkableArea(walkableArea);
+
+				const float obstacleSize = 200.0f;
+				const float padding = 200.0f;
+
+				int numObstaclesRow = 5000.0f / (obstacleSize + padding);
+				int numObstaclesCol = 5000.0f / (obstacleSize + padding);
+
+				for (int r = 0; r < numObstaclesRow; r++)
+				{
+					float y = 2500 - padding - r * (obstacleSize + padding);
+
+					for (int c = 0; c < numObstaclesCol; c++)
+					{
+						float x = -2500 + padding + c * (obstacleSize + padding);
+
+						std::vector<Segment> obstacle{
+							Segment(Point(x, y), Point(x + obstacleSize, y)),
+								Segment(Point(x + obstacleSize, y), Point(x + obstacleSize, y - obstacleSize)),
+								Segment(Point(x + obstacleSize, y - obstacleSize), Point(x, y - obstacleSize)),
+								Segment(Point(x, y - obstacleSize), Point(x, y))
+						};
+
+						m_ApplicationState.environment.AddObstacle(obstacle);
+					}
+				}
+			}
 
 			// generate ECM from environment
 			m_ApplicationState.environment.ComputeECM();
 			m_ApplicationState.ecm = m_ApplicationState.environment.GetECM();
+		
 
 			return true;
 		}

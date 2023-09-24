@@ -40,6 +40,7 @@ namespace ECM
 			// path
 			Point pathStartPoint;
 			Point pathGoalPoint;
+			bool startPointSelected;
 			PathPlanning::Path pathToDraw;
 			PathPlanning::Corridor corridorToDraw;
 			std::vector<Segment> portalsToDraw;
@@ -50,8 +51,8 @@ namespace ECM
 		public:
 			Application() { }
 
-			bool InitializeApplication(const char* title, const char* environment_path, int screenWidth, int screenHeight, float zoomFactor = 0.65f);
-			bool InitializeApplication(const char* title, Environment::TestEnvironment environment, int screenWidth, int screenHeight, float zoomFactor = 0.65f);
+			bool InitializeApplication(const char* title, const char* environment_path, int screenWidth, int screenHeight);
+			bool InitializeApplication(const char* title, Environment::TestEnvironment environment, int screenWidth, int screenHeight);
 			void Run();
 			void Clear();
 
@@ -62,7 +63,7 @@ namespace ECM
 		private:
 			bool InitializeEnvironment(const char* file);
 			bool InitializeEnvironment(Environment::TestEnvironment environment);
-			bool InitializeWindow(const char* title, int screenWidth, int screenHeight, float zoomFactor);
+			bool InitializeWindow(const char* title, int screenWidth, int screenHeight);
 			bool InitializeRenderer();
 
 			ApplicationState m_ApplicationState;

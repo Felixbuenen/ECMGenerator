@@ -76,12 +76,6 @@ namespace ECM {
 			return inside;
 		}
 
-		bool MathUtility::Contains(const Segment& p, const std::vector<Segment>& polygon)
-		{
-			// TODO: implement. for now we don't need it
-			return false;
-		}
-
 		float MathUtility::Dot(const Vec2& v1, const Vec2& v2)
 		{
 			return v1.x * v2.x + v1.y * v2.y;
@@ -96,7 +90,6 @@ namespace ECM {
 		{
 			return v1.x * v2.y - v1.y * v2.x;
 		}
-
 
 		bool MathUtility::IsLeftOfSegment(const Segment& s, const Point& p)
 		{
@@ -116,8 +109,6 @@ namespace ECM {
 			float by = p3.y - p1.y;
 			return bx * ay - ax * by;
 		}
-
-
 
 		// TODO: maybe it's nicer to include these type-specific functions as static type methods (e.g. Vec2::Right(..)).
 		Vec2 MathUtility::Right(const Vec2& v)

@@ -124,7 +124,6 @@ namespace ECM {
 
 		void ECMRenderer::DrawMedialAxis()
 		{
-			// TODO: loop through all edges. For non-linear edges (arcs), sample the arc.
 			auto ma = m_Ecm->GetMedialAxis();
 			ECMGraph& graph = m_Ecm->GetECMGraph();
 
@@ -474,9 +473,6 @@ namespace ECM {
 
 				if (it->is_finite() && it->is_secondary())
 				{
-					// TODO:
-					// > this demonstrates that we can find the closest segments in constant time.
-					// > update the ecm construction algorithm such that it utilizes this information.
 					int segmentIndex = it->cell()->source_index();
 
 					const Segment& s = m_Env->GetEnvironmentObstacleUnion()[segmentIndex];

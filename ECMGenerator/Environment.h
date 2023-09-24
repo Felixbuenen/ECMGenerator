@@ -23,11 +23,7 @@ namespace ECM {
 		// The ECM can then be calculated usign the environment data.
 		//
 		// For now, we only support 2D environments (aka no multilayered environments)
-		//
-		//
-		// Need to think about how we represent geometrical data. Probably best to do everything in Boost types. This
-		//  prevents us from having to cast data. Besides that, we don't have to create our own points/segment/etc structs.
-		// We can always refactor this later!
+
 
 		// TODO:
 		// > create walkable area and obstacle structs
@@ -35,7 +31,8 @@ namespace ECM {
 	public:
 		enum class TestEnvironment
 		{
-			CLASSIC
+			CLASSIC,
+			BIG
 		};
 
 		void AddWalkableArea(std::vector<Segment> waEdges); // for now just allow 1 walkable area
@@ -49,13 +46,14 @@ namespace ECM {
 		inline const std::vector<Segment>& GetEnvironmentObstacleUnion() const { return _environmentObstacleUnion; }
 		inline std::shared_ptr<ECM> GetECM(int index = 0) { return m_EcmList[index]; }
 
-		std::vector<Point> GetClosestObstaclePoints(const Point& location) const;
 		std::shared_ptr<ECM> QueryECM(Point position) const;
 
 		bool InsideObstacle(const Point& p) const;
 
 	private:
 		void UpdateBbox(const std::vector<Segment>& newEdges);
+
+		void CreateTestEnvironment_U();
 
 	private:
 		BBOX _bbox;

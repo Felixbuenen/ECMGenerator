@@ -98,9 +98,6 @@ namespace ECM {
 
 	class MedialAxis
 	{
-		// TODO: we want to avoid using Boost code all over the place. This medial axis class is a data container for the 
-		// medial axis and provides functionality to use the medial axis (eg iterators, updating).
-		// Probably do the same thing with ECMVertex and ECMSegment (this could be structs, containing e.g. coordinates and closest obstacle information).
 	public:
 		boost::polygon::voronoi_diagram<double> VD;
 

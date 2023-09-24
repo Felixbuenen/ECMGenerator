@@ -64,14 +64,6 @@ namespace ECM {
 		ECMGraph& ecmGraph = ecm.GetECMGraph();
 		const boost::polygon::voronoi_diagram<double>& vd = ma.VD;
 
-		// TODO: 
-		// 1. Loop through vertices. Add all vertices that are not inside an obstacle.
-		// 2. Loop through edges. Add edges and respective half edges. Store an array of indices of size boostEdges.
-		//    In this array A, store the index of our ECM half edge, at the index of the boost edge. I.e. A[boost_edge_id] = ECMedgeID.
-		// 3. Loop through vertices again. This time, add next_incident_edge information. Use A to set the correct ecm edge ID
-		// 
-		// first create all ECM vertices
-
 		std::printf("Adding vertices... ");
 		std::vector<int> mapECMVertexIndices;
 		mapECMVertexIndices.resize(vd.num_vertices());
@@ -96,7 +88,7 @@ namespace ECM {
 					Point loc;
 					loc.x = edge->vertex1()->x();
 					loc.y = edge->vertex1()->y();
-					
+
 					if (!environment.InsideObstacle(loc))
 					{
 						shouldAdd = true;
@@ -170,13 +162,6 @@ namespace ECM {
 				isStartPoint = it->twin()->cell()->source_category() == SourceCategory::SOURCE_CATEGORY_SEGMENT_START_POINT;
 				GetClosestPointsToSource(environment, srcIdx, p1, p2, isPoint, isStartPoint, closestRight1, closestRight2);
 
-				// TODO
-				// fucking around with what is left and right. for some reason boost gives me the right obstacle when i expect left.
-				// i.e. it->cell()->srcIdx() gives me the right obstacle of this half-edge, which is weird?
-				
-				// the next thing I should do is to start with using normal y-notation. If you go up, then y increases. This makes it more straightforward
-				// to understand things like cross product / what is left/right of a line, etc.
-
 				// construct half-edges
 				ecmGraph.AddHalfEdge(edge->idx, v1_index, closestLeft1, closestRight1, 0);
 				ecmGraph.AddHalfEdge(edge->idx, v0_index, closestRight2, closestLeft2, 1);
@@ -192,8 +177,6 @@ namespace ECM {
 			}
 		}
 		std::printf("Done\n");
-
-
 
 		std::printf("add incident edge info...");
 

@@ -25,14 +25,12 @@ namespace ECM {
 		}
 
 
-		Path ECMPathPlanner::GetPath(const Environment& environment, Point start, Point goal, float clearance, Corridor& outCorridor, std::vector<Segment>& outPortals)
+		bool ECMPathPlanner::GetPath(const Environment& environment, Point start, Point goal, float clearance, Corridor& outCorridor, std::vector<Segment>& outPortals, Path& outPath)
 		{
 			// TODO:
 			// First check if start and goal are valid positions.
 			//std::printf("Start: (%f, %f). End: (%f, %f).\n", start.x, start.y, goal.x, goal.y);
-			Path result;
 
-			// an ECM path is planned as follows:
 			// 1. query the cell location of the start / goal position.
 			auto ecmStart = environment.QueryECM(start);
 			auto ecmGoal = environment.QueryECM(goal);
@@ -40,9 +38,10 @@ namespace ECM {
 			// for now we require that we only have 1 ECM in our environment
 			if (ecmStart != ecmGoal)
 			{
-				return result;
+				return false;
 			}
 
+			printf("query start/goal locations...\n");
 			auto ecm = ecmStart;
 			auto startCell = ecm->GetECMGraph().FindCell(start.x, start.y);
 			auto goalCell = ecm->GetECMGraph().FindCell(goal.x, goal.y);
@@ -50,7 +49,7 @@ namespace ECM {
 			if (!startCell || !goalCell)
 			{
 				printf("PathPlanning error: Could not find the cell of start and/or goal position.\n");
-				return result;
+				return false;
 			}
 			
 			// 2. retract the start / goal position on the ECM graph
@@ -60,31 +59,37 @@ namespace ECM {
 			// if start and goal in the same corridor, simply return a straight line path
 			if (startEdgeIdx == goalEdgeIdx)
 			{
-				result.push_back(start);
-				result.push_back(goal);
+				outPath.push_back(start);
+				outPath.push_back(goal);
 
-				return result;
+				return true;
 			}
 
+			printf("retract points...\n");
 			Point retrStart, retrGoal;
 			ECMEdge startEdge;
 			ECMEdge goalEdge;
 			if (!ecm->RetractPoint(start, *startCell, retrStart, startEdge))
 			{
 				printf("retraction for start point failed");
+				return false;
 			}
 			if (!ecm->RetractPoint(goal, *goalCell, retrGoal, goalEdge))
 			{
 				printf("retraction for end point failed");
+				return false;
 			}
 
+			printf("find a star path...\n");
 			// 3. Plan a path on the medial axis using the clearance and A*.
 			std::vector<int> astarPath;
 			if(!m_AStar->FindPath(retrStart, retrGoal, &startEdge, &goalEdge, 1.0f, astarPath))
 			{
 				printf("couldn't find path!\n");
+				return false;
 			}
 
+			printf("generate edge path...\n");
 			std::vector<ECMHalfEdge*> edgePath;
 			for (int i = 0; i < astarPath.size() - 1; i++)
 			{
@@ -103,45 +108,31 @@ namespace ECM {
 				} while (incEdgeStart != incEdge);
 			}
 
-			for (const auto& e : edgePath)
-			{
-				printf("closest left: (%f, %f). closest right: (%f, %f)\n", e->closest_left.x, e->closest_left.y, e->closest_right.x, e->closest_right.y);
-			}
-
-			// DEBUG
-			//result.push_back(start);
-			//result.push_back(retrStart);
-			//for (int i = 0; i < edgePath.size(); i++)
-			//{
-			//	result.push_back(ecm->GetECMGraph().GetVertex(edgePath[i]->v_target_idx)->position);
-			//}
-			//result.push_back(retrGoal);
-			//result.push_back(goal);
-			//return result;
-
+			printf("create and shrink corridor...\n");
 			// 4. Create and shrink the corridor
 			CreateCorridor(edgePath, outCorridor, ecm);
 			ShrinkCorridor(outCorridor, clearance);
 
+			printf("triangulate corridor...\n");
 			// 5. Triangulate the ECM cells through which the path goes.
 			TriangulateCorridor(start, goal, outCorridor, outPortals, clearance);
 
+			printf("smooth path...\n");
 			// 7. Use the funnel algorithm to generate a path over these triangles
 			std::vector<Point> shortestPath;
 			Funnel(outPortals, start, goal, shortestPath);
 			
-
+			printf("done\n");
 			for (const auto& p : shortestPath)
 			{
-				result.push_back(p);
+				outPath.push_back(p);
 			}
 
 
-			return result;
+
+			return true;
 		}
 
-		// TODO: currently we're adding the half edges that contain the start and end position. I don't think this is necessary. E.g. we make triangles until we
-		//  reach the final node. then we create a triangle using the goal position as end point.
 		void ECMPathPlanner::CreateCorridor(const std::vector<ECMHalfEdge*>& maPath, Corridor& outCorridor, std::shared_ptr<ECM> ecm)
 		{
 			auto& graph = ecm->GetECMGraph();
@@ -149,8 +140,8 @@ namespace ECM {
 			{
 				Point pos = graph.GetSource(edge)->position;
 				outCorridor.diskCenters.push_back(pos);
-				//outCorridor.diskRadii.push_back(graph.GetSource(edge)->clearance);
 				// TODO: use disk clearance
+				//outCorridor.diskRadii.push_back(graph.GetSource(edge)->clearance);
 				outCorridor.diskRadii.push_back(Utility::MathUtility::Length(edge->closest_left - pos));
 				outCorridor.leftBounds.push_back(edge->closest_left);
 				outCorridor.rightBounds.push_back(edge->closest_right);
@@ -324,7 +315,11 @@ namespace ECM {
 				// first check: does this right point make the current funnel (portalApex, portalRight, right) wider? Then skip right for this iteration...
 				if (Utility::MathUtility::TriangleArea(portalApex, portalRight, right) <= 0.0f)
 				{
-					if (portalApex == portalRight || Utility::MathUtility::TriangleArea(portalApex, portalLeft, right) > 0.0f)
+					// TODO: make equality function for points/vecs
+
+					bool apexEqualToRight = (portalApex.x < portalRight.x + Utility::EPSILON) && (portalApex.x > portalRight.x - Utility::EPSILON) &&
+						(portalApex.y < portalRight.y + Utility::EPSILON) && (portalApex.y > portalRight.y - Utility::EPSILON);
+					if (apexEqualToRight || Utility::MathUtility::TriangleArea(portalApex, portalLeft, right) > 0.0f)
 					{
 						portalRight = right;
 						rightIdx = i;
@@ -353,6 +348,10 @@ namespace ECM {
 				// of course the same checks apply
 				if (Utility::MathUtility::TriangleArea(portalApex, portalLeft, left) >= 0.0f)
 				{
+					// TODO: replace with function
+					bool apexEqualToLeft = (portalApex.x < portalLeft.x + Utility::EPSILON && portalApex.x > portalLeft.x - Utility::EPSILON &&
+						portalApex.y < portalLeft.y + Utility::EPSILON && portalApex.y > portalLeft.y - Utility::EPSILON);
+
 					if (portalApex == portalLeft || Utility::MathUtility::TriangleArea(portalApex, portalRight, left) < 0.0f)
 					{
 						portalLeft = left;
