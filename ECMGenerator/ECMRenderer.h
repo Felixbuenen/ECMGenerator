@@ -64,6 +64,7 @@ namespace ECM {
 			void DrawClosestObstaclePoints();
 			void DrawCorridor();
 			void DrawPortals();
+			void DrawHalfEdge(int idx);
 
 			void DebugSetDrawECMCell(float screenX, float screenY);
 			void DebugDrawECMCell();
@@ -76,6 +77,7 @@ namespace ECM {
 			ECMRendererColorSettings m_ColorSettings;
 
 			float m_CamZoomFactor;
+			float m_YRotation;
 			int m_CamOffsetX, m_CamOffsetY;
 
 			ApplicationState* m_AppState;

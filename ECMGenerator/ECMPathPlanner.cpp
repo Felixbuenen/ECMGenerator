@@ -29,7 +29,7 @@ namespace ECM {
 		{
 			// TODO:
 			// First check if start and goal are valid positions.
-			
+			//std::printf("Start: (%f, %f). End: (%f, %f).\n", start.x, start.y, goal.x, goal.y);
 			Path result;
 
 			// an ECM path is planned as follows:
@@ -124,13 +124,11 @@ namespace ECM {
 			ShrinkCorridor(outCorridor, clearance);
 
 			// 5. Triangulate the ECM cells through which the path goes.
-			TriangulateCorridor(outCorridor, outPortals, clearance);
+			TriangulateCorridor(start, goal, outCorridor, outPortals, clearance);
 
 			// 7. Use the funnel algorithm to generate a path over these triangles
-			int firstPortal, lastPortal;
-			FindFirstAndLastPortal(outPortals, start, goal, firstPortal, lastPortal);
 			std::vector<Point> shortestPath;
-			Funnel(outPortals, firstPortal, lastPortal, start, goal, shortestPath);
+			Funnel(outPortals, start, goal, shortestPath);
 			
 
 			for (const auto& p : shortestPath)
@@ -213,20 +211,17 @@ namespace ECM {
 			}
 		}
 
-		void ECMPathPlanner::TriangulateCorridor(const Corridor& corridor, std::vector<Segment>& outPortals, float clearance)
+		void ECMPathPlanner::TriangulateCorridor(const Point& start, const Point& goal, const Corridor& corridor, std::vector<Segment>& outPortals, float clearance)
 		{
 			// create the funnel portals by connecting all pairs of left and right bounds.
 			// make sure to sample the arcs
 
-
+			// then add all left/right closest obstacles (shrunk corridor vertices)
 			for (int i = 0; i < corridor.diskCenters.size()-1; i++)
 			{
 				switch (corridor.curveTypes[i])
 				{
 				case(CorridorBoundCurve::LINEAR):
-					//outPortalsLeft.push_back(corridor.leftCorridorBounds[i]);
-					//outPortalsLeft.push_back(corridor.leftCorridorBounds[i + 1]);
-					//outPortalsRight.push_back(corridor.rightCorridorBounds[i]);
 					outPortals.push_back(Segment(corridor.leftCorridorBounds[i], corridor.rightCorridorBounds[i]));
 					outPortals.push_back(Segment(corridor.leftCorridorBounds[i + 1], corridor.rightCorridorBounds[i]));
 					break;
@@ -246,6 +241,9 @@ namespace ECM {
 
 			// add final portal
 			outPortals.push_back(Segment(corridor.leftCorridorBounds.back(), corridor.rightCorridorBounds.back()));
+
+			// add the goal point as the last portal. This is required for the path smoothing algorithm.
+			outPortals.push_back(Segment(goal, goal));
 		}
 
 		void ECMPathPlanner::SampleCorridorArc(const Point& p1, const Point& p2, const Point& o1, const Point& o2, const Point& c, float radius, bool leftArc, std::vector<Segment>& portals)
@@ -270,11 +268,6 @@ namespace ECM {
 				if (leftArc) portals.push_back(Segment(p, o2));
 				else portals.push_back(Segment(o2, p));
 			}
-
-			// don't push back last edge segment -> this is sampled in next corridor
-			// 
-			//if (leftArc) portals.push_back(Segment(p2, o2));
-			//else portals.push_back(Segment(o2, p2));
 		}
 
 		void ECMPathPlanner::FindFirstAndLastPortal(const std::vector<Segment>& portals, const Point& start, const Point& goal, int& outFirst, int& outLast)
@@ -305,16 +298,8 @@ namespace ECM {
 		}
 
 		// Reference: https://digestingduck.blogspot.com/2010/03/simple-stupid-funnel-algorithm.html
-		void ECMPathPlanner::Funnel(const std::vector<Segment>& portals, int firstPortal, int lastPortal, const Point& start, const Point& goal, std::vector<Point>& outShortestPath)
+		void ECMPathPlanner::Funnel(const std::vector<Segment>& portals, const Point& start, const Point& goal, std::vector<Point>& outShortestPath)
 		{
-			std::printf("we're gonna work with %d portals\n", portals.size());
-			for (const auto& p : portals)
-			{
-				std::printf("(%f, %f) -> (%f, %f)\n", p.p0.x, p.p0.y, p.p1.x, p.p1.y);
-			}
-
-			// init vectors: left, right, apex (= left)
-			// init indices: left, right, apex
 			Point portalLeft, portalRight, portalApex;
 			int leftIdx = 0;
 			int rightIdx = 0;
@@ -330,7 +315,7 @@ namespace ECM {
 			outShortestPath.push_back(start);
 			
 			// <begin loop, i=1 en i < numPortals>
-			for (int i = firstPortal; i <= lastPortal; i++)
+			for (int i = 0; i < portals.size(); i++)
 			{
 				Point left = portals[i].p0;
 				Point right = portals[i].p1;
@@ -343,12 +328,9 @@ namespace ECM {
 					{
 						portalRight = right;
 						rightIdx = i;
-						std::printf("right: update right index\n");
 					}
 					else
 					{
-						std::printf("right: found new apex, reset\n");
-
 						outShortestPath.push_back(portalLeft);
 
 						// Make current left the new apex.
@@ -373,15 +355,11 @@ namespace ECM {
 				{
 					if (portalApex == portalLeft || Utility::MathUtility::TriangleArea(portalApex, portalRight, left) < 0.0f)
 					{
-						std::printf("left: update left index\n");
-
 						portalLeft = left;
 						leftIdx = i;
 					}
 					else
 					{
-						std::printf("left: found new apex, reset\n");
-
 						outShortestPath.push_back(portalRight);
 
 						// Make current right the new apex.

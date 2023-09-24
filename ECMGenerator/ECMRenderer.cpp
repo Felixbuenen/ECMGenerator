@@ -37,10 +37,13 @@ namespace ECM {
 			//DrawECMVertices();
 			//DrawClosestObstaclePoints();
 			//DrawCorridor();
-			DrawPortals();
-			HighlightECMVertex(19);
-			HighlightECMVertex(21);
+			//DrawPortals();
+			//HighlightECMVertex(11);
+			//HighlightECMVertex(21);
+			//HighlightECMVertex(18);
 			
+			//DrawHalfEdge(22);
+
 			// TEST
 			//DrawRandomTestPath();
 			//DrawInsideVerts();
@@ -62,6 +65,7 @@ namespace ECM {
 			m_CamZoomFactor = m_AppState->camZoomFactor;
 			m_CamOffsetX = m_AppState->camOffsetX, 
 			m_CamOffsetY = m_AppState->camOffsetY;
+			m_YRotation = -1.0f;
 
 			m_Env = &m_AppState->environment;
 			m_Ecm = m_AppState->ecm;
@@ -107,9 +111,9 @@ namespace ECM {
 				for (const Segment& edge : obstacle) {
 
 					int x1 = edge.p0.x * m_CamZoomFactor + m_CamOffsetX;
-					int y1 = edge.p0.y * m_CamZoomFactor + m_CamOffsetY;
+					int y1 = edge.p0.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 					int x2 = edge.p1.x * m_CamZoomFactor + m_CamOffsetX;
-					int y2 = edge.p1.y * m_CamZoomFactor + m_CamOffsetY;
+					int y2 = edge.p1.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 
 					SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
 				}
@@ -180,9 +184,9 @@ namespace ECM {
 					for (int i = 0; i < numEdges; i++)
 					{
 						int x1 = discr[i].x() * m_CamZoomFactor + m_CamOffsetX;
-						int y1 = discr[i].y() * m_CamZoomFactor + m_CamOffsetY;
+						int y1 = discr[i].y()* m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 						int x2 = discr[i + 1].x() * m_CamZoomFactor + m_CamOffsetX;
-						int y2 = discr[i + 1].y() * m_CamZoomFactor + m_CamOffsetY;
+						int y2 = discr[i + 1].y() * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 
 						SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
 					}
@@ -190,9 +194,9 @@ namespace ECM {
 				else
 				{
 					int x1 = verts[v1idx].position.x * m_CamZoomFactor + m_CamOffsetX;
-					int y1 = verts[v1idx].position.y * m_CamZoomFactor + m_CamOffsetY;
+					int y1 = verts[v1idx].position.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 					int x2 = verts[v2idx].position.x * m_CamZoomFactor + m_CamOffsetX;
-					int y2 = verts[v2idx].position.y * m_CamZoomFactor + m_CamOffsetY;
+					int y2 = verts[v2idx].position.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 
 					SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
 				}
@@ -209,9 +213,9 @@ namespace ECM {
 			for (const Segment& s : path)
 			{
 				float x0 = s.p0.x * m_CamZoomFactor + m_CamOffsetX;
-				float x1 = s.p1.x * m_CamZoomFactor + m_CamOffsetX;
+				float x1 = s.p1.x * m_YRotation * m_CamZoomFactor + m_CamOffsetX;
 				float y0 = s.p0.y * m_CamZoomFactor + m_CamOffsetY;
-				float y1 = s.p1.y * m_CamZoomFactor + m_CamOffsetY;
+				float y1 = s.p1.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 
 				SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
 			}
@@ -228,7 +232,7 @@ namespace ECM {
 				const int h = 12;
 
 				int x1 = p.x * m_CamZoomFactor + m_CamOffsetX - w/2;
-				int y1 = p.y * m_CamZoomFactor + m_CamOffsetY - h/2;
+				int y1 = p.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY - h/2;
 
 				SDL_Rect rect;
 				rect.x = x1;
@@ -253,7 +257,7 @@ namespace ECM {
 			const int h = 30;
 
 			int x1 = p.x * m_CamZoomFactor + m_CamOffsetX - w / 2;
-			int y1 = p.y * m_CamZoomFactor + m_CamOffsetY - h / 2;
+			int y1 = p.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY - h / 2;
 
 			SDL_Rect rect;
 			rect.x = x1;
@@ -277,7 +281,7 @@ namespace ECM {
 				if (m_Env->InsideObstacle(vert.position))
 				{
 					float x = vert.position.x * m_CamZoomFactor + m_CamOffsetX;
-					float y = vert.position.y * m_CamZoomFactor + m_CamOffsetY;
+					float y = vert.position.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 
 					const int size = 5;
 
@@ -302,7 +306,7 @@ namespace ECM {
 					bool stop = true;
 				}
 				float startX = vert.position.x * m_CamZoomFactor + m_CamOffsetX;
-				float startY = vert.position.y * m_CamZoomFactor + m_CamOffsetY;
+				float startY = vert.position.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 
 				int firstHalfEdge = vert.half_edge_idx;
 				int currentHalfEdge = firstHalfEdge;
@@ -312,11 +316,11 @@ namespace ECM {
 					edge = graph.GetHalfEdge(currentHalfEdge);
 
 					float xl = edge->closest_left.x * m_CamZoomFactor + m_CamOffsetX;
-					float yl = edge->closest_left.y * m_CamZoomFactor + m_CamOffsetY;
+					float yl = edge->closest_left.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 					SDL_RenderDrawLine(m_Renderer, startX, startY, xl, yl);
 
 					float xr = edge->closest_right.x * m_CamZoomFactor + m_CamOffsetX;
-					float yr = edge->closest_right.y * m_CamZoomFactor + m_CamOffsetY;
+					float yr = edge->closest_right.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 					SDL_RenderDrawLine(m_Renderer, startX, startY, xr, yr);
 
 					currentHalfEdge = edge->next_idx;
@@ -335,9 +339,9 @@ namespace ECM {
 			for (int i = 0; i < leftSize; ++i)
 			{
 				float x1 = c.leftCorridorBounds[i].x * m_CamZoomFactor + m_CamOffsetX;
-				float y1 = c.leftCorridorBounds[i].y * m_CamZoomFactor + m_CamOffsetY;
+				float y1 = c.leftCorridorBounds[i].y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 				float x2 = c.leftCorridorBounds[i+1].x * m_CamZoomFactor + m_CamOffsetX;
-				float y2 = c.leftCorridorBounds[i+1].y * m_CamZoomFactor + m_CamOffsetY;
+				float y2 = c.leftCorridorBounds[i+1].y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 			
 				SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
 			}
@@ -348,9 +352,9 @@ namespace ECM {
 			for (int i = 0; i < rightSize; i++)
 			{
 				float x1 = c.rightCorridorBounds[i].x * m_CamZoomFactor + m_CamOffsetX;
-				float y1 = c.rightCorridorBounds[i].y * m_CamZoomFactor + m_CamOffsetY;
+				float y1 = c.rightCorridorBounds[i].y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 				float x2 = c.rightCorridorBounds[i + 1].x * m_CamZoomFactor + m_CamOffsetX;
-				float y2 = c.rightCorridorBounds[i + 1].y * m_CamZoomFactor + m_CamOffsetY;
+				float y2 = c.rightCorridorBounds[i + 1].y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 			
 				SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
 			}
@@ -375,9 +379,9 @@ namespace ECM {
 			for (const Segment& portal : portals)
 			{
 				float x1 = portal.p0.x * m_CamZoomFactor + m_CamOffsetX;
-				float y1 = portal.p0.y * m_CamZoomFactor + m_CamOffsetY;
+				float y1 = portal.p0.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 				float x2 = portal.p1.x * m_CamZoomFactor + m_CamOffsetX;
-				float y2 = portal.p1.y * m_CamZoomFactor + m_CamOffsetY;
+				float y2 = portal.p1.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 				float midx = x1 + (x2 - x1) * 0.5f;
 				float midy = y1 + (y2 - y1) * 0.5f;
 
@@ -389,6 +393,30 @@ namespace ECM {
 
 		}
 
+		void ECMRenderer::DrawHalfEdge(int idx)
+		{
+			auto edge = m_Ecm->GetECMGraph().GetHalfEdge(idx);
+			auto vert = m_Ecm->GetECMGraph().GetSource(edge);
+			auto targetVert = m_Ecm->GetECMGraph().GetVertex(edge->v_target_idx);
+
+			float x1 = edge->closest_left.x * m_CamZoomFactor + m_CamOffsetX;
+			float y1 = edge->closest_left.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+			float x2 = edge->closest_right.x * m_CamZoomFactor + m_CamOffsetX;
+			float y2 = edge->closest_right.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+			float midx = vert->position.x * m_CamZoomFactor + m_CamOffsetX;
+			float midy = vert->position.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+			float targetX = targetVert->position.x * m_CamZoomFactor + m_CamOffsetX;
+			float targetY = targetVert->position.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+
+			SDL_SetRenderDrawColor(m_Renderer, 215, 0x00, 0x00, 0xff);
+			SDL_RenderDrawLine(m_Renderer, x1, y1, midx, midy);
+			SDL_SetRenderDrawColor(m_Renderer, 0x00, 0x00, 215, 0xff);
+			SDL_RenderDrawLine(m_Renderer, x2, y2, midx, midy);
+			SDL_SetRenderDrawColor(m_Renderer, 215, 215, 0x00, 0xff);
+			SDL_RenderDrawLine(m_Renderer, targetX, targetY, midx, midy);
+
+			HighlightECMVertex(vert->idx);
+		}
 
 		void ECMRenderer::DebugDrawECMCell()
 		{
@@ -402,8 +430,8 @@ namespace ECM {
 			{
 				float x0 = s.p0.x * m_CamZoomFactor + m_CamOffsetX;
 				float x1 = s.p1.x * m_CamZoomFactor + m_CamOffsetX;
-				float y0 = s.p0.y * m_CamZoomFactor + m_CamOffsetY;
-				float y1 = s.p1.y * m_CamZoomFactor + m_CamOffsetY;
+				float y0 = s.p0.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+				float y1 = s.p1.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 
 				SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
 			}
@@ -424,8 +452,8 @@ namespace ECM {
 				{
 					float x0 = it->vertex0()->x() * m_CamZoomFactor + m_CamOffsetX;
 					float x1 = it->vertex1()->x() * m_CamZoomFactor + m_CamOffsetX;
-					float y0 = it->vertex0()->y() * m_CamZoomFactor + m_CamOffsetY;
-					float y1 = it->vertex1()->y() * m_CamZoomFactor + m_CamOffsetY;
+					float y0 = it->vertex0()->y() * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+					float y1 = it->vertex1()->y()* m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 
 					SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
 				}
@@ -455,8 +483,8 @@ namespace ECM {
 
 					float x0 = s.p0.x * m_CamZoomFactor + m_CamOffsetX;
 					float x1 = s.p1.x * m_CamZoomFactor + m_CamOffsetX;
-					float y0 = s.p0.y * m_CamZoomFactor + m_CamOffsetY;
-					float y1 = s.p1.y * m_CamZoomFactor + m_CamOffsetY;
+					float y0 = s.p0.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+					float y1 = s.p1.y* m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 
 					SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
 				}
@@ -474,8 +502,8 @@ namespace ECM {
 			{
 				float x0 = path[i].x * m_CamZoomFactor + m_CamOffsetX;
 				float x1 = path[i+1].x * m_CamZoomFactor + m_CamOffsetX;
-				float y0 = path[i].y * m_CamZoomFactor + m_CamOffsetY;
-				float y1 = path[i+1].y * m_CamZoomFactor + m_CamOffsetY;
+				float y0 = path[i].y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+				float y1 = path[i+1].y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 
 				SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
 			}

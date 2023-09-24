@@ -53,7 +53,7 @@ namespace ECM
 					if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT)
 					{
 						float worldX = (e.button.x - m_ApplicationState.camOffsetX) / m_ApplicationState.camZoomFactor;
-						float worldY = (e.button.y - m_ApplicationState.camOffsetY) / m_ApplicationState.camZoomFactor;
+						float worldY = (e.button.y - m_ApplicationState.camOffsetY) / m_ApplicationState.camZoomFactor * -1.0f; // -1.0 because inversed y-axis (TODO: refactor)
 
 						if (!m_ApplicationState.pathToDraw.empty())
 						{
@@ -64,7 +64,7 @@ namespace ECM
 						{
 							m_ApplicationState.pathGoalPoint = Point(worldX, worldY);
 							m_ApplicationState.corridorToDraw = PathPlanning::Corridor();
-							m_ApplicationState.portalsToDraw = std::vector<Segment>();
+							m_ApplicationState.portalsToDraw = std::vector<Segment>();		
 							m_ApplicationState.pathToDraw = m_Planner.GetPath(m_ApplicationState.environment, m_ApplicationState.pathStartPoint, m_ApplicationState.pathGoalPoint, 25.0f, m_ApplicationState.corridorToDraw, m_ApplicationState.portalsToDraw);
 						}
 					}
@@ -138,15 +138,15 @@ namespace ECM
 				walkableArea.push_back(Segment(-500, 500, -500, -500));
 
 				std::vector<Segment> obstacle{
-					Segment(-200, -250, -200, 250),
-						Segment(-200, 250, 200, 250),
-						Segment(200, 250, 200, -250),
-						Segment(200, -250, 100, -250),
-						Segment(100, -250, 100, 150),
-						Segment(100, 150, -100, 150),
-						Segment(100, 150, -100, 150),
-						Segment(-100, 150, -100, -250),
-						Segment(-100, -250, -200, -250)
+					Segment(-200, 250, -200, -250),
+						Segment(-200, -250, 200, -250),
+						Segment(200, -250, 200, 250),
+						Segment(200, 250, 100, 250),
+						Segment(100, 250, 100, -150),
+						Segment(100, -150, -100, -150),
+						Segment(100, -150, -100, -150),
+						Segment(-100, -150, -100, 250),
+						Segment(-100, 250, -200, 250)
 				};
 
 				m_ApplicationState.environment.AddWalkableArea(walkableArea);

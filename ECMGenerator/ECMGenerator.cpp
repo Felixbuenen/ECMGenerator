@@ -142,6 +142,16 @@ namespace ECM {
 					continue;
 				}
 
+				if (v0_index == 11 && v1_index == 6)
+				{
+					int stop = 1;
+				}
+
+				if (v0_index == 4)
+				{
+					int stop = 1;
+				}
+
 				ECMEdge* edge = ecmGraph.AddEdge();
 
 				// check closest points to left
