@@ -37,6 +37,31 @@ namespace ECM
 				while (SDL_PollEvent(&e)) {
 					if (e.type == SDL_QUIT) quit = true;
 
+					if (e.type == SDL_KEYDOWN)
+					{
+						if (e.key.keysym.sym == SDLK_a)
+						{
+							m_ApplicationState.camOffsetX += 10.0f;
+						}
+						if (e.key.keysym.sym == SDLK_d)
+						{
+							m_ApplicationState.camOffsetX -= 10.0f;
+						}
+						if (e.key.keysym.sym == SDLK_w)
+						{
+							m_ApplicationState.camOffsetY += 10.0f;
+						}
+						if (e.key.keysym.sym == SDLK_s)
+						{
+							m_ApplicationState.camOffsetY -= 10.0f;
+						}
+					}
+
+					if (e.type == SDL_MOUSEWHEEL)
+					{
+						m_ApplicationState.camZoomFactor += 0.05f * e.wheel.y;
+					}
+
 					// EVENT: CLICK CELL
 					if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT)
 					{
