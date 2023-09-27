@@ -43,9 +43,6 @@ namespace ECM
 						float worldX = (e.button.x - m_ApplicationState.camOffsetX) / m_ApplicationState.camZoomFactor;
 						float worldY = (e.button.y - m_ApplicationState.camOffsetY) / m_ApplicationState.camZoomFactor;
 
-						printf("world X: %f\n", worldX);
-						printf("world Y: %f\n", worldY);
-
 						m_ApplicationState.cellToDraw = m_ApplicationState.ecm->GetECMCell(worldX, worldY);
 					}
 
@@ -68,10 +65,9 @@ namespace ECM
 							m_ApplicationState.portalsToDraw = std::vector<Segment>();
 
 							m_ApplicationState.pathToDraw = PathPlanning::Path();
-							if (!m_Planner.GetPath(m_ApplicationState.environment, m_ApplicationState.pathStartPoint, m_ApplicationState.pathGoalPoint, 25.0f, m_ApplicationState.corridorToDraw, m_ApplicationState.portalsToDraw, m_ApplicationState.pathToDraw))
-							{
-								m_ApplicationState.startPointSelected = false;
-							}
+							m_Planner.GetPath(m_ApplicationState.environment, m_ApplicationState.pathStartPoint, m_ApplicationState.pathGoalPoint, 25.0f, m_ApplicationState.corridorToDraw, m_ApplicationState.portalsToDraw, m_ApplicationState.pathToDraw);
+
+							m_ApplicationState.startPointSelected = false;
 						}
 					}
 

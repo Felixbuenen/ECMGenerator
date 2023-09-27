@@ -24,10 +24,6 @@ namespace ECM {
 		//
 		// For now, we only support 2D environments (aka no multilayered environments)
 
-
-		// TODO:
-		// > create walkable area and obstacle structs
-
 	public:
 		enum class TestEnvironment
 		{

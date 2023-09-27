@@ -71,6 +71,51 @@ namespace ECM {
 		}
 	};
 
+	struct Mat3x3
+	{
+		float row1[3];
+		float row2[3];
+		float row3[3];
+
+		Mat3x3(float r1c1, float r1c2, float r1c3,
+			float r2c1, float r2c2, float r2c3,
+			float r3c1, float r3c2, float r3c3) :
+			row1{ r1c1, r1c2, r1c3 }, 
+			row2{r2c1, r2c2, r2c3}, 
+			row3{r3c1, r3c2, r3c3} { }
+
+		Vec2 operator -(const Vec2& a) const {
+			float x = row1[0] * a.x + row1[1] * a.y + row1[2];
+			float y = row2[0] * a.x + row2[1] * a.y + row2[2];
+			float z = row3[0] * a.x + row3[1] * a.y + row3[2];
+
+			x /= z;
+			y /= z;
+
+			return Vec2(x, y);
+		}
+
+		Mat3x3 operator *(const Mat3x3& a) const {
+			return Mat3x3(row1[0] * a.row1[0] + row1[1] * a.row2[0] + row1[2] * a.row3[0],
+				row1[0] * a.row1[1] + row1[1] * a.row2[1] + row1[2] * a.row3[1],
+				row1[0] * a.row1[2] + row1[1] * a.row2[2] + row1[2] * a.row3[2],
+
+				row2[0] * a.row1[0] + row2[1] * a.row2[0] + row2[2] * a.row3[0],
+				row2[0] * a.row1[1] + row2[1] * a.row2[1] + row2[2] * a.row3[1],
+				row2[0] * a.row1[2] + row2[1] * a.row2[2] + row2[2] * a.row3[2],
+
+				row3[0] * a.row1[0] + row3[1] * a.row2[0] + row3[2] * a.row3[0],
+				row3[0] * a.row1[1] + row3[1] * a.row2[1] + row3[2] * a.row3[1],
+				row3[0] * a.row1[2] + row3[1] * a.row2[2] + row3[2] * a.row3[2]
+			);
+		}
+
+		Mat3x3 Identity()
+		{
+			return Mat3x3(1, 0, 0, 0, 1, 0, 0, 0, 1);
+		}
+	};
+
 	struct Segment {
 		Point p0;
 		Point p1;
