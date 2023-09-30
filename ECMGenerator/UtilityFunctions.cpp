@@ -167,7 +167,7 @@ namespace ECM {
 			return posOnSegment;
 		}
 
-		bool MathUtility::GetRayToLineSegmentIntersection(const Point& rayOrigin, const Vec2& rayDirection, const Point& point1, const Point& point2, Point& outPoint)
+		bool MathUtility::GetRayToLineSegmentIntersection(const Point& rayOrigin, const Vec2& rayDirection, const Point& point1, const Point& point2, Point& outPoint, float& outDist)
 		{
 			Vec2 v1 = rayOrigin - point1;
 			Vec2 v2 = point2 - point1;
@@ -185,8 +185,10 @@ namespace ECM {
 
 			if (t1 >= 0.0 && (t2 >= 0.0 && t2 <= 1.0))
 			{
+				outDist = t1;
 				outPoint.x = rayOrigin.x + rayDirection.x * t1; // TODO: fix operator overloading error
 				outPoint.y = rayOrigin.y + rayDirection.y * t1; // TODO: fix operator overloading error
+
 				return true;
 			}
 

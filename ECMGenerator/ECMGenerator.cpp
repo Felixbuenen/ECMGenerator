@@ -101,7 +101,9 @@ namespace ECM {
 			if (!shouldAdd) continue;
 			
 			ecmVertIndex++;
+
 			ecmGraph.AddVertex(vertLocation);
+
 			mapECMVertexIndices[ecmVertIndex] = boostVertIndex;
 		}
 		std::printf("Done\n");
@@ -161,6 +163,10 @@ namespace ECM {
 				SourceCategory cat2 = it->cell()->source_category();
 				isStartPoint = it->twin()->cell()->source_category() == SourceCategory::SOURCE_CATEGORY_SEGMENT_START_POINT;
 				GetClosestPointsToSource(environment, srcIdx, p1, p2, isPoint, isStartPoint, closestRight1, closestRight2);
+
+				// add clearance information for vertices
+				ecmGraph.GetVertex(v0_index)->clearance = Utility::MathUtility::Distance(p1, closestLeft1);
+				ecmGraph.GetVertex(v1_index)->clearance = Utility::MathUtility::Distance(p2, closestLeft2);
 
 				// construct half-edges
 				ecmGraph.AddHalfEdge(edge->idx, v1_index, closestLeft1, closestRight1, 0);

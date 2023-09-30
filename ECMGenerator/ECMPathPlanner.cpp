@@ -56,28 +56,29 @@ namespace ECM {
 			int startEdgeIdx = startCell->ecmEdge;
 			int goalEdgeIdx = goalCell->ecmEdge;
 
+			printf("retract points...\n");
+			Point retrStart, retrGoal;
+			ECMEdge startEdge;
+			ECMEdge goalEdge;
+			if (!ecm->RetractPoint(start, *startCell, retrStart, startEdge, clearance))
+			{
+				printf("retraction for start point failed");
+				return false;
+			}
+			if (!ecm->RetractPoint(goal, *goalCell, retrGoal, goalEdge, clearance))
+			{
+				printf("retraction for end point failed");
+				return false;
+			}
+
 			// if start and goal in the same corridor, simply return a straight line path
+			// we do this after retraction, because if retraction fails, we cannot create a path (e.g. due to not sufficient clearance from obstacle)
 			if (startEdgeIdx == goalEdgeIdx)
 			{
 				outPath.push_back(start);
 				outPath.push_back(goal);
 
 				return true;
-			}
-
-			printf("retract points...\n");
-			Point retrStart, retrGoal;
-			ECMEdge startEdge;
-			ECMEdge goalEdge;
-			if (!ecm->RetractPoint(start, *startCell, retrStart, startEdge))
-			{
-				printf("retraction for start point failed");
-				return false;
-			}
-			if (!ecm->RetractPoint(goal, *goalCell, retrGoal, goalEdge))
-			{
-				printf("retraction for end point failed");
-				return false;
 			}
 
 			printf("find a star path...\n");
@@ -128,10 +129,16 @@ namespace ECM {
 				outPath.push_back(p);
 			}
 
-
-
 			return true;
 		}
+
+		bool ECMPathPlanner::ValidStartGoalLocation(const Point& start, const Point& goal, const ECMEdge& startEdge, const ECMEdge& goalEdge, float clearance) const
+		{
+
+
+			return false;
+		}
+
 
 		void ECMPathPlanner::CreateCorridor(const std::vector<ECMHalfEdge*>& maPath, Corridor& outCorridor, std::shared_ptr<ECM> ecm)
 		{
@@ -140,9 +147,7 @@ namespace ECM {
 			{
 				Point pos = graph.GetSource(edge)->position;
 				outCorridor.diskCenters.push_back(pos);
-				// TODO: use disk clearance
-				//outCorridor.diskRadii.push_back(graph.GetSource(edge)->clearance);
-				outCorridor.diskRadii.push_back(Utility::MathUtility::Length(edge->closest_left - pos));
+				outCorridor.diskRadii.push_back(graph.GetSource(edge)->clearance);
 				outCorridor.leftBounds.push_back(edge->closest_left);
 				outCorridor.rightBounds.push_back(edge->closest_right);
 			}
@@ -233,30 +238,11 @@ namespace ECM {
 			// add final portal
 			outPortals.push_back(Segment(corridor.leftCorridorBounds.back(), corridor.rightCorridorBounds.back()));
 
+			// make sure the range of portals is correct. remove portals that fall outside of the actual corridor.
+			FitPortalRange(outPortals, start, goal);
+
 			// add the goal point as the last portal. This is required for the path smoothing algorithm.
 			outPortals.push_back(Segment(goal, goal));
-		}
-
-		void ECMPathPlanner::FindFirstAndLastPortal(const Point& start, const Point& goal, const std::vector<Segment>& portals, int& outFirst, int& outLast)
-		{
-			// find first portal
-			for (int i = 0; i < portals.size(); i++)
-			{
-				if (!Utility::MathUtility::IsLeftOfSegment(portals[i], start))
-				{
-					outFirst = i;
-					break;
-				}
-			}
-
-			for (int i = portals.size()-1; i >= 0; i--)
-			{
-				if (Utility::MathUtility::IsLeftOfSegment(portals[i], start))
-				{
-					outLast = i;
-					break;
-				}
-			}
 		}
 
 		void ECMPathPlanner::SampleCorridorArc(const Point& p1, const Point& p2, const Point& o1, const Point& o2, const Point& c, float radius, bool leftArc, std::vector<Segment>& portals)
@@ -283,43 +269,53 @@ namespace ECM {
 			}
 		}
 
-		void ECMPathPlanner::FindFirstAndLastPortal(const std::vector<Segment>& portals, const Point& start, const Point& goal, int& outFirst, int& outLast)
+		void ECMPathPlanner::FitPortalRange(std::vector<Segment>& portals, const Point& start, const Point& goal)
 		{
 			// start portal
-			outFirst = 0;
+			int first;
 			for (int i = 0; i < portals.size(); i++)
 			{
 				const Segment& portal = portals[i];
 				if (!Utility::MathUtility::IsLeftOfSegment(portal, start))
 				{
-					outFirst = i;
+					first = i;
 					break;
 				}
 			}
 
+			// remove unnecessary begin portals
+			for (int i = 0; i < first; i++)
+			{
+				portals.erase(portals.begin());
+			}
+
 			// end portal
-			outLast = portals.size() - 1;
+			int last;
 			for (int i = portals.size() - 1; i >= 0; i--)
 			{
 				const Segment& portal = portals[i];
 				if (Utility::MathUtility::IsLeftOfSegment(portal, goal))
 				{
-					outLast = i;
+					last = i;
 					break;
 				}
+			}
+
+			int toRemove = portals.size() - last;
+			// remove unnecessary last portals
+			for (int i = 0; i < toRemove; i++)
+			{
+				portals.pop_back();
 			}
 		}
 
 		// Reference: https://digestingduck.blogspot.com/2010/03/simple-stupid-funnel-algorithm.html
 		void ECMPathPlanner::Funnel(const std::vector<Segment>& portals, const Point& start, const Point& goal, std::vector<Point>& outShortestPath)
 		{
-			int firstPortal, lastPortal;
-			FindFirstAndLastPortal(portals, start, goal, firstPortal, lastPortal);
-
 			Point portalLeft, portalRight, portalApex;
-			int leftIdx = firstPortal;
-			int rightIdx = firstPortal;
-			int apexIdx = firstPortal;
+			int leftIdx = 0;
+			int rightIdx = 0;
+			int apexIdx = 0;
 
 			portalApex = start;
 			portalLeft = start;
@@ -331,7 +327,7 @@ namespace ECM {
 			outShortestPath.push_back(start);
 			
 			// <begin loop, i=1 en i < numPortals>
-			for (int i = firstPortal; i <= lastPortal; i++)
+			for (int i = 0; i < portals.size(); i++)
 			{
 				Point left = portals[i].p0;
 				Point right = portals[i].p1;
@@ -340,11 +336,7 @@ namespace ECM {
 				// first check: does this right point make the current funnel (portalApex, portalRight, right) wider? Then skip right for this iteration...
 				if (Utility::MathUtility::TriangleArea(portalApex, portalRight, right) <= 0.0f)
 				{
-					// TODO: make equality function for points/vecs
-
-					bool apexEqualToRight = (portalApex.x < portalRight.x + Utility::EPSILON) && (portalApex.x > portalRight.x - Utility::EPSILON) &&
-						(portalApex.y < portalRight.y + Utility::EPSILON) && (portalApex.y > portalRight.y - Utility::EPSILON);
-					if (apexEqualToRight || Utility::MathUtility::TriangleArea(portalApex, portalLeft, right) > 0.0f)
+					if (portalApex.Approximate(portalRight) || Utility::MathUtility::TriangleArea(portalApex, portalLeft, right) > 0.0f)
 					{
 						portalRight = right;
 						rightIdx = i;
@@ -373,11 +365,7 @@ namespace ECM {
 				// of course the same checks apply
 				if (Utility::MathUtility::TriangleArea(portalApex, portalLeft, left) >= 0.0f)
 				{
-					// TODO: replace with function
-					bool apexEqualToLeft = (portalApex.x < portalLeft.x + Utility::EPSILON && portalApex.x > portalLeft.x - Utility::EPSILON &&
-						portalApex.y < portalLeft.y + Utility::EPSILON && portalApex.y > portalLeft.y - Utility::EPSILON);
-
-					if (portalApex == portalLeft || Utility::MathUtility::TriangleArea(portalApex, portalRight, left) < 0.0f)
+					if (portalApex.Approximate(portalLeft) || Utility::MathUtility::TriangleArea(portalApex, portalRight, left) < 0.0f)
 					{
 						portalLeft = left;
 						leftIdx = i;

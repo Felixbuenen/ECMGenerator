@@ -12,6 +12,7 @@ namespace ECM
 	struct Vec2;
 	struct Segment;
 	struct ECMHalfEdge;
+	struct ECMEdge;
 
 	class Environment;
 	class AStar;
@@ -56,14 +57,13 @@ namespace ECM
 			bool GetPath(const Environment& environment, Point start, Point goal, float clearance, Corridor& outCorridor, std::vector<Segment>& outPortals, Path& outPath);
 
 		private:
-			void RetractQueryPoints(const Point& start, const Point& goal, Point& outRetractedStart, Point& outRetractedGoal);
+			bool ValidStartGoalLocation(const Point& start, const Point& goal, const ECMEdge& startEdge, const ECMEdge& goalEdge, float clearance) const;
 
 			void CreateCorridor(const std::vector<ECMHalfEdge*>& maPath, Corridor& outCorridor, std::shared_ptr<ECM> ecm); // A* search on medial axis, returns set of edges
 			void ShrinkCorridor(Corridor& corridor, float clearance);
 			void TriangulateCorridor(const Point& start, const Point& goal, const Corridor& corridor, std::vector<Segment>& outPortals, float clearance);
-			void FindFirstAndLastPortal(const Point& start, const Point& goal, const std::vector<Segment>& portals, int& outFirst, int& outLast);
 			void SampleCorridorArc(const Point& p1, const Point& p2, const Point& o1, const Point& o2, const Point& c, float radius, bool leftArc, std::vector<Segment>& portals);
-			void FindFirstAndLastPortal(const std::vector<Segment>& portals, const Point& start, const Point& goal, int& outFirst, int& outLast);
+			void FitPortalRange(std::vector<Segment>& portals, const Point& start, const Point& goal);
 			void Funnel(const std::vector<Segment>& portals, const Point& start, const Point& goal, std::vector<Point>& outShortestPath);
 			void SmoothPath(/*path*/) const; // takes the medial axis path and creates and actual path to follow
 

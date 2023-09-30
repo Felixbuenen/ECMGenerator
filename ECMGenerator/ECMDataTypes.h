@@ -34,6 +34,11 @@ namespace ECM {
 			x /= l;
 			y /= l;
 		}
+
+		bool Approximate(const Vec2& a) const
+		{
+			return x < (a.x + Utility::EPSILON) && x >(a.x - Utility::EPSILON) && y < (a.y + Utility::EPSILON) && y >(a.y - Utility::EPSILON);
+		}
 	};
 
 	struct Point {
@@ -41,6 +46,11 @@ namespace ECM {
 		float y;
 		Point(float x, float y) : x(x), y(y) {}
 		Point() { x = 0; y = 0; }
+
+		bool Approximate(const Point& a) const
+		{
+			return x < (a.x + Utility::EPSILON) && x >(a.x - Utility::EPSILON) && y < (a.y + Utility::EPSILON) && y >(a.y - Utility::EPSILON);
+		}
 
 		operator Vec2() const { return Vec2(x, y); }
 

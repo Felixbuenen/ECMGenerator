@@ -108,8 +108,7 @@ namespace ECM {
 
 		// querying
 		ECMCell* GetECMCell(float x, float y);
-		bool RetractPoint(Point location, Point& outRetractedLocation, ECMEdge* outEdge);
-		bool RetractPoint(Point location, ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge);
+		bool RetractPoint(Point location, ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge, float clearance);
 
 		inline std::shared_ptr<MedialAxis> GetMedialAxis() { return m_MedialAxis; }
 		inline ECMGraph& GetECMGraph() { return m_EcmGraph; }

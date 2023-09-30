@@ -37,7 +37,7 @@ namespace ECM {
 			//DrawECMVertices();
 			//DrawClosestObstaclePoints();
 			//DrawCorridor();
-			//DrawPortals();
+			DrawPortals();
 			//HighlightECMVertex(11);
 			//HighlightECMVertex(21);
 			//HighlightECMVertex(18);
@@ -47,7 +47,7 @@ namespace ECM {
 			// TEST
 			//DrawRandomTestPath();
 			//DrawInsideVerts();
-			//DebugDrawECMCell();
+			DebugDrawECMCell();
 			//DebugDrawSecondaryLines();
 			//DebugDrawCellValues();
 
@@ -429,8 +429,8 @@ namespace ECM {
 			{
 				float x0 = s.p0.x * m_CamZoomFactor + m_CamOffsetX;
 				float x1 = s.p1.x * m_CamZoomFactor + m_CamOffsetX;
-				float y0 = s.p0.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
-				float y1 = s.p1.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+				float y0 = s.p0.y * m_YRotation * m_CamZoomFactor * -1 + m_CamOffsetY;
+				float y1 = s.p1.y * m_YRotation * m_CamZoomFactor * -1 + m_CamOffsetY;
 
 				SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
 			}

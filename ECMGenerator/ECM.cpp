@@ -15,42 +15,7 @@ namespace ECM {
 		m_MedialAxis = std::make_shared<MedialAxis>();
 	}
 
-	bool ECM::RetractPoint(Point location, Point& outRetractedLocation, ECMEdge* outEdge)
-	{
-		const ECMCell* cell = m_EcmGraph.FindCell(location.x, location.y);
-		outEdge = m_EcmGraph.GetEdge(cell->ecmEdge);
-		const ECMVertex* p1 = m_EcmGraph.GetVertex(outEdge->half_edges[1].v_target_idx);
-		const ECMVertex* p2 = m_EcmGraph.GetVertex(outEdge->half_edges[0].v_target_idx);
-
-		// get closest obstacle based on which side of the ECM edge the location is
-		Point obstacleP1, obstacleP2;
-		Vec2 rayDir;
-		int halfEdgeToP2Idx = outEdge->half_edges[0].v_target_idx == p2->idx ? 0 : 1;
-		int halfEdgeToP1Idx = (halfEdgeToP2Idx + 1) % 2;
-
-		if (Utility::MathUtility::IsLeftOfSegment(Segment(p1->position, p2->position), location))
-		{
-			obstacleP1 = outEdge->half_edges[halfEdgeToP2Idx].closest_left;
-			obstacleP2 = outEdge->half_edges[halfEdgeToP1Idx].closest_right;
-			Vec2 v = obstacleP2 - obstacleP1;
-			rayDir.x = v.y;
-			rayDir.y = -v.x;
-			rayDir.Normalize();
-		}
-		else
-		{
-			obstacleP1 = outEdge->half_edges[halfEdgeToP2Idx].closest_right;
-			obstacleP2 = outEdge->half_edges[halfEdgeToP1Idx].closest_left;
-			Vec2 v = obstacleP2 - obstacleP1;
-			rayDir.x = -v.y;
-			rayDir.y = v.x;
-			rayDir.Normalize();
-		}
-
-		return Utility::MathUtility::GetRayToLineSegmentIntersection(location, rayDir, p1->position, p2->position, outRetractedLocation);
-	}
-
-	bool ECM::RetractPoint(Point location, ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge)
+	bool ECM::RetractPoint(Point location, ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge, float clearance)
 	{
 		outEdge = *m_EcmGraph.GetEdge(cell.ecmEdge);
 		const ECMVertex* p1 = m_EcmGraph.GetVertex(outEdge.half_edges[1].v_target_idx);
@@ -68,19 +33,17 @@ namespace ECM {
 			obstacleP2 = outEdge.half_edges[halfEdgeToP1Idx].closest_right;
 
 			//point obstacle
-			if (obstacleP1.x == obstacleP2.x && obstacleP1.y == obstacleP2.y)
+			if (obstacleP1.Approximate(obstacleP2))
 			{
 				Vec2 v1 = p1->position - obstacleP1;
 				Vec2 v2 = p2->position - obstacleP1;
 				rayDir = v1 + v2;
-
 			}
 			else
 			{
 				Vec2 v = obstacleP2 - obstacleP1;
 				rayDir.x = v.y;
 				rayDir.y = -v.x;
-
 			}
 			
 			rayDir.Normalize();
@@ -90,7 +53,7 @@ namespace ECM {
 			obstacleP1 = outEdge.half_edges[halfEdgeToP2Idx].closest_right;
 			obstacleP2 = outEdge.half_edges[halfEdgeToP1Idx].closest_left;
 			//point obstacle
-			if (obstacleP1.x == obstacleP2.x && obstacleP1.y == obstacleP2.y)
+			if (obstacleP1.Approximate(obstacleP2))
 			{
 				Vec2 v1 = p1->position - obstacleP1;
 				Vec2 v2 = p2->position - obstacleP1;
@@ -106,7 +69,13 @@ namespace ECM {
 			rayDir.Normalize();
 		}
 
-		return Utility::MathUtility::GetRayToLineSegmentIntersection(location, rayDir, p1->position, p2->position, outRetractedLocation);
+		float outDist;
+		if (Utility::MathUtility::GetRayToLineSegmentIntersection(location, rayDir, p1->position, p2->position, outRetractedLocation, outDist))
+		{
+			
+		}
+
+		return true;
 	}
 
 
