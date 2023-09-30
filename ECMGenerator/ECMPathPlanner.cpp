@@ -237,6 +237,28 @@ namespace ECM {
 			outPortals.push_back(Segment(goal, goal));
 		}
 
+		void ECMPathPlanner::FindFirstAndLastPortal(const Point& start, const Point& goal, const std::vector<Segment>& portals, int& outFirst, int& outLast)
+		{
+			// find first portal
+			for (int i = 0; i < portals.size(); i++)
+			{
+				if (!Utility::MathUtility::IsLeftOfSegment(portals[i], start))
+				{
+					outFirst = i;
+					break;
+				}
+			}
+
+			for (int i = portals.size()-1; i >= 0; i--)
+			{
+				if (Utility::MathUtility::IsLeftOfSegment(portals[i], start))
+				{
+					outLast = i;
+					break;
+				}
+			}
+		}
+
 		void ECMPathPlanner::SampleCorridorArc(const Point& p1, const Point& p2, const Point& o1, const Point& o2, const Point& c, float radius, bool leftArc, std::vector<Segment>& portals)
 		{
 			const float maxCurveSampleLength = 10.0f;
@@ -291,10 +313,13 @@ namespace ECM {
 		// Reference: https://digestingduck.blogspot.com/2010/03/simple-stupid-funnel-algorithm.html
 		void ECMPathPlanner::Funnel(const std::vector<Segment>& portals, const Point& start, const Point& goal, std::vector<Point>& outShortestPath)
 		{
+			int firstPortal, lastPortal;
+			FindFirstAndLastPortal(portals, start, goal, firstPortal, lastPortal);
+
 			Point portalLeft, portalRight, portalApex;
-			int leftIdx = 0;
-			int rightIdx = 0;
-			int apexIdx = 0;
+			int leftIdx = firstPortal;
+			int rightIdx = firstPortal;
+			int apexIdx = firstPortal;
 
 			portalApex = start;
 			portalLeft = start;
@@ -306,7 +331,7 @@ namespace ECM {
 			outShortestPath.push_back(start);
 			
 			// <begin loop, i=1 en i < numPortals>
-			for (int i = 0; i < portals.size(); i++)
+			for (int i = firstPortal; i <= lastPortal; i++)
 			{
 				Point left = portals[i].p0;
 				Point right = portals[i].p1;

@@ -17,10 +17,6 @@ namespace ECM {
 
 	bool ECM::RetractPoint(Point location, Point& outRetractedLocation, ECMEdge* outEdge)
 	{
-		// TODO:
-		// Retract point on arc is currently not implemented!
-
-
 		const ECMCell* cell = m_EcmGraph.FindCell(location.x, location.y);
 		outEdge = m_EcmGraph.GetEdge(cell->ecmEdge);
 		const ECMVertex* p1 = m_EcmGraph.GetVertex(outEdge->half_edges[1].v_target_idx);

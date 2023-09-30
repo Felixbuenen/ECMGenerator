@@ -20,6 +20,11 @@ namespace ECM
 
 			m_Planner.Initialize(m_ApplicationState.ecm->GetECMGraph());
 
+			Point start(716.374329f, 884.503235f);
+			Point end(-387.426941f, 1213.450562f);
+			//m_Planner.GetPath(m_ApplicationState.environment, start, end, 25.0f, m_ApplicationState.corridorToDraw, m_ApplicationState.portalsToDraw, m_ApplicationState.pathToDraw);
+			//m_Planner.GetPath(m_ApplicationState.environment, end, start, 25.0f, m_ApplicationState.corridorToDraw, m_ApplicationState.portalsToDraw, m_ApplicationState.pathToDraw);
+
 			return true;
 		}
 
@@ -76,6 +81,8 @@ namespace ECM
 					{
 						float worldX = (e.button.x - m_ApplicationState.camOffsetX) / m_ApplicationState.camZoomFactor;
 						float worldY = (e.button.y - m_ApplicationState.camOffsetY) / m_ApplicationState.camZoomFactor * -1.0f; // -1.0 because inversed y-axis (TODO: refactor)
+
+						printf("World (%f, %f)\n", worldX, worldY);
 
 						if (!m_ApplicationState.startPointSelected)
 						{
