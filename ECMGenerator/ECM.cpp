@@ -69,13 +69,21 @@ namespace ECM {
 			rayDir.Normalize();
 		}
 
-		float outDist;
-		if (Utility::MathUtility::GetRayToLineSegmentIntersection(location, rayDir, p1->position, p2->position, outRetractedLocation, outDist))
+		// first check if enough clearance from obstacle
+		float distFromObstacle;
+		Point obstacleIntersect;
+		Vec2 invDir(-rayDir.x, -rayDir.y);
+		if (Utility::MathUtility::GetRayToLineSegmentIntersection(location, invDir, obstacleP1, obstacleP2, obstacleIntersect, distFromObstacle))
 		{
-			
+			if (distFromObstacle < clearance)
+			{
+				printf("ERROR: not enough clearance from obstacle.\n");
+				return false;
+			}
 		}
 
-		return true;
+		float outDist;
+		return Utility::MathUtility::GetRayToLineSegmentIntersection(location, rayDir, p1->position, p2->position, outRetractedLocation, outDist);
 	}
 
 
