@@ -97,7 +97,7 @@ namespace ECM
 							m_ApplicationState.portalsToDraw = std::vector<Segment>();
 
 							m_ApplicationState.pathToDraw = PathPlanning::Path();
-							m_Planner.GetPath(m_ApplicationState.environment, m_ApplicationState.pathStartPoint, m_ApplicationState.pathGoalPoint, 25.0f, m_ApplicationState.corridorToDraw, m_ApplicationState.portalsToDraw, m_ApplicationState.pathToDraw);
+							m_Planner.GetPath(m_ApplicationState.environment, m_ApplicationState.pathStartPoint, m_ApplicationState.pathGoalPoint, 15.0f, m_ApplicationState.corridorToDraw, m_ApplicationState.portalsToDraw, m_ApplicationState.pathToDraw);
 
 							m_ApplicationState.startPointSelected = false;
 						}
@@ -227,6 +227,32 @@ namespace ECM
 						m_ApplicationState.environment.AddObstacle(obstacle);
 					}
 				}
+			}
+
+			if (environment == Environment::TestEnvironment::NARROW) 
+			{
+				std::vector<Segment> walkableArea;
+				walkableArea.push_back(Segment(-100, -100, 100, -100));
+				walkableArea.push_back(Segment(100, -100, 100, 100));
+				walkableArea.push_back(Segment(-100, 100, 100, 100));
+				walkableArea.push_back(Segment(-100, 100, -100, -100));
+
+				std::vector<Segment> obstacle1{
+					Segment(-20, -60, -20, 60),
+						Segment(-20, 60, -10, 60),
+						Segment(-10, 60, -10, -60),
+						Segment(-10, -60, -20, -60)
+				};
+				std::vector<Segment> obstacle2{
+					Segment(20, -60, 20, 60),
+						Segment(20, 60, 10, 60),
+						Segment(10, 60, 10, -60),
+						Segment(10, -60, 20, -60)
+				};
+
+				m_ApplicationState.environment.AddWalkableArea(walkableArea);
+				m_ApplicationState.environment.AddObstacle(obstacle1);
+				m_ApplicationState.environment.AddObstacle(obstacle2);
 			}
 
 			// generate ECM from environment

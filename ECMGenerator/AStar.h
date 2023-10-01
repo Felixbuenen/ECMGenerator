@@ -54,6 +54,7 @@ namespace ECM {
 
 		ECMGraph& m_Graph;
 		std::vector<AStarNode> m_Nodes;
+		std::vector<float> m_NodeClearance;
 		std::vector<bool> m_Visited;
 
 		uint32_t INVALID_NODE_INDEX;

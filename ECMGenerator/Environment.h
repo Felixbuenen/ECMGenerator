@@ -28,7 +28,8 @@ namespace ECM {
 		enum class TestEnvironment
 		{
 			CLASSIC,
-			BIG
+			BIG,
+			NARROW
 		};
 
 		void AddWalkableArea(std::vector<Segment> waEdges); // for now just allow 1 walkable area

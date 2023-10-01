@@ -84,7 +84,7 @@ namespace ECM {
 			printf("find a star path...\n");
 			// 3. Plan a path on the medial axis using the clearance and A*.
 			std::vector<int> astarPath;
-			if(!m_AStar->FindPath(retrStart, retrGoal, &startEdge, &goalEdge, 1.0f, astarPath))
+			if(!m_AStar->FindPath(retrStart, retrGoal, &startEdge, &goalEdge, clearance, astarPath))
 			{
 				printf("couldn't find path!\n");
 				return false;

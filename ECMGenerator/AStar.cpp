@@ -12,6 +12,7 @@ namespace ECM {
 		int numVerts = ecmVerts.size();
 		m_Nodes.resize(numVerts);
 		m_Visited.resize(numVerts);
+		m_NodeClearance.resize(numVerts);
 		
 		for (int i = 0; i < numVerts; i++)
 		{
@@ -19,6 +20,8 @@ namespace ECM {
 			m_Nodes[index].index = index;
 			m_Nodes[index].gCost = Utility::MAX_FLOAT;
 			m_Nodes[index].fCost = Utility::MAX_FLOAT;
+
+			m_NodeClearance[index] = ecmVerts[i].clearance;
 		}
 		
 		INVALID_NODE_INDEX = numVerts;
@@ -75,6 +78,8 @@ namespace ECM {
 			AStarNode& current = *openList.top();
 			openList.pop();
 			SetVisited(current.index);
+
+			if (m_NodeClearance[current.index] < clearance) continue;
 
 			// if we're at the final node, this means we have found the optimal path: construct path and return
 			if (current.index == goal_idx_a || current.index == goal_idx_b)

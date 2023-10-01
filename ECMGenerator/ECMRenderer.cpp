@@ -37,7 +37,7 @@ namespace ECM {
 			//DrawECMVertices();
 			//DrawClosestObstaclePoints();
 			//DrawCorridor();
-			DrawPortals();
+			//DrawPortals();
 			//HighlightECMVertex(11);
 			//HighlightECMVertex(21);
 			//HighlightECMVertex(18);
