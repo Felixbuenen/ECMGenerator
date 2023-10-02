@@ -2,6 +2,7 @@
 
 #include "ECM.h"
 #include "UtilityFunctions.h"
+#include "Timer.h"
 
 namespace ECM {
 
@@ -13,6 +14,8 @@ namespace ECM {
 		m_Nodes.resize(numVerts);
 		m_Visited.resize(numVerts);
 		m_NodeClearance.resize(numVerts);
+
+		INVALID_NODE_INDEX = numVerts;
 		
 		for (int i = 0; i < numVerts; i++)
 		{
@@ -20,17 +23,18 @@ namespace ECM {
 			m_Nodes[index].index = index;
 			m_Nodes[index].gCost = Utility::MAX_FLOAT;
 			m_Nodes[index].fCost = Utility::MAX_FLOAT;
+			m_Nodes[index].parentIndex = INVALID_NODE_INDEX;
 
 			m_NodeClearance[index] = ecmVerts[i].clearance;
 		}
-		
-		INVALID_NODE_INDEX = numVerts;
 		
 		return true;
 	}
 
 	bool AStar::FindPath(const Point& startLocation, const Point& goalLocation, const ECMEdge* startEdge, const ECMEdge* goalEdge, float clearance, std::vector<int>& outPath)
 	{
+		//Timer timer("AStar::FindPath");
+
 		// create the list of open nodes as a priority queue
 		std::priority_queue<AStarNode*, std::vector<AStarNode*>, AStarCompare> openList;
 		
@@ -184,8 +188,6 @@ namespace ECM {
 			reversedPath.push_back(goalV2);
 		}
 
-		//reversedPath.push_back(lastNode.index);
-
 		int nextIndex = lastNode.parentIndex;
 		while (nextIndex < INVALID_NODE_INDEX)
 		{
@@ -193,21 +195,6 @@ namespace ECM {
 			nextIndex = m_Nodes[nextIndex].parentIndex;
 		}
 
-		//const AStarNode& firstNode = m_Nodes[reversedPath.back()];
-		//reversedPath.pop_back();
-
-
-		//if (firstNode.index == startV1)
-		//{
-		//	reversedPath.push_back(startV1);
-		//	reversedPath.push_back(startV2);
-		//}
-		//else
-		//{
-		//	reversedPath.push_back(startV2);
-		//	reversedPath.push_back(startV1);
-		//}
-		
 		for (int i = reversedPath.size() - 1; i >= 0; i--)
 		{
 			outPath.push_back(reversedPath[i]);

@@ -5,6 +5,7 @@
 #include "ECM.h"
 #include "AStar.h"
 #include "UtilityFunctions.h"
+#include "Timer.h"
 
 namespace ECM {
 	namespace PathPlanning {
@@ -27,9 +28,7 @@ namespace ECM {
 
 		bool ECMPathPlanner::GetPath(const Environment& environment, Point start, Point goal, float clearance, Corridor& outCorridor, std::vector<Segment>& outPortals, Path& outPath)
 		{
-			// TODO:
-			// First check if start and goal are valid positions.
-			//std::printf("Start: (%f, %f). End: (%f, %f).\n", start.x, start.y, goal.x, goal.y);
+			Timer timer("ECMPathPlanner::GetPath");
 
 			// 1. query the cell location of the start / goal position.
 			auto ecmStart = environment.QueryECM(start);
@@ -41,14 +40,20 @@ namespace ECM {
 				return false;
 			}
 
-			printf("query start/goal locations...\n");
+			//printf("query start/goal locations...\n");
 			auto ecm = ecmStart;
-			auto startCell = ecm->GetECMGraph().FindCell(start.x, start.y);
-			auto goalCell = ecm->GetECMGraph().FindCell(goal.x, goal.y);
+			ECMCell* startCell;
+			ECMCell* goalCell;
+
+			{
+				//Timer findCellTime("Find cell...");
+				startCell = ecm->GetECMGraph().FindCell(start.x, start.y);
+				goalCell = ecm->GetECMGraph().FindCell(goal.x, goal.y);
+			}
 
 			if (!startCell || !goalCell)
 			{
-				printf("PathPlanning error: Could not find the cell of start and/or goal position.\n");
+				//printf("PathPlanning error: Could not find the cell of start and/or goal position.\n");
 				return false;
 			}
 			
@@ -56,18 +61,18 @@ namespace ECM {
 			int startEdgeIdx = startCell->ecmEdge;
 			int goalEdgeIdx = goalCell->ecmEdge;
 
-			printf("retract points...\n");
+			//printf("retract points...\n");
 			Point retrStart, retrGoal;
 			ECMEdge startEdge;
 			ECMEdge goalEdge;
 			if (!ecm->RetractPoint(start, *startCell, retrStart, startEdge, clearance))
 			{
-				printf("retraction for start point failed");
+				//printf("retraction for start point failed");
 				return false;
 			}
 			if (!ecm->RetractPoint(goal, *goalCell, retrGoal, goalEdge, clearance))
 			{
-				printf("retraction for end point failed");
+				//printf("retraction for end point failed");
 				return false;
 			}
 
@@ -81,49 +86,54 @@ namespace ECM {
 				return true;
 			}
 
-			printf("find a star path...\n");
+			//printf("find a star path...\n");
 			// 3. Plan a path on the medial axis using the clearance and A*.
 			std::vector<int> astarPath;
 			if(!m_AStar->FindPath(retrStart, retrGoal, &startEdge, &goalEdge, clearance, astarPath))
 			{
-				printf("couldn't find path!\n");
+				//printf("couldn't find path!\n");
 				return false;
 			}
 
-			printf("generate edge path...\n");
-			std::vector<ECMHalfEdge*> edgePath;
-			for (int i = 0; i < astarPath.size() - 1; i++)
-			{
-				int index1 = astarPath[i];
-				int index2 = astarPath[i+1];
-				ECMVertex* v = ecm->GetECMGraph().GetVertex(index1);
-				ECMHalfEdge* incEdge = ecm->GetECMGraph().GetHalfEdge(v->half_edge_idx);
 
-				ECMHalfEdge* incEdgeStart = incEdge;
-				do {
-					if (incEdge->v_target_idx == index2) {
-						edgePath.push_back(incEdge);
-						break;
-					}
-					incEdge = ecm->GetECMGraph().GetHalfEdge(incEdge->next_idx);
-				} while (incEdgeStart != incEdge);
+			//printf("generate edge path...\n");
+			std::vector<ECMHalfEdge*> edgePath;
+
+			{
+				//Timer timer("generate edge path..");
+				for (int i = 0; i < astarPath.size() - 1; i++)
+				{
+					int index1 = astarPath[i];
+					int index2 = astarPath[i + 1];
+					ECMVertex* v = ecm->GetECMGraph().GetVertex(index1);
+					ECMHalfEdge* incEdge = ecm->GetECMGraph().GetHalfEdge(v->half_edge_idx);
+
+					ECMHalfEdge* incEdgeStart = incEdge;
+					do {
+						if (incEdge->v_target_idx == index2) {
+							edgePath.push_back(incEdge);
+							break;
+						}
+						incEdge = ecm->GetECMGraph().GetHalfEdge(incEdge->next_idx);
+					} while (incEdgeStart != incEdge);
+				}
 			}
 
-			printf("create and shrink corridor...\n");
+			//printf("create and shrink corridor...\n");
 			// 4. Create and shrink the corridor
 			CreateCorridor(edgePath, outCorridor, ecm);
 			ShrinkCorridor(outCorridor, clearance);
 
-			printf("triangulate corridor...\n");
+			//printf("triangulate corridor...\n");
 			// 5. Triangulate the ECM cells through which the path goes.
 			TriangulateCorridor(start, goal, outCorridor, outPortals, clearance);
 
-			printf("smooth path...\n");
+			//printf("smooth path...\n");
 			// 7. Use the funnel algorithm to generate a path over these triangles
 			std::vector<Point> shortestPath;
 			Funnel(outPortals, start, goal, shortestPath);
 			
-			printf("done\n");
+			//printf("done\n");
 			for (const auto& p : shortestPath)
 			{
 				outPath.push_back(p);
@@ -142,6 +152,7 @@ namespace ECM {
 
 		void ECMPathPlanner::CreateCorridor(const std::vector<ECMHalfEdge*>& maPath, Corridor& outCorridor, std::shared_ptr<ECM> ecm)
 		{
+			//Timer timer("ECMPathPlanner::CreateCorridor");
 			auto& graph = ecm->GetECMGraph();
 			for (ECMHalfEdge* edge : maPath)
 			{
@@ -155,6 +166,8 @@ namespace ECM {
 
 		void ECMPathPlanner::ShrinkCorridor(Corridor& corridor, float clearance)
 		{
+			//Timer timer("ECMPathPlanner::ShrinkCorridor");
+
 			for (int i = 0; i < corridor.diskCenters.size()-1; i++)
 			{
 				if (corridor.diskRadii[i] < clearance)
@@ -209,6 +222,8 @@ namespace ECM {
 
 		void ECMPathPlanner::TriangulateCorridor(const Point& start, const Point& goal, const Corridor& corridor, std::vector<Segment>& outPortals, float clearance)
 		{
+			//Timer timer("ECMPathPlanner::TriangulateCorridor");
+
 			// create the funnel portals by connecting all pairs of left and right bounds.
 			// make sure to sample the arcs
 
@@ -271,6 +286,8 @@ namespace ECM {
 
 		void ECMPathPlanner::FitPortalRange(std::vector<Segment>& portals, const Point& start, const Point& goal)
 		{
+			//Timer timer("ECMPathPlanner::FitPortalRange");
+
 			// start portal
 			int first;
 			for (int i = 0; i < portals.size(); i++)
@@ -312,6 +329,8 @@ namespace ECM {
 		// Reference: https://digestingduck.blogspot.com/2010/03/simple-stupid-funnel-algorithm.html
 		void ECMPathPlanner::Funnel(const std::vector<Segment>& portals, const Point& start, const Point& goal, std::vector<Point>& outShortestPath)
 		{
+			//Timer timer("ECMPathPlanner::Funnel");
+
 			Point portalLeft, portalRight, portalApex;
 			int leftIdx = 0;
 			int rightIdx = 0;

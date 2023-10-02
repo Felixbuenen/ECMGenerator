@@ -3,6 +3,7 @@
 #include "ECMDataTypes.h"
 #include "UtilityFunctions.h"
 #include "ECMCellCollection.h"
+#include "Timer.h"
 
 #include <memory>
 #include <math.h>
@@ -17,6 +18,8 @@ namespace ECM {
 
 	bool ECM::RetractPoint(Point location, ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge, float clearance)
 	{
+		//Timer timer("ECM::RetractPoint");
+
 		outEdge = *m_EcmGraph.GetEdge(cell.ecmEdge);
 		const ECMVertex* p1 = m_EcmGraph.GetVertex(outEdge.half_edges[1].v_target_idx);
 		const ECMVertex* p2 = m_EcmGraph.GetVertex(outEdge.half_edges[0].v_target_idx);
