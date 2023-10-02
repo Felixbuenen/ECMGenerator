@@ -12,9 +12,11 @@ namespace ECM
 {
 	namespace WindowApplication
 	{
-		bool Application::InitializeApplication(const char* title, Environment::TestEnvironment environment, int screenWidth, int screenHeight)
+		bool Application::InitializeApplication(const char* title, Environment& environment, int screenWidth, int screenHeight)
 		{
-			if (!InitializeEnvironment(environment)) return false;
+			m_ApplicationState.environment = environment;
+			m_ApplicationState.ecm = environment.GetECM();
+
 			if (!InitializeWindow(title, screenWidth, screenHeight)) return false;
 			if (!InitializeRenderer()) return false;
 

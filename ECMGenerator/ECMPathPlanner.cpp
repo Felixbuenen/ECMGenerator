@@ -25,10 +25,9 @@ namespace ECM {
 			return true;
 		}
 
-
 		bool ECMPathPlanner::GetPath(const Environment& environment, Point start, Point goal, float clearance, Corridor& outCorridor, std::vector<Segment>& outPortals, Path& outPath)
 		{
-			Timer timer("ECMPathPlanner::GetPath");
+			//Timer timer("ECMPathPlanner::GetPath");
 
 			// 1. query the cell location of the start / goal position.
 			auto ecmStart = environment.QueryECM(start);

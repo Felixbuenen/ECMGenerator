@@ -49,10 +49,7 @@ namespace ECM
 		class Application
 		{		
 		public:
-			Application() { }
-
-			bool InitializeApplication(const char* title, const char* environment_path, int screenWidth, int screenHeight);
-			bool InitializeApplication(const char* title, Environment::TestEnvironment environment, int screenWidth, int screenHeight);
+			bool InitializeApplication(const char* title, Environment& environment, int screenWidth, int screenHeight);
 			void Run();
 			void Clear();
 

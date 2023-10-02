@@ -3,6 +3,7 @@
 #include "ECM.h"
 #include "Environment.h"
 #include "UtilityFunctions.h"
+#include "Timer.h"
 
 #include "boost/polygon/voronoi.hpp"
 #include "BoostVisualizeUtils.h"
@@ -64,7 +65,7 @@ namespace ECM {
 		ECMGraph& ecmGraph = ecm.GetECMGraph();
 		const boost::polygon::voronoi_diagram<double>& vd = ma.VD;
 
-		std::printf("Adding vertices... ");
+		//std::printf("Adding vertices... ");
 		std::vector<int> mapECMVertexIndices;
 		mapECMVertexIndices.resize(vd.num_vertices());
 		int boostVertIndex = -1;
@@ -106,10 +107,10 @@ namespace ECM {
 
 			mapECMVertexIndices[ecmVertIndex] = boostVertIndex;
 		}
-		std::printf("Done\n");
+		//std::printf("Done\n");
 
 
-		std::printf("Adding edges... ");
+		//std::printf("Adding edges... ");
 
 		std::vector<int> mapECMEdgeIndices;
 		mapECMEdgeIndices.resize(vd.num_edges(), -1);
@@ -182,9 +183,9 @@ namespace ECM {
 				mapECMEdgeIndices[twinIdx] = ecmEdgeIndex;
 			}
 		}
-		std::printf("Done\n");
-
-		std::printf("add incident edge info...");
+		//std::printf("Done\n");
+		//
+		//std::printf("add incident edge info...");
 
 		// add incident edge info
 		const auto& boostVerts = vd.vertices();
@@ -230,31 +231,32 @@ namespace ECM {
 			} while (e != eStart);
 		
 		}
-		std::printf("Done\n");
-
-		std::printf("construct ecm cells...");
+		//std::printf("Done\n");
+		//
+		//std::printf("construct ecm cells...");
 
 		// finally construct the cells
 		ecmGraph.ConstructECMCells();
 
-		std::printf("Done\n");
+		//std::printf("Done\n");
 
 	}
 
 
 	std::shared_ptr<ECM> ECMGenerator::GenerateECM(const Environment& environment)
 	{
+		Timer timer("ECMGenerator::GenerateECM");
 		std::shared_ptr<ECM> ecm = std::make_shared<ECM>();
 
-		printf("Construct voronoi diagram (Boost)... ");
+		//printf("Construct voronoi diagram (Boost)... ");
 		boost::polygon::construct_voronoi(environment.GetEnvironmentObstacleUnion().begin(), environment.GetEnvironmentObstacleUnion().end(), &ecm->GetMedialAxis()->VD);
 
-		printf("Done\n");
+		//printf("Done\n");
 
-		printf("Construct ECM graph... ");
+		//printf("Construct ECM graph... ");
 		// now we have the voronoi diagram en we can create the actual ecm graph
 		ConstructECMGraph(*ecm, environment);
-		printf("Done\n");
+		//printf("Done\n");
 
 		return ecm;
 	}
