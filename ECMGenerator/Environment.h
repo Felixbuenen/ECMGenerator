@@ -32,6 +32,7 @@ namespace ECM {
 			NARROW
 		};
 
+		void Initialize(TestEnvironment type);
 		void AddWalkableArea(std::vector<Segment> waEdges); // for now just allow 1 walkable area
 		void AddObstacle(std::vector<Segment> obstacleEdges);
 

@@ -22,17 +22,11 @@ namespace ECM
 
 			m_Planner.Initialize(m_ApplicationState.ecm->GetECMGraph());
 
-			Point start(-2404.970947f, -2353.801025f);
-			Point end(1527.777832f, 2404.971191f);
-			m_Planner.GetPath(m_ApplicationState.environment, start, end, 25.0f, m_ApplicationState.corridorToDraw, m_ApplicationState.portalsToDraw, m_ApplicationState.pathToDraw);
-			//m_Planner.GetPath(m_ApplicationState.environment, end, start, 25.0f, m_ApplicationState.corridorToDraw, m_ApplicationState.portalsToDraw, m_ApplicationState.pathToDraw);
-
 			return true;
 		}
 
 		void Application::Run()
 		{
-
 			//Update the surface
 			SDL_UpdateWindowSurface(m_Window);
 

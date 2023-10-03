@@ -49,7 +49,7 @@ namespace ECM
 	class ECMBenchmark
 	{
 	public:
-		bool InitTestEnvironment(Environment::TestEnvironment environment);
+		bool Initialize(Environment& environment);
 		bool PerformPathPlanTest(Point start, Point end, float clearance, int numRepetitions, bool writeToFile = false);
 
 	private:
