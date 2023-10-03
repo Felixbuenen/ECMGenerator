@@ -40,13 +40,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -134,20 +134,16 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="Application.cpp" />
     <ClCompile Include="AStar.cpp" />
     <ClCompile Include="ECM.cpp" />
     <ClCompile Include="ECMBenchmark.cpp" />
     <ClCompile Include="ECMCellCollection.cpp" />
     <ClCompile Include="ECMGenerator.cpp" />
     <ClCompile Include="ECMPathPlanner.cpp" />
-    <ClCompile Include="ECMRenderer.cpp" />
     <ClCompile Include="Environment.cpp" />
-    <ClCompile Include="main.cpp" />
     <ClCompile Include="UtilityFunctions.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Application.h" />
     <ClInclude Include="AStar.h" />
     <ClInclude Include="Configuration.h" />
     <ClInclude Include="ECM.h" />
@@ -156,7 +152,6 @@
     <ClInclude Include="ECMDataTypes.h" />
     <ClInclude Include="ECMGenerator.h" />
     <ClInclude Include="ECMPathPlanner.h" />
-    <ClInclude Include="ECMRenderer.h" />
     <ClInclude Include="Environment.h" />
     <ClInclude Include="BoostVisualizeUtils.h" />
     <ClInclude Include="InputHandler.h" />

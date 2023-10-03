@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 #include "ECMGenerator.h"
 #include "ECMRenderer.h"
 #include "Environment.h"
@@ -13,11 +12,11 @@ int main()
 {
 	using ECM::ECM;
 	using namespace ECM;
-	
+
 	WindowApplication::Application app;
 	Environment env;
 	env.Initialize(Environment::TestEnvironment::BIG);
-	
+
 	if (!app.InitializeApplication("ECM generation tool", env, 1080, 720))
 	{
 		printf("ERROR: could not initialize ECM applciation.\n");
@@ -25,11 +24,6 @@ int main()
 	}
 	app.Run();
 	app.Clear();
-=======
-
-int main()
-{
->>>>>>> Stashed changes
 
 	//using ECM::ECM;
 	//using namespace ECM;
