@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{9750a8f8-a34e-4b04-9ec5-db56c0d56c48}</ProjectGuid>
-    <RootNamespace>ECMGenerator</RootNamespace>
+    <ProjectGuid>{302581f1-1648-4921-9439-8b79d40f0ec8}</ProjectGuid>
+    <RootNamespace>ECMApplication</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -40,13 +40,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <ConfigurationType>Application</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -104,13 +104,13 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>C:\Users\Felix\Documents\Development\Boost\boost_1_82_0;C:\Users\Felix\Documents\Development\SDL2\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>C:\Users\Felix\source\repos\ECMGenerator\ECMGenerator;C:\Users\Felix\Documents\Development\SDL2\include;C:\Users\Felix\Documents\Development\Boost\boost_1_82_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalDependencies>C:\Users\Felix\source\repos\ECMGenerator\ECMGenerator;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>C:\Users\Felix\Documents\Development\SDL2\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
-      <AdditionalDependencies>SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -121,40 +121,30 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Users\Felix\source\repos\ECMGenerator\ECMGenerator;C:\Users\Felix\Documents\Development\SDL2\include;C:\Users\Felix\Documents\Development\Boost\boost_1_82_0;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
+      <AdditionalLibraryDirectories>C:\Users\Felix\Documents\Development\SDL2\lib\x64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalDependencies>SDL2.lib;SDL2main.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="AStar.cpp" />
-    <ClCompile Include="ECM.cpp" />
-    <ClCompile Include="ECMCellCollection.cpp" />
-    <ClCompile Include="ECMGenerator.cpp" />
-    <ClCompile Include="ECMPathPlanner.cpp" />
-    <ClCompile Include="Environment.cpp" />
-<<<<<<< Updated upstream
-    <ClCompile Include="main.cpp" />
-    <ClCompile Include="test.cpp" />
-=======
->>>>>>> Stashed changes
-    <ClCompile Include="UtilityFunctions.cpp" />
+    <ClInclude Include="..\ECMGenerator\Application.h" />
+    <ClInclude Include="..\ECMGenerator\ECMRenderer.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="AStar.h" />
-    <ClInclude Include="Configuration.h" />
-    <ClInclude Include="ECM.h" />
-    <ClInclude Include="ECMCellCollection.h" />
-    <ClInclude Include="ECMDataTypes.h" />
-    <ClInclude Include="ECMGenerator.h" />
-    <ClInclude Include="ECMPathPlanner.h" />
-    <ClInclude Include="Environment.h" />
-    <ClInclude Include="BoostVisualizeUtils.h" />
-    <ClInclude Include="InputHandler.h" />
-    <ClInclude Include="UtilityFunctions.h" />
+    <ClCompile Include="..\ECMGenerator\Application.cpp" />
+    <ClCompile Include="..\ECMGenerator\ECMRenderer.cpp" />
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ECMGenerator\ECMGenerator.vcxproj">
+      <Project>{9750a8f8-a34e-4b04-9ec5-db56c0d56c48}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

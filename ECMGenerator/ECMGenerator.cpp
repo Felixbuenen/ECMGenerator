@@ -5,7 +5,7 @@
 #include "UtilityFunctions.h"
 
 #include "boost/polygon/voronoi.hpp"
-#include "BoostVisualizeUtils.h"
+//#include "BoostVisualizeUtils.h"
 #include <boost/polygon/polygon.hpp>
 
 #include <cstddef>

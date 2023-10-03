@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 #include "ECMGenerator.h"
 #include "ECMRenderer.h"
 #include "Environment.h"
@@ -20,6 +21,11 @@ int main()
 	}
 	app.Run();
 	app.Clear();
+=======
+
+int main()
+{
+>>>>>>> Stashed changes
 
 	return 0;
 }
