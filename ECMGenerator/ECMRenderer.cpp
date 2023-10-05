@@ -53,7 +53,8 @@ namespace ECM {
 
 			DrawPath();
 
-
+			DrawAgents();
+			//DrawPaths();
 
 			// render window
 			SDL_RenderPresent(m_Renderer);
@@ -67,7 +68,7 @@ namespace ECM {
 			m_CamOffsetY = m_AppState->camOffsetY;
 			m_YRotation = -1.0f;
 
-			m_Env = &m_AppState->environment;
+			m_Env = m_AppState->environment;
 			m_Ecm = m_AppState->ecm;
 		}
 
@@ -505,5 +506,107 @@ namespace ECM {
 			}
 		}
 
+		void ECMRenderer::DrawAgents()
+		{
+			SDL_Rect rect;
+			rect.x = -5;
+			rect.y = -5;
+			rect.w = 10;
+			rect.h = 10;
+			SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 255);
+			SDL_RenderFillRect(m_Renderer, &rect);
+
+			int numAgents = m_AppState->simulator->GetNumAgents();
+			const auto positions = m_AppState->simulator->GetPositionData();
+			const auto clearances = m_AppState->simulator->GetClearanceData();
+
+			const float recip = sqrtf(2.0f);
+
+			for (int i = 0; i < numAgents; i++)
+			{
+				const auto& pos = positions[i];
+				const auto& clearance = clearances[i];
+
+				float x = pos.x * m_CamZoomFactor + m_CamOffsetX;
+				float y = pos.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+				
+				float size = (clearance.clearance / recip) * 2;
+				//float size = clearance.clearance * 2;
+
+				//SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 255);
+				//DrawCircle(m_Renderer, x, y, clearance.clearance);
+
+				SDL_Rect rect;
+				rect.x = x - size * 0.5f * m_CamZoomFactor;
+				rect.y = y + size * 0.5f * m_CamZoomFactor;
+				rect.w = size * m_CamZoomFactor;
+				rect.h = size * m_CamZoomFactor;
+				
+				SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 255);
+				SDL_RenderFillRect(m_Renderer, &rect);
+			}
+		}
+
+		void ECMRenderer::DrawPaths()
+		{
+			const auto paths = m_AppState->simulator->GetPathData();
+			int numPaths = m_AppState->simulator->GetNumAgents();
+
+			SDL_SetRenderDrawColor(m_Renderer, 0x00, 0xaa, 0x00, 0xff);
+			for (int i = 0; i < numPaths; i++)
+			{
+				int numPoints = paths[i].numPoints;
+				for (int j = 0; j < numPoints-1; j++)
+				{
+					float x0 = paths[i].x[j] * m_CamZoomFactor + m_CamOffsetX;
+					float x1 = paths[i].x[j + 1] * m_CamZoomFactor + m_CamOffsetX;
+					float y0 = paths[i].y[j] * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+					float y1 = paths[i].y[j + 1] * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+
+					SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
+				}
+			}
+		}
+
+		// https://stackoverflow.com/questions/38334081/how-to-draw-circles-arcs-and-vector-graphics-in-sdl
+		void ECMRenderer::DrawCircle(SDL_Renderer* renderer, int32_t centreX, int32_t centreY, int32_t radius)
+		{
+			const int32_t diameter = (radius * 2);
+
+			int32_t x = (radius - 1);
+			int32_t y = 0;
+			int32_t tx = 1;
+			int32_t ty = 1;
+			int32_t error = (tx - diameter);
+
+			while (x >= y)
+			{
+				//  Each of the following renders an octant of the circle
+				SDL_RenderDrawPoint(renderer, centreX + x, centreY - y);
+				SDL_RenderDrawPoint(renderer, centreX + x, centreY + y);
+				SDL_RenderDrawPoint(renderer, centreX - x, centreY - y);
+				SDL_RenderDrawPoint(renderer, centreX - x, centreY + y);
+				SDL_RenderDrawPoint(renderer, centreX + y, centreY - x);
+				SDL_RenderDrawPoint(renderer, centreX + y, centreY + x);
+				SDL_RenderDrawPoint(renderer, centreX - y, centreY - x);
+				SDL_RenderDrawPoint(renderer, centreX - y, centreY + x);
+
+				if (error <= 0)
+				{
+					++y;
+					error += ty;
+					ty += 2;
+				}
+
+				if (error > 0)
+				{
+					--x;
+					tx += 2;
+					error += (tx - diameter);
+				}
+			}
+		}
 	}
+
+
 }

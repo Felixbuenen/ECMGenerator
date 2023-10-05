@@ -3,7 +3,7 @@
 #include <vector>
 #include <memory>
 
-//#include "ECM.h"
+#include "AStar.h"
 
 
 namespace ECM
@@ -48,13 +48,11 @@ namespace ECM
 			// static class that uses an ECM object to plan paths
 
 		public:
-			ECMPathPlanner();
+			ECMPathPlanner(ECMGraph& graph);
 			~ECMPathPlanner();
 
-			bool Initialize(ECMGraph& graph);
-
 			// standard path query
-			bool GetPath(const Environment& environment, Point start, Point goal, float clearance, Corridor& outCorridor, std::vector<Segment>& outPortals, Path& outPath);
+			bool GetPath(const Environment& environment, Point start, Point goal, float clearance, float preferredClearance, Corridor& outCorridor, std::vector<Segment>& outPortals, Path& outPath);
 
 		private:
 			bool ValidStartGoalLocation(const Point& start, const Point& goal, const ECMEdge& startEdge, const ECMEdge& goalEdge, float clearance) const;
@@ -67,7 +65,7 @@ namespace ECM
 			void Funnel(const std::vector<Segment>& portals, const Point& start, const Point& goal, std::vector<Point>& outShortestPath);
 			void SmoothPath(/*path*/) const; // takes the medial axis path and creates and actual path to follow
 
-			AStar* m_AStar;
+			AStar m_AStar;
 		};
 	}
 }

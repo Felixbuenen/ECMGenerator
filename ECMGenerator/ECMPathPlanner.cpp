@@ -10,23 +10,19 @@
 namespace ECM {
 	namespace PathPlanning {
 
-		ECMPathPlanner::ECMPathPlanner() { }
+		ECMPathPlanner::ECMPathPlanner(ECMGraph& graph) : m_AStar(AStar(graph)) 
+		{
+			m_AStar.Initialize();
+		}
 
 		ECMPathPlanner::~ECMPathPlanner()
 		{
-			delete m_AStar;
 		}
 
-		bool ECMPathPlanner::Initialize(ECMGraph& graph)
+		bool ECMPathPlanner::GetPath(const Environment& environment, Point start, Point goal, float clearance, float preferredAdditionalClearance, Corridor& outCorridor, std::vector<Segment>& outPortals, Path& outPath)
 		{
-			m_AStar = new AStar(graph);
-			m_AStar->Initialize();
-
-			return true;
-		}
-
-		bool ECMPathPlanner::GetPath(const Environment& environment, Point start, Point goal, float clearance, Corridor& outCorridor, std::vector<Segment>& outPortals, Path& outPath)
-		{
+			clearance += preferredAdditionalClearance;
+			
 			//Timer timer("ECMPathPlanner::GetPath");
 
 			// 1. query the cell location of the start / goal position.
@@ -88,7 +84,7 @@ namespace ECM {
 			//printf("find a star path...\n");
 			// 3. Plan a path on the medial axis using the clearance and A*.
 			std::vector<int> astarPath;
-			if(!m_AStar->FindPath(retrStart, retrGoal, &startEdge, &goalEdge, clearance, astarPath))
+			if(!m_AStar.FindPath(retrStart, retrGoal, &startEdge, &goalEdge, clearance, astarPath))
 			{
 				//printf("couldn't find path!\n");
 				return false;

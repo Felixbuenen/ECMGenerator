@@ -104,6 +104,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Users\Felix\Documents\Development\Boost\boost_1_82_0;C:\Users\Felix\source\repos\ECMGenerator\ECMGenerator;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -118,6 +119,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <AdditionalIncludeDirectories>C:\Users\Felix\Documents\Development\Boost\boost_1_82_0;C:\Users\Felix\source\repos\ECMGenerator\ECMGenerator;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -127,7 +129,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="Simulator.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="Simulator.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ECMGenerator\ECMGenerator.vcxproj">
+      <Project>{9750a8f8-a34e-4b04-9ec5-db56c0d56c48}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

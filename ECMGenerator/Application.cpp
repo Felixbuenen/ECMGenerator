@@ -5,6 +5,7 @@
 #include "ECMGenerator.h"
 #include "ECM.h"
 #include "ECMPathPlanner.h"
+#include "Timer.h"
 
 #include "SDL.h"
 
@@ -12,15 +13,12 @@ namespace ECM
 {
 	namespace WindowApplication
 	{
-		bool Application::InitializeApplication(const char* title, Environment& environment, int screenWidth, int screenHeight)
+		bool Application::InitializeApplication(const char* title, int screenWidth, int screenHeight)
 		{
-			m_ApplicationState.environment = environment;
-			m_ApplicationState.ecm = environment.GetECM();
+			m_ApplicationState.ecm = m_ApplicationState.environment->GetECM();
 
 			if (!InitializeWindow(title, screenWidth, screenHeight)) return false;
 			if (!InitializeRenderer()) return false;
-
-			m_Planner.Initialize(m_ApplicationState.ecm->GetECMGraph());
 
 			return true;
 		}
@@ -30,12 +28,28 @@ namespace ECM
 			//Update the surface
 			SDL_UpdateWindowSurface(m_Window);
 
-			m_Renderer.Render();
+			Uint64 currentTime = SDL_GetPerformanceCounter();
+			Uint64 lastTime = 0;
+			double deltaTime = 0.0;
+			const double timeScale = 1.0 / SDL_GetPerformanceFrequency();
+
+			// init simulation
+			{
+				Timer timer("Simulator::Initialize()");
+				m_ApplicationState.simulator->Initialize();
+			}
 
 			// start main loop
 			SDL_Event e; bool quit = false; while (quit == false)
 			{
+				// update timing information
+				lastTime = currentTime;
+				currentTime = SDL_GetPerformanceCounter();
+				deltaTime = (currentTime - lastTime) * timeScale;
+
+				// HANDLE INPUT
 				while (SDL_PollEvent(&e)) {
+
 					if (e.type == SDL_QUIT) quit = true;
 
 					if (e.type == SDL_KEYDOWN)
@@ -93,18 +107,29 @@ namespace ECM
 							m_ApplicationState.portalsToDraw = std::vector<Segment>();
 
 							m_ApplicationState.pathToDraw = PathPlanning::Path();
-							m_Planner.GetPath(m_ApplicationState.environment, m_ApplicationState.pathStartPoint, m_ApplicationState.pathGoalPoint, 15.0f, m_ApplicationState.corridorToDraw, m_ApplicationState.portalsToDraw, m_ApplicationState.pathToDraw);
+							m_Planner->GetPath(*m_ApplicationState.environment, m_ApplicationState.pathStartPoint, m_ApplicationState.pathGoalPoint, 20.0f, 40.0f, m_ApplicationState.corridorToDraw, m_ApplicationState.portalsToDraw, m_ApplicationState.pathToDraw);
 
 							m_ApplicationState.startPointSelected = false;
 						}
 					}
-
-					else
-					{
-						m_Renderer.Render();
-					}
 				}
+			
+				// UPDATE SIMULATION
+				// todo.. create a simulation object and update all positions
+				{
+					//Timer timer("SIMULATION");
+					m_ApplicationState.simulator->Update(deltaTime);
+				}
+				
+				// RENDER
+				m_Renderer.Render();
+
+				// TODO:
+				// add user interface and real-time stats information.
+				//printf("FPS: %f\n", 1.0f/deltaTime);
 			}
+
+
 		}
 
 		void Application::Clear()
@@ -125,7 +150,7 @@ namespace ECM
 
 		bool Application::InitializeWindow(const char* title, int screenWidth, int screenHeight)
 		{
-			const Environment& env = m_ApplicationState.environment;
+			const Environment& env = *m_ApplicationState.environment;
 
 			float bboxW = (env.GetBBOX().max.x - env.GetBBOX().min.x);
 			float bboxH = (env.GetBBOX().max.y - env.GetBBOX().min.y);
@@ -161,104 +186,6 @@ namespace ECM
 
 			return true;
 		}
-
-
-
-		bool Application::InitializeEnvironment(Environment::TestEnvironment environment)
-		{
-			// setup environment
-			if (environment == Environment::TestEnvironment::CLASSIC)
-			{
-				std::vector<Segment> walkableArea;
-				walkableArea.push_back(Segment(-500, -500, 500, -500));
-				walkableArea.push_back(Segment(500, -500, 500, 500));
-				walkableArea.push_back(Segment(-500, 500, 500, 500));
-				walkableArea.push_back(Segment(-500, 500, -500, -500));
-
-				std::vector<Segment> obstacle{
-					Segment(-200, 250, -200, -250),
-						Segment(-200, -250, 200, -250),
-						Segment(200, -250, 200, 250),
-						Segment(200, 250, 100, 250),
-						Segment(100, 250, 100, -150),
-						Segment(100, -150, -100, -150),
-						Segment(100, -150, -100, -150),
-						Segment(-100, -150, -100, 250),
-						Segment(-100, 250, -200, 250)
-				};
-
-				m_ApplicationState.environment.AddWalkableArea(walkableArea);
-				m_ApplicationState.environment.AddObstacle(obstacle);
-			}
-			if (environment == Environment::TestEnvironment::BIG)
-			{
-				std::vector<Segment> walkableArea;
-				walkableArea.push_back(Segment(-2500, -2500, 2500, -2500));
-				walkableArea.push_back(Segment(2500, -2500, 2500, 2500));
-				walkableArea.push_back(Segment(-2500, 2500, 2500, 2500));
-				walkableArea.push_back(Segment(-2500, 2500, -2500, -2500));
-				m_ApplicationState.environment.AddWalkableArea(walkableArea);
-
-				const float obstacleSize = 200.0f;
-				const float padding = 200.0f;
-
-				int numObstaclesRow = 5000.0f / (obstacleSize + padding);
-				int numObstaclesCol = 5000.0f / (obstacleSize + padding);
-
-				for (int r = 0; r < numObstaclesRow; r++)
-				{
-					float y = 2500 - padding - r * (obstacleSize + padding);
-
-					for (int c = 0; c < numObstaclesCol; c++)
-					{
-						float x = -2500 + padding + c * (obstacleSize + padding);
-
-						std::vector<Segment> obstacle{
-							Segment(Point(x, y), Point(x + obstacleSize, y)),
-								Segment(Point(x + obstacleSize, y), Point(x + obstacleSize, y - obstacleSize)),
-								Segment(Point(x + obstacleSize, y - obstacleSize), Point(x, y - obstacleSize)),
-								Segment(Point(x, y - obstacleSize), Point(x, y))
-						};
-
-						m_ApplicationState.environment.AddObstacle(obstacle);
-					}
-				}
-			}
-
-			if (environment == Environment::TestEnvironment::NARROW) 
-			{
-				std::vector<Segment> walkableArea;
-				walkableArea.push_back(Segment(-100, -100, 100, -100));
-				walkableArea.push_back(Segment(100, -100, 100, 100));
-				walkableArea.push_back(Segment(-100, 100, 100, 100));
-				walkableArea.push_back(Segment(-100, 100, -100, -100));
-
-				std::vector<Segment> obstacle1{
-					Segment(-20, -60, -20, 60),
-						Segment(-20, 60, -10, 60),
-						Segment(-10, 60, -10, -60),
-						Segment(-10, -60, -20, -60)
-				};
-				std::vector<Segment> obstacle2{
-					Segment(20, -60, 20, 60),
-						Segment(20, 60, 10, 60),
-						Segment(10, 60, 10, -60),
-						Segment(10, -60, 20, -60)
-				};
-
-				m_ApplicationState.environment.AddWalkableArea(walkableArea);
-				m_ApplicationState.environment.AddObstacle(obstacle1);
-				m_ApplicationState.environment.AddObstacle(obstacle2);
-			}
-
-			// generate ECM from environment
-			m_ApplicationState.environment.ComputeECM();
-			m_ApplicationState.ecm = m_ApplicationState.environment.GetECM();
-		
-
-			return true;
-		}
-
 
 
 	} // Visualisation

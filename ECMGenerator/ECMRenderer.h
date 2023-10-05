@@ -71,6 +71,12 @@ namespace ECM {
 			void DebugDrawSecondaryLines();
 			void DebugDrawCellValues();
 
+			void DrawCircle(SDL_Renderer* renderer, int32_t centreX, int32_t centreY, int32_t radius);
+
+			// SIMULATION
+			void DrawAgents();
+			void DrawPaths();
+
 		private:
 			std::shared_ptr<ECM> m_Ecm;
 			Environment* m_Env;

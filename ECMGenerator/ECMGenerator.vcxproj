@@ -136,7 +136,6 @@
   <ItemGroup>
     <ClCompile Include="AStar.cpp" />
     <ClCompile Include="ECM.cpp" />
-    <ClCompile Include="ECMBenchmark.cpp" />
     <ClCompile Include="ECMCellCollection.cpp" />
     <ClCompile Include="ECMGenerator.cpp" />
     <ClCompile Include="ECMPathPlanner.cpp" />
@@ -147,7 +146,6 @@
     <ClInclude Include="AStar.h" />
     <ClInclude Include="Configuration.h" />
     <ClInclude Include="ECM.h" />
-    <ClInclude Include="ECMBenchmark.h" />
     <ClInclude Include="ECMCellCollection.h" />
     <ClInclude Include="ECMDataTypes.h" />
     <ClInclude Include="ECMGenerator.h" />

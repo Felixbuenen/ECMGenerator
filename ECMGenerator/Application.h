@@ -4,6 +4,8 @@
 #include "Environment.h" 
 #include "ECMRenderer.h"
 #include "ECMPathPlanner.h"
+#include "Simulator.h"
+#include "AStar.h"
 
 class SDL_Window;
 
@@ -31,7 +33,8 @@ namespace ECM
 			float camOffsetY;
 			
 			// ECM state
-			Environment environment;
+			Environment* environment;
+			Simulation::Simulator* simulator;
 			std::shared_ptr<ECM> ecm;
 
 			// misc
@@ -47,9 +50,15 @@ namespace ECM
 		};
 
 		class Application
-		{		
+		{
 		public:
-			bool InitializeApplication(const char* title, Environment& environment, int screenWidth, int screenHeight);
+			Application(PathPlanning::ECMPathPlanner* planner, Environment* environment, Simulation::Simulator* simulator) : m_Planner(planner)
+			{
+				m_ApplicationState.environment = environment;
+				m_ApplicationState.simulator = simulator;
+			}
+
+			bool InitializeApplication(const char* title, int screenWidth, int screenHeight);
 			void Run();
 			void Clear();
 
@@ -58,15 +67,13 @@ namespace ECM
 
 
 		private:
-			bool InitializeEnvironment(const char* file);
-			bool InitializeEnvironment(Environment::TestEnvironment environment);
 			bool InitializeWindow(const char* title, int screenWidth, int screenHeight);
 			bool InitializeRenderer();
 
 			ApplicationState m_ApplicationState;
 			ECMRenderer m_Renderer;
 			SDL_Window* m_Window;
-			PathPlanning::ECMPathPlanner m_Planner;
+			PathPlanning::ECMPathPlanner* m_Planner;
 		};
 	}
 }

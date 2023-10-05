@@ -5,38 +5,51 @@
 #include "Application.h"
 #include "ECM.h"
 #include "ECMBenchmark.h"
+#include "Simulator.h"
 
 #include <stdio.h>
 
 int main()
 {
-	using ECM::ECM;
 	using namespace ECM;
+	using namespace Simulation;
+	using namespace WindowApplication;
 
-	WindowApplication::Application app;
 	Environment env;
-	env.Initialize(Environment::TestEnvironment::BIG);
+	env.Initialize(Environment::TestEnvironment::CLASSIC);
+	ECMPathPlanner planner(env.GetECM()->GetECMGraph());
+	Simulator sim(env.GetECM(), &planner, &env);
+	
+	int numAgents = 15000;
+	sim.InitAgents(numAgents, 3.0f);
 
-	if (!app.InitializeApplication("ECM generation tool", env, 1080, 720))
+	const float minX = -400;
+	const float maxX = 400;
+	const float minStartY = -475;
+	const float maxStartY = -350;
+	const float minEndY = 300;
+	const float maxEndY = 470;
+
+	for (int i = 0; i < numAgents; i++)
+	{
+		float xStart = minX + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxX - minX)));
+		float yStart = minStartY + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxStartY - minStartY)));
+
+		float xEnd = minX + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxX - minX)));
+		float yEnd = minEndY + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxEndY - minEndY)));
+
+		sim.AddPosition(i, xStart, yStart);
+		sim.AddGoal(i, xEnd, yEnd);
+	}
+
+	Application app(&planner, &env, &sim);
+	if (!app.InitializeApplication("ECM generation tool", 1080, 720))
 	{
 		printf("ERROR: could not initialize ECM applciation.\n");
 		return -1;
 	}
 	app.Run();
 	app.Clear();
-
-	//using ECM::ECM;
-	//using namespace ECM;
-	//
-	//ECMBenchmark benchmark;
-	//Environment env;
-	//env.Initialize(Environment::TestEnvironment::BIG);
-	//benchmark.Initialize(env);
-	//
-	//Point start(-2404.970947f, -2353.801025f);
-	//Point end(1527.777832f, 2404.971191f);
-	//benchmark.PerformPathPlanTest(start, end, 15.0f, 50000);
-
 
 	return 0;
 }

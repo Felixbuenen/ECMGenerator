@@ -38,6 +38,8 @@ namespace ECM {
 		}
 
 		delete[] values;
+
+		return true;
 	}
 
 	void ECMBenchmark::WriteStatsToScreen(float* values, int numValues)

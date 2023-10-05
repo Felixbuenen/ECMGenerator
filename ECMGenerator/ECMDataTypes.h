@@ -17,8 +17,15 @@ namespace ECM {
 		{
 			return Vec2(a.x + x, a.y + y);
 		}
+		Vec2 operator-(const Vec2& a) const
+		{
+			return Vec2(x - a.x, y - a.y);
+		}
 		Vec2 operator *(const float& a) const {
 			return Vec2(x * a, y * a);
+		}
+		Vec2 operator /(const float& a) const {
+			return Vec2(x / a, y / a);
 		}
 
 		float Length()
