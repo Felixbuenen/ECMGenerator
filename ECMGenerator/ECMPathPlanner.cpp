@@ -406,7 +406,10 @@ namespace ECM {
 			}
 
 			// append last point
-			outShortestPath.push_back(goal);
+			if (!outShortestPath.back().Approximate(goal))
+			{
+				outShortestPath.push_back(goal);
+			}
 		}
 
 	}

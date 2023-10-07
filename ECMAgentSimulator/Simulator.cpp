@@ -24,6 +24,8 @@ namespace ECM {
 			for (int i = 0; i < count; i++)
 			{
 				m_Clearances[i].clearance = clearance;
+				m_Velocities[i].dx = 0.0f;
+				m_Velocities[i].dy = 0.0f;
 			}
 
 			printf("SIMULATOR: Data for %d agents was created.\n", count);
@@ -64,6 +66,12 @@ namespace ECM {
 					pComponent.x[j] = path[j].x;
 					pComponent.y[j] = path[j].y;
 				}
+
+				Vec2 initVelocity = (path[1] - path[0]);
+				initVelocity.Normalize();
+
+				m_Velocities[e].dx = initVelocity.x * 30;
+				m_Velocities[e].dy = initVelocity.y * 30;
 			}
 		}
 
@@ -116,11 +124,17 @@ namespace ECM {
 			// Volgens mij is deze methode ook meer gangbaar.
 			// Zie voorbeeld van coding train.
 
+			// Let's start simple:
+			// 1. calculate future position (velocity * lookAhead)
+			// 2. iterate through all path segments to find the segment where the future position lies closest
+			// 3. project the future position on this line segment. this is the attraction point.
+
 			const float reachedRadius = 2.5f;
 			const float arrivalRadius = 50.0f;
-			const float mass = 0.5f;
+			const float mass = 50.0f;
 			const float massRecip = 1.0f / mass;
-			const float speed = 30.0f;
+			const float speed = 60.0f;
+			const float attractionLookAheadMultiplier = 0.5f;
 
 			for (int i = 0; i < m_NDefaultEntities; i++)
 			{
@@ -131,17 +145,9 @@ namespace ECM {
 				PathComponent& path = m_Paths[e];
 				const PositionComponent& pos = m_Positions[e];
 
-				float distFromTarget = Utility::MathUtility::Distance(pos.x, pos.y, path.x[path.currentIndex], path.y[path.currentIndex]);
+				//float distFromTarget = Utility::MathUtility::Distance(pos.x, pos.y, path.x[path.currentIndex], path.y[path.currentIndex]);
 				float distFromArrival = Utility::MathUtility::Distance(pos.x, pos.y, path.x[path.numPoints-1], path.y[path.numPoints - 1]);
-				float arrivalMultiplier = 1.0f;;
-
-				if (distFromTarget < reachedRadius)
-				{
-					if (path.currentIndex < (path.numPoints - 1))
-					{
-						path.currentIndex++;
-					}
-				}
+				float arrivalMultiplier = 1.0f;
 
 				// arrival force
 				if (distFromArrival < arrivalRadius)
@@ -151,12 +157,28 @@ namespace ECM {
 
 				Vec2 currentVelocity(m_Velocities[e].dx, m_Velocities[e].dy);
 
-				Point v1(pos.x, pos.y);
-				Point v2(path.x[path.currentIndex], path.y[path.currentIndex]);
-				Vec2 desiredVelocity = (v2 - v1);
-				desiredVelocity.Normalize();
+				Point currentPosition(pos.x, pos.y);
+				 
+				Point futurePosition = currentPosition + currentVelocity * attractionLookAheadMultiplier;
+				float closestPoint = Utility::MAX_FLOAT;
+				Point attractionPoint;
+				// calculate attraction point
+				std::vector<Point> points;
+				for (int j = 0; j < path.numPoints - 1; j++)
+				{
+					Point p = Utility::MathUtility::GetClosestPointOnSegment(futurePosition, Segment(path.x[j], path.y[j], path.x[j + 1], path.y[j + 1]));
+					float dist = Utility::MathUtility::Distance(futurePosition, p);
 
-				desiredVelocity = desiredVelocity * speed * arrivalMultiplier;
+					if (dist < closestPoint)
+					{
+						attractionPoint = p;
+						closestPoint = dist;
+					}
+				}
+
+				Vec2 desiredVelocity = (attractionPoint - currentPosition);
+				desiredVelocity.Normalize();
+				desiredVelocity = desiredVelocity * speed;
 
 				Vec2 steering = desiredVelocity - currentVelocity;
 				float steeringForce = Utility::MathUtility::Length(steering);
@@ -169,14 +191,10 @@ namespace ECM {
 				float strength = Utility::MathUtility::Length(finalVelocity);
 				float multiplier = std::min(strength, speed);
 				finalVelocity.Normalize();
-				finalVelocity = finalVelocity * multiplier;
+				finalVelocity = finalVelocity * multiplier * arrivalMultiplier;
 
 				m_Velocities[e].dx = finalVelocity.x;
 				m_Velocities[e].dy = finalVelocity.y;
-				//m_Velocities[e].dx = desiredVelocity.x;
-				//m_Velocities[e].dy = desiredVelocity.y;
-
-				Point goal(m_Goals[e].x, m_Goals[e].y);
 			}
 		}
 
