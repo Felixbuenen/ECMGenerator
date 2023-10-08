@@ -43,6 +43,9 @@ namespace ECM {
 	// todo: make more clever (trapezoidal decomposition)
 	ECMCell* ECMCellCollection::PointLocationQuery(ECMGraph& graph, const Point& location)
 	{
+		std::vector<Segment> polygon;
+		polygon.resize(4);
+
 		for (ECMCell& cell : m_ECMCells)
 		{
 			ECMVertex* v0 = graph.GetVertex(cell.edge->half_edges[0].v_target_idx);
@@ -54,11 +57,14 @@ namespace ECM {
 			Point p3 = obstacle.p1;
 			Point p4 = graph.GetVertex(cell.edge->half_edges[0].v_target_idx)->position;
 
-			std::vector<Segment> polygon;
-			polygon.push_back(Segment(p1, p2));
-			polygon.push_back(Segment(p2, p3));
-			polygon.push_back(Segment(p3, p4));
-			polygon.push_back(Segment(p4, p1));
+			polygon[0].p0 = p1;
+			polygon[0].p1 = p2;
+			polygon[1].p0 = p2;
+			polygon[1].p1 = p3;
+			polygon[2].p0 = p3;
+			polygon[2].p1 = p4;
+			polygon[3].p0 = p4;
+			polygon[3].p1 = p1;
 			
 			if (Utility::MathUtility::Contains(location, polygon))
 			{

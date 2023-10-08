@@ -20,7 +20,7 @@ int main()
 	ECMPathPlanner planner(env.GetECM()->GetECMGraph());
 	Simulator sim(env.GetECM(), &planner, &env);
 	
-	int numAgents = 3000;
+	int numAgents = 50000;
 	sim.InitAgents(numAgents, 5.0f);
 
 	const float minX = -400;
