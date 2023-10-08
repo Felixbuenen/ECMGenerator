@@ -422,19 +422,28 @@ namespace ECM {
 		{
 			if (!m_AppState->cellToDraw) return;
 
+			// TODO: wrap in function
+			const ECMCell* cell = m_AppState->cellToDraw;
+			const Segment& obstacle = cell->boundary;
+			Point p1 = m_AppState->ecm->GetECMGraph().GetVertex(cell->edge->half_edges[1].v_target_idx)->position;
+			Point p2 = obstacle.p0;
+			Point p3 = obstacle.p1;
+			Point p4 = m_AppState->ecm->GetECMGraph().GetVertex(cell->edge->half_edges[0].v_target_idx)->position;
+
+			p1.x = p1.x * m_CamZoomFactor + m_CamOffsetX;
+			p2.x = p2.x * m_CamZoomFactor + m_CamOffsetX;
+			p3.x = p3.x * m_CamZoomFactor + m_CamOffsetX;
+			p4.x = p4.x * m_CamZoomFactor + m_CamOffsetX;
+			p1.y = p1.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+			p2.y = p2.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+			p3.y = p3.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+			p4.y = p4.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+
 			SDL_SetRenderDrawColor(m_Renderer, 0xc4, 0x77, 0x02, 0xff);
-
-			const std::vector<Segment>& segs = m_AppState->cellToDraw->boundary;
-
-			for (const Segment& s : segs)
-			{
-				float x0 = s.p0.x * m_CamZoomFactor + m_CamOffsetX;
-				float x1 = s.p1.x * m_CamZoomFactor + m_CamOffsetX;
-				float y0 = s.p0.y * m_YRotation * m_CamZoomFactor * -1 + m_CamOffsetY;
-				float y1 = s.p1.y * m_YRotation * m_CamZoomFactor * -1 + m_CamOffsetY;
-
-				SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
-			}
+			SDL_RenderDrawLine(m_Renderer, p1.x, p1.y, p2.x, p2.y);
+			SDL_RenderDrawLine(m_Renderer, p2.x, p2.y, p3.x, p3.y);
+			SDL_RenderDrawLine(m_Renderer, p3.x, p3.y, p4.x, p4.y);
+			SDL_RenderDrawLine(m_Renderer, p4.x, p4.y, p1.x, p1.y);
 		}
 
 
@@ -550,8 +559,8 @@ namespace ECM {
 				SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 255);
 				SDL_RenderFillRect(m_Renderer, &rect);
 
-				SDL_SetRenderDrawColor(m_Renderer, 255, 0, 0, 255);
-				SDL_RenderDrawLineF(m_Renderer, x, y, vx, vy);
+				//SDL_SetRenderDrawColor(m_Renderer, 255, 0, 0, 255);
+				//SDL_RenderDrawLineF(m_Renderer, x, y, vx, vy);
 			}
 		}
 

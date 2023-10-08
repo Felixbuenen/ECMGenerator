@@ -8,10 +8,10 @@ namespace ECM {
 
 	void ECMCellCollection::Construct(ECMGraph& graph)
 	{
-		for (const ECMEdge& edge : graph.GetEdges())
+		for (ECMEdge& edge : graph.GetEdges())
 		{
-			ECMCell cell;
-			std::vector<Segment> cellBounds;
+			ECMCell cellLeft;
+			ECMCell cellRight;
 
 			const ECMHalfEdge& edge0 = edge.half_edges[0];
 			const ECMHalfEdge& edge1 = edge.half_edges[1];
@@ -27,27 +27,40 @@ namespace ECM {
 			Point p0_right = edge0.closest_right;
 			Point p1_right = edge1.closest_left;
 
-			cellBounds.push_back(Segment(p0, p0_left));
-			cellBounds.push_back(Segment(p0_left, p1_left));
-			cellBounds.push_back(Segment(p1_left, p1));
-			cellBounds.push_back(Segment(p1, p1_right));
-			cellBounds.push_back(Segment(p1_right, p0_right));
-			cellBounds.push_back(Segment(p0_right, p0));
+			cellLeft.boundary.p0 = p0_left;
+			cellLeft.boundary.p1 = p1_left;
+			cellRight.boundary.p0 = p0_right;
+			cellRight.boundary.p1 = p1_right;
+			cellLeft.edge = &edge;
+			cellRight.edge = &edge;
 
-			cell.boundary = cellBounds;
-			cell.ecmEdge = edge.idx;
-
-			m_ECMCells.push_back(cell);
+			m_ECMCells.push_back(cellLeft);
+			m_ECMCells.push_back(cellRight);
 		}
 	}
 
 
 	// todo: make more clever (trapezoidal decomposition)
-	ECMCell* ECMCellCollection::PointLocationQuery(const Point& location)
+	ECMCell* ECMCellCollection::PointLocationQuery(ECMGraph& graph, const Point& location)
 	{
 		for (ECMCell& cell : m_ECMCells)
 		{
-			if (Utility::MathUtility::Contains(location, cell.boundary))
+			ECMVertex* v0 = graph.GetVertex(cell.edge->half_edges[0].v_target_idx);
+			ECMVertex* v1 = graph.GetVertex(cell.edge->half_edges[1].v_target_idx);
+
+			const Segment& obstacle = cell.boundary;
+			Point p1 = graph.GetVertex(cell.edge->half_edges[1].v_target_idx)->position;
+			Point p2 = obstacle.p0;
+			Point p3 = obstacle.p1;
+			Point p4 = graph.GetVertex(cell.edge->half_edges[0].v_target_idx)->position;
+
+			std::vector<Segment> polygon;
+			polygon.push_back(Segment(p1, p2));
+			polygon.push_back(Segment(p2, p3));
+			polygon.push_back(Segment(p3, p4));
+			polygon.push_back(Segment(p4, p1));
+			
+			if (Utility::MathUtility::Contains(location, polygon))
 			{
 				return &cell;
 			}

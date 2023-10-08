@@ -53,8 +53,8 @@ namespace ECM {
 				// check if point equal to segment endpoint (in which case we don't want it to be considered "contained"
 				// this check is enough for the purpose of this demo: we don't have a case where we need to check if a point
 				// is on a line segment.
-				if (p.x == s.p0.x && p.y == s.p0.y) return false;
-				if (p.x == s.p1.x && p.y == s.p1.y) return false;
+				if (p.Approximate(s.p0)) return false;
+				if (p.Approximate(s.p1)) return false;
 
 				if (p.y > fmin(s.p0.y, s.p1.y))
 				{
@@ -73,7 +73,42 @@ namespace ECM {
 				}
 			}
 
+			if (inside)
+			{
+				int i = 0;
+			}
+
 			return inside;
+		}
+
+		bool MathUtility::IsPointInQuadrilateral(const Point& point, const Point& A, const Point& B, const Point& C, const Point& D) {
+			// Define the four edges of the quadrilateral
+			Point edge1 = B - A;
+			Point edge2 = C - B;
+			Point edge3 = D - C;
+			Point edge4 = A - D;
+
+			// Calculate vectors from one vertex to the test point
+			Point vec1 = point - A;
+			Point vec2 = point - B;
+			Point vec3 = point - C;
+			Point vec4 = point - D;
+
+			// Calculate cross products between vectors
+			double crossProduct1 = Cross(edge1, vec1);
+			double crossProduct2 = Cross(edge2, vec2);
+			double crossProduct3 = Cross(edge3, vec3);
+			double crossProduct4 = Cross(edge4, vec4);
+
+			// Check if all cross products have the same sign
+			if (crossProduct1 * crossProduct2 > 0 &&
+				crossProduct2 * crossProduct3 > 0 &&
+				crossProduct3 * crossProduct4 > 0) {
+				return true; // Point is within the quadrilateral boundaries
+			}
+			else {
+				return false; // Point is outside the quadrilateral boundaries
+			}
 		}
 
 		float MathUtility::Dot(const Vec2& v1, const Vec2& v2)
@@ -153,6 +188,10 @@ namespace ECM {
 		Point MathUtility::GetClosestPointOnSegment(const Point& point, const Segment& segment)
 		{
 			// dot product to find closest point on a segment to another point
+			if (segment.p0.Approximate(segment.p1))
+			{
+				return segment.p0;
+			}
 
 			Point segmentVec = segment.p1 - segment.p0;
 			Point pToSeg = point - segment.p0;

@@ -53,9 +53,7 @@ namespace ECM {
 			}
 			
 			// 2. retract the start / goal position on the ECM graph
-			int startEdgeIdx = startCell->ecmEdge;
-			int goalEdgeIdx = goalCell->ecmEdge;
-
+			
 			//printf("retract points...\n");
 			Point retrStart, retrGoal;
 			ECMEdge startEdge;
@@ -73,7 +71,7 @@ namespace ECM {
 
 			// if start and goal in the same corridor, simply return a straight line path
 			// we do this after retraction, because if retraction fails, we cannot create a path (e.g. due to not sufficient clearance from obstacle)
-			if (startEdgeIdx == goalEdgeIdx)
+			if (startEdge.idx == goalEdge.idx)
 			{
 				outPath.push_back(start);
 				outPath.push_back(goal);

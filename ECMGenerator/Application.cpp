@@ -81,7 +81,7 @@ namespace ECM
 					if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT)
 					{
 						float worldX = (e.button.x - m_ApplicationState.camOffsetX) / m_ApplicationState.camZoomFactor;
-						float worldY = (e.button.y - m_ApplicationState.camOffsetY) / m_ApplicationState.camZoomFactor;
+						float worldY = (e.button.y - m_ApplicationState.camOffsetY) / m_ApplicationState.camZoomFactor * -1.0f;
 
 						m_ApplicationState.cellToDraw = m_ApplicationState.ecm->GetECMCell(worldX, worldY);
 					}
@@ -117,7 +117,7 @@ namespace ECM
 				// UPDATE SIMULATION
 				// todo.. create a simulation object and update all positions
 				{
-					//Timer timer("SIMULATION");
+					Timer timer("SIMULATION");
 					m_ApplicationState.simulator->Update(deltaTime);
 				}
 				

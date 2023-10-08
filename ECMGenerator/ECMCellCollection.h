@@ -1,10 +1,12 @@
 #pragma once
 
 #include <vector>
+#include "ECMDataTypes.h"
 
 namespace ECM {
 
 	class ECMGraph;
+	class ECMEdge;
 
 	struct Segment;
 	struct Point;
@@ -12,8 +14,8 @@ namespace ECM {
 	// an ECM cell is defined by a boundary and the ECM edge it contains
 	struct ECMCell
 	{
-		std::vector<Segment> boundary;
-		int ecmEdge;
+		Segment boundary;
+		ECMEdge* edge;
 	};
 
 	// stores the ECM cells and provides an API to perform operations (such as point location query).
@@ -23,7 +25,7 @@ namespace ECM {
 	{
 	public:
 		void Construct(ECMGraph& graph);
-		ECMCell* PointLocationQuery(const Point& location);
+		ECMCell* PointLocationQuery(ECMGraph& graph, const Point& location);
 
 	private:
 		std::vector<ECMCell> m_ECMCells; // todo: trapezoidal decomp

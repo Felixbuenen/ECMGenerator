@@ -7,6 +7,8 @@ namespace ECM {
 	class ECM;
 	class Environment;
 
+	struct Vec2;
+
 	namespace PathPlanning {
 		class ECMPathPlanner;
 	}
@@ -47,6 +49,8 @@ namespace ECM {
 		class Simulator
 		{
 		public:
+
+			// TODO: add simulation step time (commonly 100ms)
 			Simulator(std::shared_ptr<ECM> ecm, PathPlanning::ECMPathPlanner* planner, Environment* environment) 
 				: m_Ecm(ecm), m_Planner(planner), m_Environment(environment)
 			{
@@ -85,7 +89,10 @@ namespace ECM {
 			// SYSTEMS
 			void UpdatePositionSystem(float dt);
 			void UpdateVelocitySystem(float dt);
-			void UpdatePathFollowForce(float dt);
+
+			void ApplyPathFollowForce(Vec2& steering);
+			void ApplyBoundaryForce(Vec2& steering, const PositionComponent& pos, const ClearanceComponent& clearance);
+			
 
 		private:
 			std::shared_ptr<ECM> m_Ecm;

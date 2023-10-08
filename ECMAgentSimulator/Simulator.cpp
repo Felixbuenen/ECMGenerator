@@ -5,6 +5,8 @@
 #include "ECMPathPlanner.h"
 #include "Environment.h"
 
+#include <math.h>
+
 namespace ECM {
 
 	namespace Simulation {
@@ -77,9 +79,8 @@ namespace ECM {
 
 		void Simulator::Update(float dt)
 		{
-			UpdatePathFollowForce(dt);
+			UpdateVelocitySystem(dt);
 			UpdatePositionSystem(dt);
-			//UpdateVelocitySystem(dt);
 		}
 
 		void Simulator::ClearSimulator()
@@ -116,7 +117,7 @@ namespace ECM {
 			}
 		}
 
-		void Simulator::UpdatePathFollowForce(float dt)
+		void Simulator::UpdateVelocitySystem(float dt)
 		{
 			// TODO:
 			// Kijk of een chasing rabbit algoritme beter is. dwz, ga naar een punt iets verder op het pad ipv het volgende target punt. Je ziet namelijk dat als er een
@@ -131,10 +132,13 @@ namespace ECM {
 
 			const float reachedRadius = 2.5f;
 			const float arrivalRadius = 50.0f;
-			const float mass = 50.0f;
+			const float mass = 1.0f;
 			const float massRecip = 1.0f / mass;
-			const float speed = 60.0f;
+			const float speed = 30.0f;
 			const float attractionLookAheadMultiplier = 0.5f;
+
+			// force weights
+			const float pathFollowSteeringWeight = 1.0f;
 
 			for (int i = 0; i < m_NDefaultEntities; i++)
 			{
@@ -142,7 +146,7 @@ namespace ECM {
 				// likely we don't have different entities, so maybe just use i for indexation.
 				const Entity& e = m_DefaultEntities[i];
 
-				PathComponent& path = m_Paths[e];
+				const PathComponent& path = m_Paths[e];
 				const PositionComponent& pos = m_Positions[e];
 
 				//float distFromTarget = Utility::MathUtility::Distance(pos.x, pos.y, path.x[path.currentIndex], path.y[path.currentIndex]);
@@ -180,12 +184,25 @@ namespace ECM {
 				desiredVelocity.Normalize();
 				desiredVelocity = desiredVelocity * speed;
 
-				Vec2 steering = desiredVelocity - currentVelocity;
+				Vec2 steering = (desiredVelocity - currentVelocity) * pathFollowSteeringWeight;
+
+				// TODO:
+				// 1. obstacle avoidance
+				const ClearanceComponent& clearance = m_Clearances[e];
+				ApplyBoundaryForce(steering, pos, clearance);
+
+			
+				// 2. dynamic obstacle avoidance
+
+
+
+
 				float steeringForce = Utility::MathUtility::Length(steering);
 				float steeringMultiplier = std::min(steeringForce, speed);
 				steering.Normalize();
 				steering = steering * steeringMultiplier;
 				steering = steering * massRecip;
+
 
 				Vec2 finalVelocity = currentVelocity + steering;
 				float strength = Utility::MathUtility::Length(finalVelocity);
@@ -198,12 +215,42 @@ namespace ECM {
 			}
 		}
 
-		void Simulator::UpdateVelocitySystem(float dt)
+		void Simulator::ApplyPathFollowForce(Vec2& steering)
 		{
-			// for this we need:
-			// > position (to check if we reached target).
-			// > path target
-			// > velocity (only if we need to update the velocity)
+
+		}
+
+		// TODO:
+		// > proper parameter values
+		// > calculate weight such that agent can never cross boundary
+		void Simulator::ApplyBoundaryForce(Vec2& steering, const PositionComponent& pos, const ClearanceComponent& clearance)
+		{
+			// query current position in ECM (returns ECM cell)
+			ECMCell* cell = m_Ecm->GetECMCell(pos.x, pos.y);
+
+			if (cell == nullptr) return;
+
+			// from ECM cell, get the obstacle segment
+			const Segment& obstacle = cell->boundary;
+			
+			// calculate the distance from the position to the segment. If below threshold, return;
+			float preferredSafeDistance = 100.0f; // TODO: make variable
+			Point closestPoint = Utility::MathUtility::GetClosestPointOnSegment(Point(pos.x, pos.y), obstacle);
+			float distance = Utility::MathUtility::Distance(Point(pos.x, pos.y), closestPoint);
+			if ((distance - clearance.clearance) > preferredSafeDistance) return;
+			
+			// otherwise calculate the force direction (normal of segment)
+			Vec2 oNormal = Point(pos.x, pos.y) - closestPoint;
+			oNormal.Normalize();
+
+			// calculate the weight of the force (scalar value, see paper Indicative Routes for Path Planning and Crowd Simulation
+			// apply force to steering
+			const float repulsiveSteepness = 0.5f;
+			float weight = (preferredSafeDistance + clearance.clearance - distance) / std::pow((distance - clearance.clearance), repulsiveSteepness);
+
+			//float weight = (distance / distThreshold);
+
+			steering = steering + oNormal * weight;
 		}
 
 	}

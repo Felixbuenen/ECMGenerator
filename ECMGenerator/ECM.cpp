@@ -20,7 +20,7 @@ namespace ECM {
 	{
 		//Timer timer("ECM::RetractPoint");
 
-		outEdge = *m_EcmGraph.GetEdge(cell.ecmEdge);
+		outEdge = *cell.edge;
 		const ECMVertex* p1 = m_EcmGraph.GetVertex(outEdge.half_edges[1].v_target_idx);
 		const ECMVertex* p2 = m_EcmGraph.GetVertex(outEdge.half_edges[0].v_target_idx);
 
@@ -171,7 +171,7 @@ namespace ECM {
 
 	ECMCell* ECMGraph::FindCell(float x, float y)
 	{
-		return m_Cells->PointLocationQuery(Point(x, y));
+		return m_Cells->PointLocationQuery(*this, Point(x, y));
 	}
 
 	bool ECMGraph::IsArc(const ECMEdge& edge, int& outPtLeftOfIdx) const

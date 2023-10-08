@@ -136,6 +136,7 @@ namespace ECM {
 	struct Segment {
 		Point p0;
 		Point p1;
+		Segment() { }
 		Segment(float x1, float y1, float x2, float y2) : p0(x1, y1), p1(x2, y2) {}
 		Segment(Point point0, Point point1) : p0(point0), p1(point1) {}
 	};
