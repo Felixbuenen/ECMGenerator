@@ -77,8 +77,19 @@ namespace ECM {
 			
 			Point vertLocation(it->x(), it->y());
 
+			// DEBUG
+			Point pCheck1(-55.847958, 55.847965);
+
+			if (Utility::MathUtility::Distance(vertLocation, pCheck1) < 1.0f)
+			{
+				int stop = 1;
+			}
+
+			// DEBUG
+
 			// don't add vertex if it lies inside obstacle
-			if (environment.InsideObstacle(vertLocation)) continue;
+			if (environment.InsideObstacle(vertLocation)) 
+				continue;
 			
 			// don't add vertex if all its incident edges lie inside obstacle
 			const voronoi_diagram<double>::edge_type* edge = it->incident_edge();
@@ -99,7 +110,8 @@ namespace ECM {
 				edge = edge->rot_next();
 			} while (edge != it->incident_edge());
 
-			if (!shouldAdd) continue;
+			if (!shouldAdd) 
+				continue;
 			
 			ecmVertIndex++;
 
@@ -122,10 +134,34 @@ namespace ECM {
 			it != vd.edges().end(); ++it) {
 			boostEdgeIndex++;
 
-			if (handled[boostEdgeIndex]) continue;
+			// ----------------------- DEBUG ----------------
+
+			Point pCheck1(-55.847958, 55.847965);
+			Point pCheck2(-60.233921, -59.649117);
+
+			if (it->vertex0() == nullptr) continue;
+			if (it->vertex1() == nullptr) continue;
+
+			Point edgeP1(it->vertex0()->x(), it->vertex0()->y());
+			Point edgeP2(it->vertex1()->x(), it->vertex1()->y());
+
+			if (Utility::MathUtility::Distance(edgeP1, pCheck1) < 1.0f || Utility::MathUtility::Distance(edgeP1, pCheck2) < 1.0f)
+			{
+				int test = 0;
+			}
+			if (Utility::MathUtility::Distance(edgeP2, pCheck1) < 5.0f && Utility::MathUtility::Distance(edgeP1, pCheck2) < 5.0f)
+			{
+				int test = 0;
+			}
+
+			// ---------------------- / DEBUG --------------------
+
+			if (handled[boostEdgeIndex])
+				continue;
 
 			if (it->is_primary() && it->is_finite())
 			{
+
 				Point p1 = Point(it->vertex0()->x(), it->vertex0()->y());
 				Point p2 = Point(it->vertex1()->x(), it->vertex1()->y());
 
@@ -135,16 +171,6 @@ namespace ECM {
 				// skip if a vertex could not be found
 				if (v0_index == -1 || v1_index == -1) {
 					continue;
-				}
-
-				if (v0_index == 11 && v1_index == 6)
-				{
-					int stop = 1;
-				}
-
-				if (v0_index == 4)
-				{
-					int stop = 1;
 				}
 
 				ECMEdge* edge = ecmGraph.AddEdge();

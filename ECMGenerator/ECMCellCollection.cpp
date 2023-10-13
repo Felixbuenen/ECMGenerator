@@ -3,11 +3,18 @@
 #include "UtilityFunctions.h"
 #include "ECMDataTypes.h"
 #include "ECM.h"
+#include "TrapezoidalDecomposition.h"
 
 namespace ECM {
 
-	void ECMCellCollection::Construct(ECMGraph& graph)
+	void ECMCellCollection::Construct(ECMGraph& graph, ECMCellCollectionType type)
 	{
+		if (type == ECMCellCollectionType::TDC)
+		{
+			m_ECMCellDecomp = TrapezoidalDecomposition::Generate();
+			return;
+		}
+		
 		for (ECMEdge& edge : graph.GetEdges())
 		{
 			ECMCell cellLeft;
@@ -39,10 +46,9 @@ namespace ECM {
 		}
 	}
 
-
-	// todo: make more clever (trapezoidal decomposition)
-	ECMCell* ECMCellCollection::PointLocationQuery(ECMGraph& graph, const Point& location)
+	ECMCell* ECMCellCollection::PointLocationQueryLinear(ECMGraph& graph, const Point& location)
 	{
+		//std::printf("%d\n", m_ECMCells.size());
 		std::vector<Segment> polygon;
 		polygon.resize(4);
 

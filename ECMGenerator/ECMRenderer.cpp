@@ -4,6 +4,7 @@
 #include "ECMCellCollection.h"
 #include "UtilityFunctions.h"
 #include "Application.h"
+#include "ECMDataTypes.h"
 
 #include "SDL.h"
 #include "boost/polygon/voronoi.hpp"
@@ -50,6 +51,7 @@ namespace ECM {
 			DebugDrawECMCell();
 			//DebugDrawSecondaryLines();
 			//DebugDrawCellValues();
+			//DebugDrawBoostVoronoiDiagram();
 
 			DrawPath();
 
@@ -496,6 +498,37 @@ namespace ECM {
 				}
 			}
 		}
+
+		void ECMRenderer::DebugDrawBoostVoronoiDiagram()
+		{
+			const auto& boostVD = m_AppState->ecm->GetMedialAxis()->VD;
+
+			SDL_SetRenderDrawColor(m_Renderer, 0x55, 0x55, 0xff, 0xff);
+
+			for (boost::polygon::voronoi_diagram<double>::const_edge_iterator it =
+				boostVD.edges().begin(); it != boostVD.edges().end(); ++it)
+			{
+				if (it->cell()->contains_point()) continue;
+
+				if (it->is_finite() && it->is_primary())
+				{
+					//int segmentIndex = it->cell()->source_index();
+
+					//const Segment& s = m_Env->GetEnvironmentObstacleUnion()[segmentIndex];
+
+					Point p1(it->vertex0()->x(), it->vertex0()->y());
+					Point p2(it->vertex1()->x(), it->vertex1()->y());
+
+					float x0 = p1.x * m_CamZoomFactor + m_CamOffsetX;
+					float x1 = p2.x * m_CamZoomFactor + m_CamOffsetX;
+					float y0 = p1.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+					float y1 = p2.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+
+					SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
+				}
+			}
+		}
+
 
 		void ECMRenderer::DrawPath()
 		{

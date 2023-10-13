@@ -73,11 +73,6 @@ namespace ECM {
 				}
 			}
 
-			if (inside)
-			{
-				int i = 0;
-			}
-
 			return inside;
 		}
 

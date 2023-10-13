@@ -70,6 +70,7 @@ namespace ECM {
 			void DebugDrawECMCell();
 			void DebugDrawSecondaryLines();
 			void DebugDrawCellValues();
+			void DebugDrawBoostVoronoiDiagram();
 
 			void DrawCircle(SDL_Renderer* renderer, int32_t centreX, int32_t centreY, int32_t radius);
 

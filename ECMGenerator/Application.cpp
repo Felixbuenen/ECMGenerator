@@ -35,7 +35,7 @@ namespace ECM
 
 			// init simulation
 			{
-				Timer timer("Simulator::Initialize()");
+				//Timer timer("Simulator::Initialize()");
 				m_ApplicationState.simulator->Initialize();
 			}
 
@@ -117,7 +117,7 @@ namespace ECM
 				// UPDATE SIMULATION
 				// todo.. create a simulation object and update all positions
 				{
-					Timer timer("SIMULATION");
+					//Timer timer("SIMULATION");
 					m_ApplicationState.simulator->Update(deltaTime);
 				}
 				

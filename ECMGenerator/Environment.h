@@ -29,7 +29,8 @@ namespace ECM {
 		{
 			CLASSIC,
 			BIG,
-			NARROW
+			NARROW,
+			TRAPEZOID
 		};
 
 		void Initialize(TestEnvironment type);

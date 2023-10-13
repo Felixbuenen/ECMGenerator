@@ -93,6 +93,26 @@ namespace ECM {
 			AddObstacle(obstacle2);
 		}
 
+		if (type == Environment::TestEnvironment::TRAPEZOID)
+		{
+			std::vector<Segment> walkableArea;
+			walkableArea.push_back(Segment(-100, -100, 100, -100));
+			walkableArea.push_back(Segment(100, -100, 100, 100));
+			walkableArea.push_back(Segment(-100, 100, 100, 100));
+			walkableArea.push_back(Segment(-100, 100, -100, -100));
+
+			std::vector<Segment> obstacle1{
+				Segment(-20, -60, -10, 70)
+			};
+			std::vector<Segment> obstacle2{
+				Segment(60, -60, 20, 60)
+			};
+
+			AddWalkableArea(walkableArea);
+			AddObstacle(obstacle1);
+			AddObstacle(obstacle2);
+		}
+
 		// generate ECM from environment
 		ComputeECM();
 	}
@@ -145,6 +165,8 @@ namespace ECM {
 
 		for (const auto& obs : _obstacles)
 		{
+			if (obs.size() == 1) continue; // not a polygon
+
 			if (Utility::MathUtility::Contains(p, obs)) return true;
 		}
 

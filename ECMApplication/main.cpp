@@ -16,11 +16,11 @@ int main()
 	using namespace WindowApplication;
 
 	Environment env;
-	env.Initialize(Environment::TestEnvironment::CLASSIC);
+	env.Initialize(Environment::TestEnvironment::TRAPEZOID);
 	ECMPathPlanner planner(env.GetECM()->GetECMGraph());
 	Simulator sim(env.GetECM(), &planner, &env);
 	
-	int numAgents = 50000;
+	int numAgents = 0;
 	sim.InitAgents(numAgents, 5.0f);
 
 	const float minX = -400;

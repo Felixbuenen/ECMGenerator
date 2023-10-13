@@ -142,7 +142,7 @@ namespace ECM {
 
 	void ECMGraph::ConstructECMCells()
 	{
-		m_Cells->Construct(*this);
+		m_Cells->Construct(*this, ECMCellCollectionType::LINEAR);
 	}
 
 	// TODO: make KD-tree query (?)
@@ -154,9 +154,7 @@ namespace ECM {
 		for (const ECMVertex& vert : m_Vertices)
 		{
 			const Point& pos = vert.position;
-			bool isSamePosition = abs(x - vert.position.x) < EPSILON && abs(y - vert.position.y) < EPSILON;
-
-			if (isSamePosition)
+			if (pos.Approximate(Point(x, y)))
 			{
 				return index;
 			}
@@ -171,7 +169,7 @@ namespace ECM {
 
 	ECMCell* ECMGraph::FindCell(float x, float y)
 	{
-		return m_Cells->PointLocationQuery(*this, Point(x, y));
+		return m_Cells->PointLocationQueryLinear(*this, Point(x, y));
 	}
 
 	bool ECMGraph::IsArc(const ECMEdge& edge, int& outPtLeftOfIdx) const
