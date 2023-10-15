@@ -119,12 +119,6 @@ namespace ECM {
 
 		void Simulator::UpdateVelocitySystem(float dt)
 		{
-			// TODO:
-			// Kijk of een chasing rabbit algoritme beter is. dwz, ga naar een punt iets verder op het pad ipv het volgende target punt. Je ziet namelijk dat als er een
-			//  afwijking ontstaat, de agent heel traag bijwerkt. 
-			// Volgens mij is deze methode ook meer gangbaar.
-			// Zie voorbeeld van coding train.
-
 			// Let's start simple:
 			// 1. calculate future position (velocity * lookAhead)
 			// 2. iterate through all path segments to find the segment where the future position lies closest
@@ -153,32 +147,36 @@ namespace ECM {
 				float distFromArrival = Utility::MathUtility::Distance(pos.x, pos.y, path.x[path.numPoints-1], path.y[path.numPoints - 1]);
 				float arrivalMultiplier = 1.0f;
 
+				Point currentPosition(pos.x, pos.y);
+				Vec2 currentVelocity(m_Velocities[e].dx, m_Velocities[e].dy);
+				Point attractionPoint;
+
 				// arrival force
 				if (distFromArrival < arrivalRadius)
 				{
 					arrivalMultiplier = distFromArrival / arrivalRadius;
+					attractionPoint.x = path.x[path.numPoints - 1];
+					attractionPoint.y = path.y[path.numPoints - 1];
 				}
-
-				Vec2 currentVelocity(m_Velocities[e].dx, m_Velocities[e].dy);
-
-				Point currentPosition(pos.x, pos.y);
-				 
-				Point futurePosition = currentPosition + currentVelocity * attractionLookAheadMultiplier;
-				float closestPoint = Utility::MAX_FLOAT;
-				Point attractionPoint;
-				// calculate attraction point
-				std::vector<Point> points;
-				for (int j = 0; j < path.numPoints - 1; j++)
+				else
 				{
-					Point p = Utility::MathUtility::GetClosestPointOnSegment(futurePosition, Segment(path.x[j], path.y[j], path.x[j + 1], path.y[j + 1]));
-					float dist = Utility::MathUtility::Distance(futurePosition, p);
-
-					if (dist < closestPoint)
+					Point futurePosition = currentPosition + currentVelocity * attractionLookAheadMultiplier;
+					float closestPoint = Utility::MAX_FLOAT;
+					// calculate attraction point
+					std::vector<Point> points;
+					for (int j = 0; j < path.numPoints - 1; j++)
 					{
-						attractionPoint = p;
-						closestPoint = dist;
+						Point p = Utility::MathUtility::GetClosestPointOnSegment(futurePosition, Segment(path.x[j], path.y[j], path.x[j + 1], path.y[j + 1]));
+						float dist = Utility::MathUtility::Distance(futurePosition, p);
+
+						if (dist < closestPoint)
+						{
+							attractionPoint = p;
+							closestPoint = dist;
+						}
 					}
 				}
+
 
 				Vec2 desiredVelocity = (attractionPoint - currentPosition);
 				desiredVelocity.Normalize();
