@@ -45,6 +45,8 @@ namespace ECM {
 			void Render();
 			void Clear();
 
+			inline SDL_Renderer* GetSDLRenderer() { return m_Renderer; }
+
 		private:
 			void InitializeRenderContext(int width, int height, const char* title);
 

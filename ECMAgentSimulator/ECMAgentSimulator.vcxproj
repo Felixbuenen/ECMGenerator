@@ -132,6 +132,7 @@
     <ClCompile Include="Simulator.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Area.h" />
     <ClInclude Include="Simulator.h" />
   </ItemGroup>
   <ItemGroup>

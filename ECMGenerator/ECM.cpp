@@ -91,7 +91,6 @@ namespace ECM {
 
 
 	// ECM Graph
-
 	ECMGraph::ECMGraph() : m_NextVertexIndex(0), m_NextEdgeIndex(0)
 	{
 		m_Cells = std::make_unique<ECMCellCollection>();

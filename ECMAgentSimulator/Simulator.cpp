@@ -4,6 +4,7 @@
 #include "UtilityFunctions.h"
 #include "ECMPathPlanner.h"
 #include "Environment.h"
+#include "ECMDataTypes.h"
 
 #include <math.h>
 
@@ -11,102 +12,131 @@ namespace ECM {
 
 	namespace Simulation {
 
-		void Simulator::InitAgents(int count, float clearance)
-		{
-			m_NDefaultEntities = count;
-
-			// initialize data
-			m_DefaultEntities = new Entity[count];
-			m_Positions = new PositionComponent[count];
-			m_Goals = new PositionComponent[count];
-			m_Velocities = new VelocityComponent[count];
-			m_Clearances = new ClearanceComponent[count];
-			m_Paths = new PathComponent[count];
-
-			for (int i = 0; i < count; i++)
-			{
-				m_Clearances[i].clearance = clearance;
-				m_Velocities[i].dx = 0.0f;
-				m_Velocities[i].dy = 0.0f;
-			}
-
-			printf("SIMULATOR: Data for %d agents was created.\n", count);
-		}
-
 		void Simulator::Initialize()
 		{
-			// set default indices
-			for (int i = 0; i < m_NDefaultEntities; i++)
+			m_LastEntityIdx = -1;
+			m_ActiveAgents = new bool[m_MaxNumEntities];
+
+			// initialize data
+			m_Entities = new Entity[m_MaxNumEntities];
+			m_Positions = new PositionComponent[m_MaxNumEntities];
+			//m_Goals = new PositionComponent[m_MaxNumEntities];
+			m_Velocities = new VelocityComponent[m_MaxNumEntities];
+			m_Clearances = new ClearanceComponent[m_MaxNumEntities];
+			m_Paths = new PathComponent[m_MaxNumEntities];
+
+			for (int i = 0; i < m_MaxNumEntities; i++)
 			{
-				m_DefaultEntities[i] = i;
+				m_Entities[i] = i;
+
+				// set sub-arrays to nullptrs as default
+				// if a path component is not assigned, and we delete it on cleanup, 
+				// we can't delete[] the path.X and path.Y data (as it is not assigned).
+				// on cleanup, we explicitly check for nullptr's to prevent this.
+				m_Paths[i].x = nullptr;
+				m_Paths[i].y = nullptr;
 			}
-			
-			// calculate paths using positions and goals data
-			for (int i = 0; i < m_NDefaultEntities; i++)
-			{
-				const Entity& e = m_DefaultEntities[i];
 
-				const PositionComponent& start = m_Positions[e];
-				const PositionComponent& goal = m_Goals[e];
-				const ClearanceComponent& cl = m_Clearances[e];
-
-				// TODo: switching to different types is terribly inefficient. Either use existing structs or find a way to efficiently move/cast data.
-				const float preferredAddClearance = 10.0f;
-				PathPlanning::Corridor dummy;
-				std::vector<Segment> portal;
-				PathPlanning::Path path;
-				m_Planner->GetPath(*m_Environment, Point(start.x, start.y), Point(goal.x, goal.y), cl.clearance, preferredAddClearance, dummy, portal, path);
-
-				PathComponent& pComponent = m_Paths[e];
-				pComponent.x = new float[(int)path.size()];
-				pComponent.y = new float[(int)path.size()];
-				pComponent.numPoints = path.size();
-				pComponent.currentIndex = 0;
-
-				for (int j = 0; j < path.size(); j++)
-				{
-					pComponent.x[j] = path[j].x;
-					pComponent.y[j] = path[j].y;
-				}
-
-				Vec2 initVelocity = (path[1] - path[0]);
-				initVelocity.Normalize();
-
-				m_Velocities[e].dx = initVelocity.x * 30;
-				m_Velocities[e].dy = initVelocity.y * 30;
-			}
-		}
-
-		void Simulator::Update(float dt)
-		{
-			UpdateVelocitySystem(dt);
-			UpdatePositionSystem(dt);
+			printf("SIMULATOR: Data for %d agents was created.\n", m_MaxNumEntities);
 		}
 
 		void Simulator::ClearSimulator()
 		{
 			// delete data
-			for (int i = 0; i < m_NDefaultEntities; i++)
+			for (int i = 0; i < m_MaxNumEntities; i++)
 			{
-				delete[] m_Paths[i].x;
-				delete[] m_Paths[i].y;
+				if (m_Paths[i].x != nullptr)
+				{
+					delete[] m_Paths[i].x;
+					m_Paths[i].x = nullptr;
+				}
+				if (m_Paths[i].y != nullptr)
+				{
+					delete[] m_Paths[i].y;
+					m_Paths[i].y = nullptr;
+				}
 			}
 
-			delete[] m_DefaultEntities;
+			delete[] m_Entities;
 			delete[] m_Positions;
 			delete[] m_Velocities;
 			delete[] m_Paths;
+			delete[] m_ActiveAgents;
+			delete[] m_Clearances;
+			//delete[] m_Goals;
 
 			printf("SIMULATOR: Data was destroyed.\n");
 		}
 
+		int Simulator::SpawnAgent(const Point& start, const Point& goal, float clearance, float preferredSpeed)
+		{
+			int idx = m_freeEntitySpaces.top();
+			m_freeEntitySpaces.pop();
+			m_LastEntityIdx = m_LastEntityIdx < idx ? idx : m_LastEntityIdx;
+
+			// set parameters
+			m_Positions[idx].x = start.x;
+			m_Positions[idx].y = start.y;
+			m_Velocities[idx].dx = 0.0f;
+			m_Velocities[idx].dy = 0.0f;
+			m_Clearances[idx].clearance = clearance;
+
+			m_ActiveAgents[idx] = true;
+
+			// plan path
+			const float preferredAddClearance = 10.0f;
+			PathPlanning::Corridor dummy;
+			std::vector<Segment> portal;
+			PathPlanning::Path path;
+			m_Planner->GetPath(*m_Environment, start, goal, clearance, preferredAddClearance, dummy, portal, path);
+			PathComponent& pComponent = m_Paths[idx];
+			pComponent.x = new float[(int)path.size()];
+			pComponent.y = new float[(int)path.size()];
+			pComponent.numPoints = path.size();
+			pComponent.currentIndex = 0;
+			for (int j = 0; j < path.size(); j++)
+			{
+				pComponent.x[j] = path[j].x;
+				pComponent.y[j] = path[j].y;
+			}
+
+			return idx;
+		}
+
+		void Simulator::DestroyAgent(int idx)
+		{
+			m_ActiveAgents[idx] = false;
+			m_freeEntitySpaces.push(idx);
+		}
+
+		void Simulator::Update(float dt)
+		{
+			UpdateMaxAgentIndex();
+
+			UpdateVelocitySystem(dt);
+			UpdatePositionSystem(dt);
+		}
+
+		void Simulator::UpdateMaxAgentIndex()
+		{
+			int emptyCounter = 0;
+			for (int i = m_LastEntityIdx; i >= 0; i--)
+			{
+				if (m_ActiveAgents[i]) break;
+
+				emptyCounter++;
+			}
+
+			m_LastEntityIdx = m_LastEntityIdx - emptyCounter;
+		}
+
 		void Simulator::UpdatePositionSystem(float dt)
 		{
-			for (int i = 0; i < m_NDefaultEntities; i++)
+			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
 				// note that currently this is redundant, but this method is clean for when we want to have different entities.
 				// likely we don't have different entities, so maybe just use i for indexation.
-				const Entity& e = m_DefaultEntities[i]; 
+				const Entity& e = m_Entities[i];
 
 				const VelocityComponent& vel = m_Velocities[e];
 				PositionComponent& pos = m_Positions[e];
@@ -134,11 +164,11 @@ namespace ECM {
 			// force weights
 			const float pathFollowSteeringWeight = 1.0f;
 
-			for (int i = 0; i < m_NDefaultEntities; i++)
+			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
 				// note that currently this is redundant, but this method is clean for when we want to have different entities.
 				// likely we don't have different entities, so maybe just use i for indexation.
-				const Entity& e = m_DefaultEntities[i];
+				const Entity& e = m_Entities[i];
 
 				const PathComponent& path = m_Paths[e];
 				const PositionComponent& pos = m_Positions[e];
@@ -191,8 +221,6 @@ namespace ECM {
 
 			
 				// 2. dynamic obstacle avoidance
-
-
 
 
 				float steeringForce = Utility::MathUtility::Length(steering);

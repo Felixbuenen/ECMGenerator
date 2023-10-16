@@ -9,6 +9,9 @@
 
 #include "SDL.h"
 
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_sdl2.h"
+#include "imgui/imgui_impl_sdlrenderer2.h"
 
 namespace ECM
 {
@@ -22,38 +25,29 @@ namespace ECM
 			if (!InitializeRenderer()) return false;
 
 			// Setup Dear ImGui context
-			//IMGUI_CHECKVERSION();
-			//ImGui::CreateContext();
-			//ImGuiIO& io = ImGui::GetIO(); (void)io;
-			//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-			//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-			//
-			//// Setup Dear ImGui style
-			//ImGui::StyleColorsDark();
-			////ImGui::StyleColorsLight();
-			//
-			//// Setup Platform/Renderer backends
-			//ImGui_ImplSDL2_InitForSDLRenderer(m_Window, m_Renderer.GetSDLRenderer());
-			//ImGui_ImplSDLRenderer2_Init(m_Renderer.GetSDLRenderer());
+			IMGUI_CHECKVERSION();
+			ImGui::CreateContext();
+			ImGuiIO& io = ImGui::GetIO(); (void)io;
+			io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+			io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+			
+			// Setup Dear ImGui style
+			ImGui::StyleColorsDark();
+			//ImGui::StyleColorsLight();
+			
+			// Setup Platform/Renderer backends
+			ImGui_ImplSDL2_InitForSDLRenderer(m_Window, m_Renderer.GetSDLRenderer());
+			ImGui_ImplSDLRenderer2_Init(m_Renderer.GetSDLRenderer());
 
 			return true;
 		}
 
 		void Application::Run()
 		{
-			//Update the surface
-			SDL_UpdateWindowSurface(m_Window);
-
 			Uint64 currentTime = SDL_GetPerformanceCounter();
 			Uint64 lastTime = 0;
 			double deltaTime = 0.0;
 			const double timeScale = 1.0 / SDL_GetPerformanceFrequency();
-
-			// init simulation
-			{
-				//Timer timer("Simulator::Initialize()");
-				m_ApplicationState.simulator->Initialize();
-			}
 
 			// start main loop
 			SDL_Event e; bool quit = false; while (quit == false)
@@ -65,6 +59,7 @@ namespace ECM
 
 				// HANDLE INPUT
 				while (SDL_PollEvent(&e)) {
+					ImGui_ImplSDL2_ProcessEvent(&e);
 
 					if (e.type == SDL_QUIT) quit = true;
 
@@ -137,15 +132,57 @@ namespace ECM
 					m_ApplicationState.simulator->Update(deltaTime);
 				}
 				
-				// RENDER
+				// Start the Dear ImGui frame
+				ImGui_ImplSDLRenderer2_NewFrame();
+				ImGui_ImplSDL2_NewFrame();
+				ImGui::NewFrame();
+				ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+
+				bool j = true;
+				ImGui::ShowDemoWindow(&j);
+
+				// 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
+				{
+					static float f = 0.0f;
+					static int counter = 0;
+
+					ImGui::Begin("Hello, world!");                          // Create a window called "Hello, world!" and append into it.
+
+					ImGui::Text("This is some useful text.");               // Display some text (you can use a format strings too)
+
+					ImGui::SliderFloat("float", &f, 0.0f, 1.0f);            // Edit 1 float using a slider from 0.0f to 1.0f
+					ImGui::ColorEdit3("clear color", (float*)&clear_color); // Edit 3 floats representing a color
+
+					if (ImGui::Button("Button"))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+						counter++;
+					ImGui::SameLine();
+					ImGui::Text("counter = %d", counter);
+
+					ImGui::End();
+				}
+
+
+				// Rendering
+				SDL_RenderClear(m_Renderer.GetSDLRenderer());
+				//SDL_RenderSetScale(m_Renderer, io.DisplayFramebufferScale.x, io.DisplayFramebufferScale.y);
+				//SDL_SetRenderDrawColor(renderer, (Uint8)(clear_color.x * 255), (Uint8)(clear_color.y * 255), (Uint8)(clear_color.z * 255), (Uint8)(clear_color.w * 255));
+
 				m_Renderer.Render();
+				ImGui::Render();
+
+				ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
+
+				SDL_RenderPresent(m_Renderer.GetSDLRenderer());
 
 				// TODO:
 				// add user interface and real-time stats information.
 				//printf("FPS: %f\n", 1.0f/deltaTime);
 			}
 
-
+			// Cleanup
+			ImGui_ImplSDLRenderer2_Shutdown();
+			ImGui_ImplSDL2_Shutdown();
+			ImGui::DestroyContext();
 		}
 
 		void Application::Clear()
@@ -184,7 +221,7 @@ namespace ECM
 			m_ApplicationState.camOffsetY = -env.GetBBOX().min.y * m_ApplicationState.camZoomFactor + screenHeight * 0.5f - bboxH * 0.5f;
 
 			//Initialize SDL
-			if (SDL_Init(SDL_INIT_VIDEO) < 0)
+			if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) < 0)
 			{
 				printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 				return false;
@@ -192,7 +229,8 @@ namespace ECM
 			else
 			{
 				//Create window
-				m_Window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight, SDL_WINDOW_SHOWN);
+				SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+				m_Window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight, window_flags);
 				if (m_Window == NULL)
 				{
 					printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());

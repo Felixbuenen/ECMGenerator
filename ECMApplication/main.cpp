@@ -16,13 +16,15 @@ int main()
 	using namespace WindowApplication;
 
 	Environment env;
-	env.Initialize(Environment::TestEnvironment::TRAPEZOID);
+	env.Initialize(Environment::TestEnvironment::CLASSIC);
 	ECMPathPlanner planner(env.GetECM()->GetECMGraph());
-	Simulator sim(env.GetECM(), &planner, &env);
-	
-	int numAgents = 0;
-	sim.InitAgents(numAgents, 5.0f);
+	Simulator sim(env.GetECM(), &planner, &env, 2000);
+	sim.Initialize();
 
+	// TODO:
+	// 1. encapsulate this in SpawnArea and GoalArea
+	// 2. in the Application update method, implement a spawnRate (debug for now) and do a timed SpawnAgent,
+	//     using the SpawnArea and GoalArea data to get a valid start and goal position.
 	const float minX = -400;
 	const float maxX = 400;
 	const float minStartY = -475;
@@ -30,16 +32,15 @@ int main()
 	const float minEndY = 300;
 	const float maxEndY = 470;
 
-	for (int i = 0; i < numAgents; i++)
+	for (int i = 0; i < 1; i++)
 	{
 		float xStart = minX + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxX - minX)));
 		float yStart = minStartY + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxStartY - minStartY)));
-
+	
 		float xEnd = minX + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxX - minX)));
 		float yEnd = minEndY + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (maxEndY - minEndY)));
-
-		sim.AddPosition(i, xStart, yStart);
-		sim.AddGoal(i, xEnd, yEnd);
+	
+		sim.SpawnAgent(Point(xStart, yStart), Point(xEnd, yEnd), 10.0f, 3.0f);
 	}
 
 	Application app(&planner, &env, &sim);

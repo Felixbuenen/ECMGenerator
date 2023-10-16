@@ -93,7 +93,7 @@ namespace ECM {
 			AddObstacle(obstacle2);
 		}
 
-		if (type == Environment::TestEnvironment::TRAPEZOID)
+		if (type == Environment::TestEnvironment::LINES)
 		{
 			std::vector<Segment> walkableArea;
 			walkableArea.push_back(Segment(-100, -100, 100, -100));

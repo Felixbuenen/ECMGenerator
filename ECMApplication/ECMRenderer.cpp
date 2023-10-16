@@ -18,7 +18,7 @@ namespace ECM {
 
 		void ECMRenderer::Initialize(Application* app)
 		{
-			m_Renderer = SDL_CreateRenderer(app->GetWindow(), -1, 0);
+			m_Renderer = SDL_CreateRenderer(app->GetWindow(), -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
 			m_AppState = app->GetApplicationState();
 		}
 
@@ -57,9 +57,6 @@ namespace ECM {
 
 			DrawAgents();
 			//DrawPaths();
-
-			// render window
-			SDL_RenderPresent(m_Renderer);
 		}
 
 		// Cache render-state variables, easier to reference the app state everywhere
@@ -558,15 +555,18 @@ namespace ECM {
 			SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 255);
 			SDL_RenderFillRect(m_Renderer, &rect);
 
-			int numAgents = m_AppState->simulator->GetNumAgents();
+			int lastIdx = m_AppState->simulator->GetLastIndex();
 			const auto positions = m_AppState->simulator->GetPositionData();
 			const auto velocities = m_AppState->simulator->GetVelocityData();
 			const auto clearances = m_AppState->simulator->GetClearanceData();
+			const auto activeFlags = m_AppState->simulator->GetActiveFlags();
 
 			const float recip = sqrtf(2.0f);
 
-			for (int i = 0; i < numAgents; i++)
+			for (int i = 0; i <= lastIdx; i++)
 			{
+				if (!activeFlags[i]) continue;
+
 				const auto& pos = positions[i];
 				const auto& vel = velocities[i];
 				const auto& clearance = clearances[i];
