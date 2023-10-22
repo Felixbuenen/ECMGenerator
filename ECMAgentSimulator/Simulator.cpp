@@ -5,6 +5,7 @@
 #include "ECMPathPlanner.h"
 #include "Environment.h"
 #include "ECMDataTypes.h"
+#include "Area.h"
 
 #include <math.h>
 
@@ -33,11 +34,49 @@ namespace ECM {
 				// if a path component is not assigned, and we delete it on cleanup, 
 				// we can't delete[] the path.X and path.Y data (as it is not assigned).
 				// on cleanup, we explicitly check for nullptr's to prevent this.
-				m_Paths[i].x = nullptr;
-				m_Paths[i].y = nullptr;
+				m_Paths[i].x = static_cast<float*>(nullptr);
+				m_Paths[i].y = static_cast<float*>(nullptr);
+				m_Paths[i].currentIndex = -1;
+				m_Paths[i].numPoints = 0;
 			}
 
 			printf("SIMULATOR: Data for %d agents was created.\n", m_MaxNumEntities);
+
+
+			// --------------- DEBUG -------------
+
+			// TODO:
+			// 1. make a simple ImGui menu with a spawn and goal area
+			// 2. implement click-drag behavior
+			// 3. start with assumption that there are as many spawn as goal areas. 
+			// 4. next, implement connection logic
+
+			GoalArea ga;
+			ga.ID = 0;
+			ga.Position = Point(0.0f, 390.0f);
+			ga.HalfHeight = 70;
+			ga.HalfWidth = 320;
+
+			AreaConnector con;
+			con.goalID = 0;
+			con.spawnChance = 1.0f;
+
+			SpawnArea sa;
+			sa.HalfWidth = 250;
+			sa.HalfHeight = 60;
+			sa.ID = 0;
+			sa.Position = Point(0.0f, -375.0f);
+			sa.spawnRate = 2000;
+			sa.spawnConfiguration.clearanceMin = 7.0f;
+			sa.spawnConfiguration.clearanceMax = 7.0f;
+			sa.spawnConfiguration.preferredSpeedMin = 5.0f;
+			sa.spawnConfiguration.preferredSpeedMax = 5.0f;
+			sa.connectors.push_back(con);
+
+			m_SpawnAreas.push_back(sa);
+			m_GoalAreas.push_back(ga);
+
+			// --------------- DEBUG -------------
 		}
 
 		void Simulator::ClearSimulator()
@@ -70,6 +109,8 @@ namespace ECM {
 
 		int Simulator::SpawnAgent(const Point& start, const Point& goal, float clearance, float preferredSpeed)
 		{
+			if (m_freeEntitySpaces.empty()) return -1;
+
 			int idx = m_freeEntitySpaces.top();
 			m_freeEntitySpaces.pop();
 			m_LastEntityIdx = m_LastEntityIdx < idx ? idx : m_LastEntityIdx;
@@ -77,8 +118,6 @@ namespace ECM {
 			// set parameters
 			m_Positions[idx].x = start.x;
 			m_Positions[idx].y = start.y;
-			m_Velocities[idx].dx = 0.0f;
-			m_Velocities[idx].dy = 0.0f;
 			m_Clearances[idx].clearance = clearance;
 
 			m_ActiveAgents[idx] = true;
@@ -100,6 +139,13 @@ namespace ECM {
 				pComponent.y[j] = path[j].y;
 			}
 
+			// calculate initial velocity (in the direction of the next path vertex
+			Vec2 dir = Point(pComponent.x[1], pComponent.y[1]) - Point(pComponent.x[0], pComponent.y[0]);
+			dir.Normalize();
+			
+			m_Velocities[idx].dx = dir.x;
+			m_Velocities[idx].dy = dir.y;
+
 			return idx;
 		}
 
@@ -112,6 +158,7 @@ namespace ECM {
 		void Simulator::Update(float dt)
 		{
 			UpdateMaxAgentIndex();
+			UpdateSpawnAreas(dt);
 
 			UpdateVelocitySystem(dt);
 			UpdatePositionSystem(dt);
@@ -130,10 +177,37 @@ namespace ECM {
 			m_LastEntityIdx = m_LastEntityIdx - emptyCounter;
 		}
 
+		void Simulator::UpdateSpawnAreas(float dt)
+		{
+			for (SpawnArea& area : m_SpawnAreas)
+			{
+				area.timeSinceLastSpawn += dt;
+
+				int agentsToSpawn = area.timeSinceLastSpawn * area.spawnRate;
+				for (int i = 0; i < agentsToSpawn; i++)
+				{
+					Point start = area.GetRandomPositionInArea();
+					
+					// TODO: implement weighted random goal area selection
+					Point goal = m_GoalAreas[area.connectors[0].goalID].GetRandomPositionInArea();
+
+					// TODO: implement random values
+					float clearance = area.spawnConfiguration.clearanceMin;
+					float speed = area.spawnConfiguration.preferredSpeedMin;
+
+					SpawnAgent(start, goal, clearance, speed);
+				}
+
+				area.timeSinceLastSpawn -= (float)agentsToSpawn / area.spawnRate;
+			}
+		}
+
 		void Simulator::UpdatePositionSystem(float dt)
 		{
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
+				if (!m_ActiveAgents[i]) continue;
+
 				// note that currently this is redundant, but this method is clean for when we want to have different entities.
 				// likely we don't have different entities, so maybe just use i for indexation.
 				const Entity& e = m_Entities[i];
@@ -154,6 +228,8 @@ namespace ECM {
 			// 2. iterate through all path segments to find the segment where the future position lies closest
 			// 3. project the future position on this line segment. this is the attraction point.
 
+			
+
 			const float reachedRadius = 2.5f;
 			const float arrivalRadius = 50.0f;
 			const float mass = 1.0f;
@@ -161,11 +237,16 @@ namespace ECM {
 			const float speed = 30.0f;
 			const float attractionLookAheadMultiplier = 0.5f;
 
+			const bool deleteAgent = true;
+			const float deleteDistance = 2.0f;
+
 			// force weights
 			const float pathFollowSteeringWeight = 1.0f;
 
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
+				if (!m_ActiveAgents[i]) continue;
+
 				// note that currently this is redundant, but this method is clean for when we want to have different entities.
 				// likely we don't have different entities, so maybe just use i for indexation.
 				const Entity& e = m_Entities[i];
@@ -187,6 +268,10 @@ namespace ECM {
 					arrivalMultiplier = distFromArrival / arrivalRadius;
 					attractionPoint.x = path.x[path.numPoints - 1];
 					attractionPoint.y = path.y[path.numPoints - 1];
+
+					if (distFromArrival < deleteDistance) {
+						DestroyAgent(e);
+					}
 				}
 				else
 				{
@@ -239,6 +324,7 @@ namespace ECM {
 				m_Velocities[e].dx = finalVelocity.x;
 				m_Velocities[e].dy = finalVelocity.y;
 			}
+			
 		}
 
 		void Simulator::ApplyPathFollowForce(Vec2& steering)

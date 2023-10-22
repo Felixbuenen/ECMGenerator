@@ -3,6 +3,8 @@
 #include <iostream>
 #include <stack>
 
+#include "Area.h"
+
 namespace ECM {
 
 	class ECM;
@@ -69,16 +71,13 @@ namespace ECM {
 			void Initialize();
 			void Update(float dt);
 
-			// ADD COMPONENT DATA
 			inline void AddPosition(Entity entity, float x, float y) { 
 				m_Positions[entity].x = x;
 				m_Positions[entity].y = y;
 			}
-			//inline void AddGoal(Entity entity, float x, float y)
-			//{ 
-			//	m_Goals[entity].x = x;
-			//	m_Goals[entity].y = y;
-			//}
+
+			inline void AddSpawnArea(const Point& position);
+			inline void AddGoalArea(const Point& position);
 
 			inline int GetNumAgents() const { return m_NumEntities; }
 			inline int GetLastIndex() const { return m_LastEntityIdx; }
@@ -95,6 +94,7 @@ namespace ECM {
 			// keeping track of this allows the simulator to only look at agents up until
 			// this ID in the agent pool.
 			void UpdateMaxAgentIndex();
+			void UpdateSpawnAreas(float dt);
 
 			// SYSTEMS
 			void UpdatePositionSystem(float dt);
@@ -115,6 +115,10 @@ namespace ECM {
 			std::stack<int> m_freeEntitySpaces;
 			bool* m_ActiveAgents;
 			int m_LastEntityIdx;
+
+			std::vector<SpawnArea> m_SpawnAreas;
+			std::vector<GoalArea> m_GoalAreas;
+			std::vector<AreaConnector> m_AreaConnectors;
 
 			// COMPONENTS
 			PositionComponent* m_Positions;

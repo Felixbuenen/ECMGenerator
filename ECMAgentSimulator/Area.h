@@ -17,21 +17,19 @@ namespace ECM {
 
 			Point GetRandomPositionInArea()
 			{
-				std::random_device rd;
-				std::mt19937 gen(rd());
-				std::uniform_real_distribution<float> xDistribution(Position.x - HalfWidth, Position.x + HalfWidth);
-				std::uniform_real_distribution<float> yDistribution(Position.y - HalfHeight, Position.y + HalfHeight);
+				float r = static_cast <float> (rand()) / static_cast <float> (RAND_MAX);
 
-				float randomX = xDistribution(gen);
-				float randomY = yDistribution(gen);
+				float xMin = Position.x - HalfWidth;
+				float xMax = Position.x + HalfWidth;
+				float yMin = Position.y - HalfHeight;
+				float yMax = Position.y + HalfHeight;
 
-				return Point(randomX, randomY);
+				float randX = xMin + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (xMax - xMin)));
+				float randY = yMin + static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / (yMax - yMin)));
+
+
+				return Point(randX, randY);
 			}
-		};
-
-		struct SpawnArea : public Area
-		{
-			float spawnRate; // number of agents per second
 		};
 
 		struct GoalArea : public Area
@@ -40,8 +38,26 @@ namespace ECM {
 
 		struct AreaConnector
 		{
-			int fromID;
-			int toID;
+			int goalID;
+			float spawnChance;
+		};
+
+		struct SpawnConfiguration
+		{
+			float preferredSpeedMin;
+			float preferredSpeedMax;
+			float clearanceMin;
+			float clearanceMax;
+		};
+
+		struct SpawnArea : public Area
+		{
+			float spawnRate; // number of agents per second
+			float timeSinceLastSpawn = 0.0f;
+
+			// spawn configuration
+			SpawnConfiguration spawnConfiguration;
+			std::vector<AreaConnector> connectors;
 		};
 	}
 

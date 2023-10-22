@@ -53,6 +53,7 @@ namespace ECM {
 			//DebugDrawCellValues();
 			//DebugDrawBoostVoronoiDiagram();
 
+			DrawSimulationAreas();
 			DrawPath();
 
 			DrawAgents();
@@ -526,6 +527,55 @@ namespace ECM {
 			}
 		}
 
+		void ECMRenderer::DrawSimulationAreas()
+		{
+
+			//GoalArea ga;
+			//ga.ID = 0;
+			//ga.Position = Point(0.0f, 420.0f);
+			//ga.HalfHeight = 30;
+			//ga.HalfWidth = 200;
+			//
+			//AreaConnector con;
+			//con.goalID = 0;
+			//con.spawnChance = 1.0f;
+			//
+			//SpawnArea sa;
+			//sa.HalfWidth = 100;
+			//sa.HalfHeight = 30;
+			//sa.ID = 0;
+			//sa.Position = Point(0.0f, -350.0f);
+			//sa.spawnRate = 100;
+			//sa.spawnConfiguration.clearanceMin = 7.0f;
+			//sa.spawnConfiguration.clearanceMax = 7.0f;
+			//sa.spawnConfiguration.preferredSpeedMin = 13.0f;
+
+			// spawn
+			float halfWidth = 250;
+			float halfHeight = 60;
+			float spawnX = m_CamOffsetX - halfWidth* m_CamZoomFactor;
+			float spawnY = (-375.0f + halfHeight) * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+			SDL_Rect spawnRect;
+			spawnRect.x = spawnX;
+			spawnRect.y = spawnY;
+			spawnRect.w = halfWidth*2* m_CamZoomFactor;
+			spawnRect.h = halfHeight*2* m_CamZoomFactor;
+			SDL_SetRenderDrawColor(m_Renderer, 120.0f, 200.0f, 120.0f, 255);
+			SDL_RenderFillRect(m_Renderer, &spawnRect);
+
+			// goal
+			halfWidth = 320;
+			halfHeight = 70;
+			float goalX = m_CamOffsetX - halfWidth * m_CamZoomFactor;
+			float goalY = (390.0f + halfHeight) * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+			SDL_Rect goalRect;
+			goalRect.x = goalX;
+			goalRect.y = goalY;
+			goalRect.w = halfWidth * 2 * m_CamZoomFactor;
+			goalRect.h = halfHeight * 2 * m_CamZoomFactor;
+			SDL_SetRenderDrawColor(m_Renderer, 200.0f, 120.0f, 120.0f, 255);
+			SDL_RenderFillRect(m_Renderer, &goalRect);
+		}
 
 		void ECMRenderer::DrawPath()
 		{
@@ -599,6 +649,7 @@ namespace ECM {
 
 		void ECMRenderer::DrawPaths()
 		{
+			
 			const auto paths = m_AppState->simulator->GetPathData();
 			int numPaths = m_AppState->simulator->GetNumAgents();
 
@@ -616,6 +667,7 @@ namespace ECM {
 					SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
 				}
 			}
+			
 		}
 
 		// https://stackoverflow.com/questions/38334081/how-to-draw-circles-arcs-and-vector-graphics-in-sdl
