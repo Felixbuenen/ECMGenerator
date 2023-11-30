@@ -39,15 +39,15 @@ namespace ECM {
 		struct AreaConnector
 		{
 			int goalID;
-			float spawnChance;
 		};
 
 		struct SpawnConfiguration
 		{
-			float preferredSpeedMin;
-			float preferredSpeedMax;
-			float clearanceMin;
-			float clearanceMax;
+			float preferredSpeedMin = 20.0f;
+			float preferredSpeedMax = 80.0f;
+			float clearanceMin = 10.0f;
+			float clearanceMax = 30.0f;
+			int spawnRate = 10;
 		};
 
 		struct SpawnArea : public Area

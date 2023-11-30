@@ -5,6 +5,9 @@
 #include "UtilityFunctions.h"
 #include "Application.h"
 #include "ECMDataTypes.h"
+#include "SimAreaPanel.h"
+#include "Area.h"
+#include "KDTree.h"
 
 #include "SDL.h"
 #include "boost/polygon/voronoi.hpp"
@@ -58,7 +61,107 @@ namespace ECM {
 
 			DrawAgents();
 			//DrawPaths();
+
+			InternalDrawDragSimulationArea();
 		}
+
+		Point ECMRenderer::ScreenToWorldCoordinates(float x, float y)
+		{
+			float worldX = (x - m_AppState->camOffsetX) / m_AppState->camZoomFactor;
+			float worldY = (y - m_AppState->camOffsetY) / m_AppState->camZoomFactor * -1; // -1.0 because inversed y-axis
+
+			return Point(worldX, worldY);
+		}
+
+		Point ECMRenderer::WorldToScreenCoordinates(float x, float y)
+		{
+			float screenX = x * m_CamZoomFactor + m_CamOffsetX;
+			float screenY = y * m_CamZoomFactor * m_YRotation + m_CamOffsetY;
+
+			return Point(screenX, screenY);
+		}
+
+		void ECMRenderer::RenderDragSimulationArea(float x, float y, SimAreaDrag areaType)
+		{
+			m_AppState->dragAreaPosition.x = x;
+			m_AppState->dragAreaPosition.y = y;
+			m_AppState->dragAreaType = areaType;
+		}
+
+		void ECMRenderer::StopRenderDragSimulationArea()
+		{
+			m_AppState->dragAreaType = SimAreaDrag::NONE;
+		}
+
+		void ECMRenderer::InternalDrawDragSimulationArea()
+		{
+			if (m_AppState->dragAreaType == SimAreaDrag::NONE) return;
+
+			// TODO: place in variables
+			float halfWidth = 50;
+			float halfHeight = 50;
+			float spawnX = m_AppState->dragAreaPosition.x;
+			float spawnY = m_AppState->dragAreaPosition.y;
+			SDL_Rect spawnRect;
+
+			Point pos = ScreenToWorldCoordinates(spawnX, spawnY);
+			pos.x = pos.x - halfWidth;
+			pos.y = pos.y + halfHeight;
+			
+			Point screenPos = WorldToScreenCoordinates(pos.x, pos.y);
+			
+			spawnRect.x = screenPos.x;
+			spawnRect.y = screenPos.y;
+			spawnRect.w = halfWidth * 2 * m_CamZoomFactor;
+			spawnRect.h = halfHeight * 2 * m_CamZoomFactor;
+			SDL_SetRenderDrawBlendMode(m_Renderer, SDL_BLENDMODE_BLEND);
+			if (m_AppState->dragAreaType == SimAreaDrag::SPAWN) SDL_SetRenderDrawColor(m_Renderer, 120.0f, 200.0f, 120.0f, 150);
+			if(m_AppState->dragAreaType == SimAreaDrag::GOAL) SDL_SetRenderDrawColor(m_Renderer, 200.0, 120.0f, 120.0f, 150);
+			SDL_RenderFillRect(m_Renderer, &spawnRect);
+		}
+
+		void ECMRenderer::DebugDrawKNearestNeighbors(int idx)
+		{
+			if (!m_AppState->simulator->GetActiveFlags()[idx]) return;
+
+			const int k = 4;
+			
+			std::vector<int> agents;
+			agents.resize(k);
+			//m_AppState->simulator->GetKDTree()->KNearestAgents(idx, k, agents);
+
+			agents.push_back(idx);
+
+			const auto positions = m_AppState->simulator->GetPositionData();
+			const auto clearances = m_AppState->simulator->GetClearanceData();
+
+			const float recip = sqrtf(2.0f);
+
+			for (int i = 0; i < k + 1; i++)
+			{
+				int index = agents[i];
+				const auto& pos = positions[index];
+				const auto& clearance = clearances[index];
+
+				float x = pos.x * m_CamZoomFactor + m_CamOffsetX;
+				float y = pos.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+
+				float size = (clearance.clearance / recip) * m_CamZoomFactor;
+
+				SDL_Rect rect;
+				rect.x = x - size;
+				rect.y = y - size;
+				rect.w = size * 2;
+				rect.h = size * 2;
+
+				if(i < k) SDL_SetRenderDrawColor(m_Renderer, 255, 125, 125, 255);
+				else SDL_SetRenderDrawColor(m_Renderer, 255, 0, 0, 255);
+				
+				SDL_RenderFillRect(m_Renderer, &rect);
+			}
+		}
+
+
 
 		// Cache render-state variables, easier to reference the app state everywhere
 		void ECMRenderer::UpdateRenderState()
@@ -527,54 +630,49 @@ namespace ECM {
 			}
 		}
 
+		// TODO: dynamically add 
 		void ECMRenderer::DrawSimulationAreas()
 		{
-
-			//GoalArea ga;
-			//ga.ID = 0;
-			//ga.Position = Point(0.0f, 420.0f);
-			//ga.HalfHeight = 30;
-			//ga.HalfWidth = 200;
-			//
-			//AreaConnector con;
-			//con.goalID = 0;
-			//con.spawnChance = 1.0f;
-			//
-			//SpawnArea sa;
-			//sa.HalfWidth = 100;
-			//sa.HalfHeight = 30;
-			//sa.ID = 0;
-			//sa.Position = Point(0.0f, -350.0f);
-			//sa.spawnRate = 100;
-			//sa.spawnConfiguration.clearanceMin = 7.0f;
-			//sa.spawnConfiguration.clearanceMax = 7.0f;
-			//sa.spawnConfiguration.preferredSpeedMin = 13.0f;
-
 			// spawn
-			float halfWidth = 250;
-			float halfHeight = 60;
-			float spawnX = m_CamOffsetX - halfWidth* m_CamZoomFactor;
-			float spawnY = (-375.0f + halfHeight) * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
-			SDL_Rect spawnRect;
-			spawnRect.x = spawnX;
-			spawnRect.y = spawnY;
-			spawnRect.w = halfWidth*2* m_CamZoomFactor;
-			spawnRect.h = halfHeight*2* m_CamZoomFactor;
-			SDL_SetRenderDrawColor(m_Renderer, 120.0f, 200.0f, 120.0f, 255);
-			SDL_RenderFillRect(m_Renderer, &spawnRect);
+			auto spawnAreas = m_AppState->simulator->GetSpawnAreas();
+
+			for (const Simulation::SpawnArea& sa : spawnAreas)
+			{
+				float halfWidth = sa.HalfWidth;
+				float halfHeight = sa.HalfHeight;
+
+				Point pos = WorldToScreenCoordinates(sa.Position.x - halfWidth, sa.Position.y + halfHeight);
+				//float spawnX = m_CamOffsetX - halfWidth * m_CamZoomFactor;
+				//float spawnY = (-375.0f + halfHeight) * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+				SDL_Rect spawnRect;
+				spawnRect.x = pos.x;
+				spawnRect.y = pos.y;
+				spawnRect.w = halfWidth * 2 * m_CamZoomFactor;
+				spawnRect.h = halfHeight * 2 * m_CamZoomFactor;
+				SDL_SetRenderDrawColor(m_Renderer, 120.0f, 200.0f, 120.0f, 255);
+				SDL_RenderFillRect(m_Renderer, &spawnRect);
+			}
 
 			// goal
-			halfWidth = 320;
-			halfHeight = 70;
-			float goalX = m_CamOffsetX - halfWidth * m_CamZoomFactor;
-			float goalY = (390.0f + halfHeight) * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
-			SDL_Rect goalRect;
-			goalRect.x = goalX;
-			goalRect.y = goalY;
-			goalRect.w = halfWidth * 2 * m_CamZoomFactor;
-			goalRect.h = halfHeight * 2 * m_CamZoomFactor;
-			SDL_SetRenderDrawColor(m_Renderer, 200.0f, 120.0f, 120.0f, 255);
-			SDL_RenderFillRect(m_Renderer, &goalRect);
+			auto goalAreas = m_AppState->simulator->GetGoalAreas();
+
+			for (const Simulation::GoalArea& ga : goalAreas)
+			{
+				float halfWidth = ga.HalfWidth;
+				float halfHeight = ga.HalfHeight;
+
+				Point pos = WorldToScreenCoordinates(ga.Position.x - halfWidth, ga.Position.y + halfHeight);
+				//float spawnX = m_CamOffsetX - halfWidth * m_CamZoomFactor;
+				//float spawnY = (-375.0f + halfHeight) * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+				SDL_Rect goalRect;
+				goalRect.x = pos.x;
+				goalRect.y = pos.y;
+				goalRect.w = halfWidth * 2 * m_CamZoomFactor;
+				goalRect.h = halfHeight * 2 * m_CamZoomFactor;
+				SDL_SetRenderDrawColor(m_Renderer, 200.0f, 120.0f, 120.0f, 255);
+				SDL_RenderFillRect(m_Renderer, &goalRect);
+			}
+
 		}
 
 		void ECMRenderer::DrawPath()

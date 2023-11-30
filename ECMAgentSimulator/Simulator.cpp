@@ -6,6 +6,7 @@
 #include "Environment.h"
 #include "ECMDataTypes.h"
 #include "Area.h"
+#include "KDTree.h"
 
 #include <math.h>
 
@@ -40,6 +41,8 @@ namespace ECM {
 				m_Paths[i].numPoints = 0;
 			}
 
+			m_KDTree = new KDTree();
+
 			printf("SIMULATOR: Data for %d agents was created.\n", m_MaxNumEntities);
 
 
@@ -51,30 +54,30 @@ namespace ECM {
 			// 3. start with assumption that there are as many spawn as goal areas. 
 			// 4. next, implement connection logic
 
-			GoalArea ga;
-			ga.ID = 0;
-			ga.Position = Point(0.0f, 390.0f);
-			ga.HalfHeight = 70;
-			ga.HalfWidth = 320;
+			//GoalArea ga;
+			//ga.ID = 0;
+			//ga.Position = Point(0.0f, 390.0f);
+			//ga.HalfHeight = 70;
+			//ga.HalfWidth = 320;
 
 			AreaConnector con;
 			con.goalID = 0;
-			con.spawnChance = 1.0f;
 
-			SpawnArea sa;
-			sa.HalfWidth = 250;
-			sa.HalfHeight = 60;
-			sa.ID = 0;
-			sa.Position = Point(0.0f, -375.0f);
-			sa.spawnRate = 2000;
-			sa.spawnConfiguration.clearanceMin = 7.0f;
-			sa.spawnConfiguration.clearanceMax = 7.0f;
-			sa.spawnConfiguration.preferredSpeedMin = 5.0f;
-			sa.spawnConfiguration.preferredSpeedMax = 5.0f;
-			sa.connectors.push_back(con);
-
-			m_SpawnAreas.push_back(sa);
-			m_GoalAreas.push_back(ga);
+			//SpawnArea sa;
+			//sa.HalfWidth = 250;
+			//sa.HalfHeight = 60;
+			//sa.ID = 0;
+			//sa.Position = Point(0.0f, -375.0f);
+			//sa.spawnRate = 2000;
+			//sa.spawnConfiguration.clearanceMin = 7.0f;
+			//sa.spawnConfiguration.clearanceMax = 7.0f;
+			//sa.spawnConfiguration.preferredSpeedMin = 5.0f;
+			//sa.spawnConfiguration.preferredSpeedMax = 5.0f;
+			//
+			//sa.connectors.push_back(con);
+			//
+			//m_SpawnAreas.push_back(sa);
+			//m_GoalAreas.push_back(ga);
 
 			// --------------- DEBUG -------------
 		}
@@ -104,12 +107,16 @@ namespace ECM {
 			delete[] m_Clearances;
 			//delete[] m_Goals;
 
+			delete m_KDTree;
+
 			printf("SIMULATOR: Data was destroyed.\n");
 		}
 
 		int Simulator::SpawnAgent(const Point& start, const Point& goal, float clearance, float preferredSpeed)
 		{
 			if (m_freeEntitySpaces.empty()) return -1;
+
+			m_NumEntities++;
 
 			int idx = m_freeEntitySpaces.top();
 			m_freeEntitySpaces.pop();
@@ -151,18 +158,64 @@ namespace ECM {
 
 		void Simulator::DestroyAgent(int idx)
 		{
+			m_NumEntities--;
+
 			m_ActiveAgents[idx] = false;
 			m_freeEntitySpaces.push(idx);
 		}
 
 		void Simulator::Update(float dt)
 		{
+			dt *= m_SpeedScale;
+
+			// convert to ms
+			m_CurrentStepDuration += dt * 1000.0f;
+
 			UpdateMaxAgentIndex();
 			UpdateSpawnAreas(dt);
 
-			UpdateVelocitySystem(dt);
+			// we update the simulation every fixed time interval (commonly every 100ms)
+			// we divide the simstep time by the speedscale in order to maintain the same simulation accuracy for different playback speeds
+			if (m_CurrentStepDuration >= (m_SimStepTime / m_SpeedScale))
+			{
+				UpdateVelocitySystem();
+				m_CurrentStepDuration -= m_SimStepTime;
+			}
+
 			UpdatePositionSystem(dt);
 		}
+
+		void Simulator::AddSpawnArea(const Point& position, const Vec2& halfSize, const SpawnConfiguration& config)
+		{
+			SpawnArea sa;
+			sa.HalfWidth = halfSize.x;
+			sa.HalfHeight = halfSize.y;
+			sa.ID = 1; // TODO: get ID through method
+			sa.Position = position;
+			sa.spawnRate = config.spawnRate;
+			sa.spawnConfiguration.clearanceMin = config.clearanceMin;
+			sa.spawnConfiguration.clearanceMax = config.clearanceMax;
+			sa.spawnConfiguration.preferredSpeedMin = config.preferredSpeedMin;
+			sa.spawnConfiguration.preferredSpeedMax = config.preferredSpeedMax;
+
+			AreaConnector conn;
+			conn.goalID = 0; // TODO: make dynamic. connection shouldn't be made here.
+
+			sa.connectors.push_back(conn);
+			m_SpawnAreas.push_back(sa);
+		}
+
+		void Simulator::AddGoalArea(const Point& position, const Vec2& halfSize)
+		{
+			GoalArea ga;
+			ga.ID = 0;
+			ga.Position = position;
+			ga.HalfHeight = halfSize.y;
+			ga.HalfWidth = halfSize.x;
+
+			m_GoalAreas.push_back(ga);
+		}
+
 
 		void Simulator::UpdateMaxAgentIndex()
 		{
@@ -221,14 +274,15 @@ namespace ECM {
 			}
 		}
 
-		void Simulator::UpdateVelocitySystem(float dt)
+		// TODO: currently all forces are calculated for each agent.
+		// It is likely more efficient to calculate each force invidividually in batches for all agents.
+		// Now, the loop must maintain all the local variables which will clutter the cache.
+		void Simulator::UpdateVelocitySystem()
 		{
 			// Let's start simple:
 			// 1. calculate future position (velocity * lookAhead)
 			// 2. iterate through all path segments to find the segment where the future position lies closest
 			// 3. project the future position on this line segment. this is the attraction point.
-
-			
 
 			const float reachedRadius = 2.5f;
 			const float arrivalRadius = 50.0f;
@@ -254,7 +308,6 @@ namespace ECM {
 				const PathComponent& path = m_Paths[e];
 				const PositionComponent& pos = m_Positions[e];
 
-				//float distFromTarget = Utility::MathUtility::Distance(pos.x, pos.y, path.x[path.currentIndex], path.y[path.currentIndex]);
 				float distFromArrival = Utility::MathUtility::Distance(pos.x, pos.y, path.x[path.numPoints-1], path.y[path.numPoints - 1]);
 				float arrivalMultiplier = 1.0f;
 
@@ -299,13 +352,15 @@ namespace ECM {
 
 				Vec2 steering = (desiredVelocity - currentVelocity) * pathFollowSteeringWeight;
 
-				// TODO:
+				// TODO: batch processing
 				// 1. obstacle avoidance
 				const ClearanceComponent& clearance = m_Clearances[e];
 				ApplyBoundaryForce(steering, pos, clearance);
 
 			
 				// 2. dynamic obstacle avoidance
+				m_KDTree->Clear();
+				m_KDTree->Construct(this);
 
 
 				float steeringForce = Utility::MathUtility::Length(steering);

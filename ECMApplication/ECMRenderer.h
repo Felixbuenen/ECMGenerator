@@ -4,15 +4,6 @@
 #include <vector>
 #include <stdint.h>
 
-/*
-* TODO:
-* > Make an ECM window (or "ECM::Application") class and ECM window state class
-* > In this, we handle all the input logic
-* > The ECM window class will use the ECMRenderer to render graphics to the window.
-* > The window state class will maintain a cached state of the application, e.g. the selected ECM cell, 
-*    a start and goal position for the path planner.
-*/
-
 class SDL_Window;
 class SDL_Renderer;
 class SDL_Surface;
@@ -23,11 +14,14 @@ namespace ECM {
 	class Environment;
 	struct Segment;
 	struct ECMCell;
+	struct Point;
 
 	namespace WindowApplication {
 
 		class Application;
 		struct ApplicationState;
+
+		enum SimAreaDrag;
 
 		class ECMRenderer
 		{
@@ -44,6 +38,13 @@ namespace ECM {
 			void Initialize(Application* app);
 			void Render();
 			void Clear();
+
+			// TODO: these methods are not used everywhere. Refactor.
+			Point ScreenToWorldCoordinates(float x, float y);
+			Point WorldToScreenCoordinates(float x, float y);
+
+			void RenderDragSimulationArea(float x, float y, SimAreaDrag areaType);
+			void StopRenderDragSimulationArea();
 
 			inline SDL_Renderer* GetSDLRenderer() { return m_Renderer; }
 
@@ -68,12 +69,13 @@ namespace ECM {
 			void DrawPortals();
 			void DrawHalfEdge(int idx);
 
-			void DebugSetDrawECMCell(float screenX, float screenY);
 			void DebugDrawECMCell();
 			void DebugDrawSecondaryLines();
 			void DebugDrawCellValues();
 			void DebugDrawBoostVoronoiDiagram();
 			void DrawSimulationAreas();
+			void InternalDrawDragSimulationArea();
+			void DebugDrawKNearestNeighbors(int idx);
 
 			void DrawCircle(SDL_Renderer* renderer, int32_t centreX, int32_t centreY, int32_t radius);
 

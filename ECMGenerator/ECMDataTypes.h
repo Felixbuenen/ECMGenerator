@@ -28,7 +28,7 @@ namespace ECM {
 			return Vec2(x / a, y / a);
 		}
 
-		float Length()
+		float Length() const
 		{
 			return sqrt(x * x + y * y);
 		}
@@ -40,6 +40,14 @@ namespace ECM {
 
 			x /= l;
 			y /= l;
+		}
+		
+		Vec2 Normalized() const
+		{
+			float l = Length();
+			if (l == 0.0f) return Vec2();
+
+			return Vec2(x / l, y / l);
 		}
 
 		bool Approximate(const Vec2& a) const
@@ -53,6 +61,7 @@ namespace ECM {
 		float y;
 		Point(float x, float y) : x(x), y(y) {}
 		Point() { x = 0; y = 0; }
+		Point(const Vec2& v) : x(v.x), y(v.y) {}
 
 		bool Approximate(const Point& a) const
 		{

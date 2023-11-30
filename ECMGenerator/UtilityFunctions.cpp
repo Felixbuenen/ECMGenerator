@@ -143,20 +143,22 @@ namespace ECM {
 		// TODO: maybe it's nicer to include these type-specific functions as static type methods (e.g. Vec2::Right(..)).
 		Vec2 MathUtility::Right(const Vec2& v)
 		{
-			Vec2 result;
-			result.x = v.y;
-			result.y = -v.x;
-
-			return result;
+			return Vec2(v.y, -v.x);
 		}
 
 		Vec2 MathUtility::Right(float x, float y)
 		{
-			Vec2 result;
-			result.x = y;
-			result.y = -x;
+			return Vec2(y, -x);
+		}
 
-			return result;
+		Vec2 MathUtility::Left(const Vec2& v)
+		{
+			return Vec2(-v.y, v.x);
+		}
+
+		Vec2 MathUtility::Left(float x, float y)
+		{
+			return Vec2(-y, x);
 		}
 
 		float MathUtility::SquaredLength(const Vec2& v)
@@ -200,6 +202,21 @@ namespace ECM {
 
 			return posOnSegment;
 		}
+
+		Point MathUtility::GetClosestPointOnLine(const Point& linePoint, const Vec2& normalizedLineDir, const Point& referencePoint)
+		{
+			Vec2 pointToRef = Vec2(referencePoint.x - linePoint.x, referencePoint.y - linePoint.y);
+			float lenToPoint = Dot(pointToRef, normalizedLineDir);
+
+			return (linePoint + normalizedLineDir * lenToPoint);
+		}
+
+		Point MathUtility::GetClosestPointOnLineThroughOrigin(const Vec2& normalizedLineDir, const Point& referencePoint)
+		{
+			float lenToPoint = Dot(Vec2(referencePoint), normalizedLineDir);
+			return Point(normalizedLineDir * lenToPoint);
+		}
+
 
 		bool MathUtility::GetRayToLineSegmentIntersection(const Point& rayOrigin, const Vec2& rayDirection, const Point& point1, const Point& point2, Point& outPoint, float& outDist)
 		{

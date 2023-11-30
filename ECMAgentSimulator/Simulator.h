@@ -21,6 +21,7 @@ namespace ECM {
 	namespace Simulation {
 
 		typedef int Entity;
+		class KDTree;
 
 		struct PositionComponent
 		{
@@ -52,8 +53,8 @@ namespace ECM {
 		public:
 
 			// TODO: add simulation step time (commonly 100ms)
-			Simulator(std::shared_ptr<ECM> ecm, PathPlanning::ECMPathPlanner* planner, Environment* environment, int maxAgents) 
-				: m_Ecm(ecm), m_Planner(planner), m_Environment(environment), m_MaxNumEntities(maxAgents)
+			Simulator(std::shared_ptr<ECM> ecm, PathPlanning::ECMPathPlanner* planner, Environment* environment, int maxAgents, int simStepTime = 100) 
+				: m_Ecm(ecm), m_Planner(planner), m_Environment(environment), m_MaxNumEntities(maxAgents), m_SimStepTime(simStepTime)
 			{
 				for (int i = maxAgents - 1; i >= 0; i--)
 				{
@@ -68,6 +69,8 @@ namespace ECM {
 			int SpawnAgent(const Point& start, const Point& goal, float clearance, float preferredSpeed);
 			void DestroyAgent(int idx);
 
+			void SetSpeed(float speed) { m_SpeedScale = speed; }
+
 			void Initialize();
 			void Update(float dt);
 
@@ -76,16 +79,20 @@ namespace ECM {
 				m_Positions[entity].y = y;
 			}
 
-			inline void AddSpawnArea(const Point& position);
-			inline void AddGoalArea(const Point& position);
+			void AddSpawnArea(const Point& position, const Vec2& halfSize, const SpawnConfiguration& config ); // TODO: expand with agent profile
+			void AddGoalArea(const Point& position, const Vec2& halfSize);
+			const std::vector<SpawnArea>& GetSpawnAreas() const { return m_SpawnAreas; }
+			const std::vector<GoalArea>& GetGoalAreas() const { return m_GoalAreas; }
 
 			inline int GetNumAgents() const { return m_NumEntities; }
 			inline int GetLastIndex() const { return m_LastEntityIdx; }
 			inline PositionComponent* GetPositionData() const { return m_Positions; }
 			inline VelocityComponent* GetVelocityData() const { return m_Velocities; }
+			inline VelocityComponent* GetPreferredVelocityData() const { return m_Velocities; }
 			inline PathComponent* GetPathData() const { return m_Paths; }
 			inline ClearanceComponent* GetClearanceData() const { return m_Clearances; }
 			inline bool* GetActiveFlags() const { return m_ActiveAgents; }
+			inline KDTree* GetKDTree() const { return m_KDTree; }
 
 		private:
 			void ClearSimulator();
@@ -98,7 +105,7 @@ namespace ECM {
 
 			// SYSTEMS
 			void UpdatePositionSystem(float dt);
-			void UpdateVelocitySystem(float dt);
+			void UpdateVelocitySystem();
 
 			void ApplyPathFollowForce(Vec2& steering);
 			void ApplyBoundaryForce(Vec2& steering, const PositionComponent& pos, const ClearanceComponent& clearance);
@@ -108,6 +115,7 @@ namespace ECM {
 			std::shared_ptr<ECM> m_Ecm;
 			PathPlanning::ECMPathPlanner* m_Planner;
 			Environment* m_Environment;
+			KDTree* m_KDTree;
 
 			int m_MaxNumEntities;
 			int m_NumEntities;
@@ -116,13 +124,16 @@ namespace ECM {
 			bool* m_ActiveAgents;
 			int m_LastEntityIdx;
 
+			float m_SpeedScale = 1.0f;
+			int m_SimStepTime;
+			float m_CurrentStepDuration = 0.0f;
+
 			std::vector<SpawnArea> m_SpawnAreas;
 			std::vector<GoalArea> m_GoalAreas;
-			std::vector<AreaConnector> m_AreaConnectors;
 
 			// COMPONENTS
 			PositionComponent* m_Positions;
-			//PositionComponent* m_Goals; // probably remove this, encapsulated in the path component
+			VelocityComponent* m_PreferredVelocities;
 			VelocityComponent* m_Velocities;
 			ClearanceComponent* m_Clearances;
 			PathComponent* m_Paths;

@@ -27,11 +27,15 @@ namespace ECM {
 			static float TriangleArea(const Point& p1, const Point& p2, const Point& p3);
 			static Vec2 Right(const Vec2& v);
 			static Vec2 Right(float x, float y);
+			static Vec2 Left(const Vec2& v);
+			static Vec2 Left(float x, float y);
 			static float SquaredLength(const Vec2& v);
 			static float SquaredLength(float x, float y);
 			static float Length(const Vec2& v);
 			static float Length(float x, float y);
 			static Point GetClosestPointOnSegment(const Point& point, const Segment& segment);
+			static Point GetClosestPointOnLine(const Point& linePoint, const Vec2& normalizedLineDir, const Point& referencePoint);
+			static Point GetClosestPointOnLineThroughOrigin(const Vec2& normalizedLineDir, const Point& referencePoint);
 			static bool GetRayToLineSegmentIntersection(const Point& rayOrigin, const Vec2& rayDirection, const Point& point1, const Point& point2, Point& outPoint, float& outDist);
 
 			static const float PI;

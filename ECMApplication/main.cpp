@@ -6,6 +6,9 @@
 #include "ECM.h"
 #include "ECMBenchmark.h"
 #include "Simulator.h"
+#include "KDTree.h"
+#include "Timer.h"
+#include "RVO.h"
 
 #include <stdio.h>
 
@@ -15,10 +18,90 @@ int main()
 	using namespace Simulation;
 	using namespace WindowApplication;
 
+	RVO rvo;
+	rvo.GenerateConstraints()
+
+
+	int gridSize = 10;
+	PositionComponent* positions = new PositionComponent[gridSize* gridSize];
+	for (int y = 0; y < gridSize; y++)
+	{
+		for(int x = 0; x < gridSize; x++)
+		{
+			positions[y * gridSize + x].x = x;
+			positions[y * gridSize + x].y = y;
+		}
+	}
+
+
+	KDTree tree;
+	tree.TestConstruct(positions, gridSize * gridSize);
+	
+	const float range = 2.0f;
+	std::vector<int> agents;
+	tree.AgentsInRangeTest(positions, 25, range, 5, agents);
+
+	// BRUTE FORCE NNEIGHBOR METHOD
+	/*
+	std::vector<float> kNearest;
+	std::vector<int> kNearestIdx;
+	{
+		Timer timer("SIMPLE METHOD");
+
+		kNearest.resize(k, Utility::MAX_FLOAT);
+		kNearestIdx.resize(k, -1);
+
+		Vec2 target(positions[550].x, positions[550].y);
+		for (int i = 0; i < gridSize * gridSize; i++)
+		{
+			Vec2 diff(target.x - positions[i].x, target.y - positions[i].y);
+			float dist = diff.x * diff.x + diff.y * diff.y;
+
+			if (i < (k - 1))
+			{
+				kNearest[i] = dist;
+				kNearestIdx[i] = i;
+			}
+			else
+			{
+				// found new nearest
+				if (kNearest[k - 1] > dist)
+				{
+					kNearest[k - 1] = dist;
+					kNearestIdx[k - 1] = i;
+
+
+					// go through list of current k nearest to find the new largest distance and update the k nearest list accordingly.
+					float largestDistance = dist;
+					int largetIndexTree = k - 1;
+					for (int j = 0; j < (k - 1); j++)
+					{
+						if (kNearest[j] > largestDistance)
+						{
+							largestDistance = kNearest[j];
+							largetIndexTree = j;
+						}
+					}
+
+					// update list to swap the highest distance with the last element
+					kNearest[k - 1] = largestDistance;
+					kNearestIdx[k - 1] = kNearestIdx[largetIndexTree];
+					kNearest[largetIndexTree] = dist;
+					kNearestIdx[largetIndexTree] = i;
+				}
+			}
+		}
+	}
+
+	delete[] dummy;
+	delete[] positions;
+
+	*/
+
 	Environment env;
 	env.Initialize(Environment::TestEnvironment::CLASSIC);
 	ECMPathPlanner planner(env.GetECM()->GetECMGraph());
-	Simulator sim(env.GetECM(), &planner, &env, 20000);
+	Simulator sim(env.GetECM(), &planner, &env, 50);
 	sim.Initialize();
 
 	// TODO:

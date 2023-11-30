@@ -129,10 +129,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="KDTree.cpp" />
+    <ClCompile Include="RVO.cpp" />
     <ClCompile Include="Simulator.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Area.h" />
+    <ClInclude Include="KDTree.h" />
+    <ClInclude Include="RVO.h" />
     <ClInclude Include="Simulator.h" />
   </ItemGroup>
   <ItemGroup>
