@@ -18,10 +18,37 @@ int main()
 	using namespace Simulation;
 	using namespace WindowApplication;
 
+	// test
+
+	// AGENT A
+	PositionComponent position;
+	position.x = -2;
+	position.y = 2;
+	VelocityComponent preferredVelocity;
+	preferredVelocity.dx = 3;
+	preferredVelocity.dy = 0;
+	ClearanceComponent clearance;
+	clearance.clearance = 1.0f;
+
+	// NEIGHBORS (AGENT B)
+	PositionComponent* nPositions = new PositionComponent[1];
+	VelocityComponent* nPreferredVelocities = new VelocityComponent[1];
+	ClearanceComponent* nClearances = new ClearanceComponent[1];
+	nPositions[0].x = 2;
+	nPositions[0].y = 0;
+	nPreferredVelocities[0].dx = 0;
+	nPreferredVelocities[0].dy = 1;
+	nClearances[0].clearance = 1;
+	
+	std::vector<Constraint> outConstraints(1);
+
 	RVO rvo;
-	rvo.GenerateConstraints()
+	rvo.GenerateConstraints(1, 1, position, preferredVelocity, clearance, nPositions, nPreferredVelocities, nClearances, outConstraints);
 
-
+	delete[] nPositions;
+	delete[] nPreferredVelocities;
+	delete[] nClearances;
+	// end test
 	int gridSize = 10;
 	PositionComponent* positions = new PositionComponent[gridSize* gridSize];
 	for (int y = 0; y < gridSize; y++)

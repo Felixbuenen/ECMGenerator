@@ -17,10 +17,21 @@ namespace ECM {
 			bool* activeAgents = simulator->GetActiveFlags();
 			PositionComponent* positions = simulator->GetPositionData();
 
+
+			// ----------------
+			// TODO 2024-01-08:
+			// - first version of the constraint generation is written. Test if it works (dummy input).
+			// - write algorithm that solves the linear program based on the generated constraints
+			// ----------------
+
 			// loop through all agents
 			for (int i = 0; i <= lastIndex; i++)
 			{
+				// generate constraints
 
+				// solve linear program
+
+				// update velocity
 			}
 		}
 
@@ -36,73 +47,75 @@ namespace ECM {
 			// for each neighboring agent, generate the VO
 			for (int i = 0; i < nNeighbors; i++)
 			{
-				Point VOPos(nPositions[i].x - position.x, nPositions[i].y - position.y);
+				Point VOPos((nPositions[i].x - position.x) * dtRecip, (nPositions[i].y - position.y) * dtRecip);
 				float VORadius = (nClearances[i].clearance + clearance.clearance) * dtRecip;
 				float VORadiusSqr = VORadius * VORadius;
 
-				Point relVel(nPreferredVelocities[i].dx - preferredVelocity.dx, nPreferredVelocities[i].dy - preferredVelocity.dy);
-				float relVelDist = Utility::MathUtility::SquaredLength(relVel.x, relVel.y);
+				Vec2 relVel(preferredVelocity.dx - nPreferredVelocities[i].dx, preferredVelocity.dy - nPreferredVelocities[i].dy);
 
-				// the relative velocity lies within the circle of the VO
+				const Vec2& leftPerpendicular = Utility::MathUtility::Left(VOPos).Normalized();
+				const Vec2& VOLeftLeg = VOPos + leftPerpendicular * VORadiusSqr;
+				const Vec2& VORightLeg = VOPos - leftPerpendicular * VORadiusSqr;
+
+				// Rel velocity (RelVel) ligt in VO wanneer:
+				// 1. RelVel tussen de twee legs ligt
+				// 2. De afstand van de cirkel tot RelVel kleiner is dan de cirkel radius
+				//    OF RelVel ligt boven de relatieve middellijn van de cirkel
+				
+				// relative velocity vector lies within cone if LeftLeg X RelVel and RelVel X RightLeg have the same sign (i.e. >= 0)
+				// if relative velocity lies outside of this cone, the relative velocity lies outside the VO
+				bool withinConeAngle = (Utility::MathUtility::Cross(VOLeftLeg, relVel) * Utility::MathUtility::Cross(relVel, VORightLeg)) >= 0;
+				if (!withinConeAngle) continue;
+
+				// if the distance of the relative velocity to the VO circle centre is smaller than its radius, the relative velocity lies inside the VO.
+				// if not, than the rel velocity only lies in the VO if it lies above the VO circle position
 				float sqDistFromCircleCentre = Utility::MathUtility::SquareDistance(VOPos, relVel);
+				bool liesWithinCircle = sqDistFromCircleCentre < VORadiusSqr;
 
-				// TODO: dit klopt niet: alleen voor het onderste deel van de cirkel klopt dit.
-				if (sqDistFromCircleCentre < VORadiusSqr)
+				if (!liesWithinCircle && Utility::MathUtility::IsLeftOfVector(VOLeftLeg - VOPos, relVel - VOPos)) continue;
+
+				// --------
+				// At this point we know the point lies within the VO.
+				// Now we calculate the constraint that is imposed by this VO.
+				// --------
+
+				//VERIFIED WITH TEST
+				if (liesWithinCircle)
 				{
 					// the constraint is the half-plane at the edge of the circle of the VO
-					float distToEdge = sqrtf(VORadiusSqr - sqDistFromCircleCentre);
+					float distToEdge = sqrtf(VORadiusSqr) - sqrtf(sqDistFromCircleCentre);
 
 					outConstraints[counter].N = (relVel - VOPos);
 					outConstraints[counter].N.Normalize();
 
-					// TODO: dit klopt niet. Positie is iets met u * 0.5, ik ben te gaar hiervoor nu. zie paper.
-					outConstraints[counter].Pos = relVel + outConstraints[counter].N * distToEdge;
+					outConstraints[counter].Pos = Vec2(preferredVelocity.dx, preferredVelocity.dy) + outConstraints[counter].N * distToEdge * 0.5f;
 
 					counter++;
 				}
-
-				// the relative velocity lies outside the circle of the VO
+				// NOT VERIFIED WITH TEST
 				else
 				{
-					// calculate VO "legs"
-					bool isLeft = Utility::MathUtility::IsLeftOfSegment(Segment(Point(0, 0), VOPos), relVel); // TODO: make IsLeftOfVector()
-					if (isLeft)
+					// find closest point to the VO edges. First determine whether RelVel lies closer to the left or right VO leg.
+					bool closerToLeftLeg = (relVel - VOPos).x < 0.0f;
+					if (closerToLeftLeg)
 					{
-						Vec2 leftLeg = Utility::MathUtility::Left(VOPos);
-						leftLeg.Normalize();
-						leftLeg = leftLeg * VORadius;
-						leftLeg = leftLeg + VOPos;
+						const Vec2& leftLegNormalized = VOLeftLeg.Normalized();
+						outConstraints[counter].N = Utility::MathUtility::Left(leftLegNormalized);
+						const Vec2& U = Utility::MathUtility::GetClosestPointOnLineThroughOrigin(leftLegNormalized, relVel) - relVel;
 
-						// todo: 
-						// is the relvel left of the left leg? then it is not on a collision path
-						if (Utility::MathUtility::IsLeftOfSegment(Segment(Point(0, 0), Point(leftLeg.x, leftLeg.y)), relVel)) continue;
+						outConstraints[counter].Pos = Vec2(preferredVelocity.dx, preferredVelocity.dy) + U * 0.5f;
 
-						// if it is not: is the distance to the origin smaller then dt? then it is not (yet) on a collision path.
-						if (Utility::MathUtility::SquaredLength(relVel) < (dt * dt)) continue;
-						
-						// otherwise calculate the closest position on the left leg and calculate the constraint
-						leftLeg.Normalize();
-						outConstraints[counter].Pos = Utility::MathUtility::GetClosestPointOnLineThroughOrigin(leftLeg, relVel);
-						outConstraints[counter].N = Utility::MathUtility::Left(leftLeg);
+						counter++;
 					}
 					else
 					{
-						Vec2 rightLeg = Utility::MathUtility::Right(VOPos);
-						rightLeg.Normalize();
-						rightLeg = rightLeg * VORadius;
-						rightLeg = rightLeg + VOPos;
+						const Vec2& rightLegNormalized = VORightLeg.Normalized();
+						outConstraints[counter].N = Utility::MathUtility::Right(rightLegNormalized);
+						const Vec2& U = Utility::MathUtility::GetClosestPointOnLineThroughOrigin(rightLegNormalized, relVel) - relVel;
 
-						// todo: 
-						// is the relvel right of the right leg? then it is not on a collision path
-						if (!Utility::MathUtility::IsLeftOfSegment(Segment(Point(0, 0), Point(rightLeg.x, rightLeg.y)), relVel)) continue;
+						outConstraints[counter].Pos = Vec2(preferredVelocity.dx, preferredVelocity.dy) + U * 0.5f;
 
-						// * if it is: is the distance to the origin smaller then dt? then it is not (yet) on a collision path.
-						if (Utility::MathUtility::SquaredLength(relVel) < (dt * dt)) continue;
-
-						// * otherwise calculate the closest position on the right leg and calculate the constraint
-						rightLeg.Normalize();
-						outConstraints[counter].Pos = Utility::MathUtility::GetClosestPointOnLineThroughOrigin(rightLeg, relVel);
-						outConstraints[counter].N = Utility::MathUtility::Right(rightLeg);
+						counter++;
 					}
 				}
 			}

@@ -19,7 +19,7 @@ namespace ECM {
 		// shape-agnostic implementation. I also found it interesting to implement the 3 described avoid-exceptions to create more dynamic / realistic behavior for
 		// game scenarios.
 
-		// A constraint in ORCA is defined by a half-plane. We represent the half-plane line by two points on this line. The direction of the half-plane is indicated by the normal N.
+		// A constraint in ORCA is defined by a half-plane. We represent the half-plane line by a point on this line. The direction of the half-plane is indicated by the normal N.
 		struct Constraint
 		{
 			Point Pos;
