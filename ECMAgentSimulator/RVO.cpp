@@ -19,14 +19,19 @@ namespace ECM {
 
 
 			// ----------------
-			// TODO 2024-01-08:
-			// - first version of the constraint generation is written. Test if it works (dummy input).
+			// TODO 2024-08-21:
+			// - constraint generation tested. seems to be working based on dummy data.
 			// - write algorithm that solves the linear program based on the generated constraints
 			// ----------------
+
+			// create memory buffer for neighbor information
+			// nPositions, nPrefVel, nClearance
 
 			// loop through all agents
 			for (int i = 0; i <= lastIndex; i++)
 			{
+				// find N closest neighbors
+
 				// generate constraints
 
 				// solve linear program
@@ -35,6 +40,16 @@ namespace ECM {
 			}
 		}
 
+
+		// TODO: RVO should have access to the datastructure that holds agent positions and query from there. Does not make sense to write the query logic here.
+		void RVO::GetNNearestAgents(const PositionComponent& positions, int N, std::vector<int>& outIndices) const
+		{
+			// TODO:
+			// - for now just loop through all neighbors and keep track of the closest ones.
+			// - improve with grid or KD method
+		}
+
+		// VERIFIED: using dummy agents, basic calculation of constraints seems to be working now (2024-08-21)
 		void RVO::GenerateConstraints(float dt, int nNeighbors,
 			const PositionComponent& position, const VelocityComponent& preferredVelocity, const ClearanceComponent& clearance,
 			const PositionComponent* nPositions, const VelocityComponent* nPreferredVelocities, const ClearanceComponent* nClearances,
@@ -48,14 +63,18 @@ namespace ECM {
 			for (int i = 0; i < nNeighbors; i++)
 			{
 				Point VOPos((nPositions[i].x - position.x) * dtRecip, (nPositions[i].y - position.y) * dtRecip);
+				float VOPosLength = Utility::MathUtility::Length(VOPos);
 				float VORadius = (nClearances[i].clearance + clearance.clearance) * dtRecip;
 				float VORadiusSqr = VORadius * VORadius;
 
 				Vec2 relVel(preferredVelocity.dx - nPreferredVelocities[i].dx, preferredVelocity.dy - nPreferredVelocities[i].dy);
 
-				const Vec2& leftPerpendicular = Utility::MathUtility::Left(VOPos).Normalized();
-				const Vec2& VOLeftLeg = VOPos + leftPerpendicular * VORadiusSqr;
-				const Vec2& VORightLeg = VOPos - leftPerpendicular * VORadiusSqr;
+				const Vec2& leftPerpendicular = Utility::MathUtility::Left(VOPos) / VOPosLength;
+
+				// calculate left and right leg of the VO. These legs are tangent to the VO circle. We can calculate the angle (relative to VOPos) using basic trigonometry.
+				float tanAngle = asinf(VORadius / VOPosLength);
+				Vec2 VOLeftLeg = Utility::MathUtility::RotateVector(VOPos, tanAngle); // note: positive angle is anti-clockwise rotation
+				Vec2 VORightLeg = Utility::MathUtility::RotateVector(VOPos, -tanAngle);
 
 				// Rel velocity (RelVel) ligt in VO wanneer:
 				// 1. RelVel tussen de twee legs ligt
@@ -71,19 +90,19 @@ namespace ECM {
 				// if not, than the rel velocity only lies in the VO if it lies above the VO circle position
 				float sqDistFromCircleCentre = Utility::MathUtility::SquareDistance(VOPos, relVel);
 				bool liesWithinCircle = sqDistFromCircleCentre < VORadiusSqr;
+				bool liesBelowCircleMiddle = Utility::MathUtility::IsLeftOfVector(VOLeftLeg - VOPos, relVel - VOPos);
 
-				if (!liesWithinCircle && Utility::MathUtility::IsLeftOfVector(VOLeftLeg - VOPos, relVel - VOPos)) continue;
+				if (!liesWithinCircle && liesBelowCircleMiddle) continue;
 
 				// --------
 				// At this point we know the point lies within the VO.
 				// Now we calculate the constraint that is imposed by this VO.
 				// --------
 
-				//VERIFIED WITH TEST
-				if (liesWithinCircle)
+				if (liesWithinCircle && liesBelowCircleMiddle)
 				{
 					// the constraint is the half-plane at the edge of the circle of the VO
-					float distToEdge = sqrtf(VORadiusSqr) - sqrtf(sqDistFromCircleCentre);
+					float distToEdge = VORadius - sqrtf(sqDistFromCircleCentre);
 
 					outConstraints[counter].N = (relVel - VOPos);
 					outConstraints[counter].N.Normalize();
@@ -92,11 +111,10 @@ namespace ECM {
 
 					counter++;
 				}
-				// NOT VERIFIED WITH TEST
 				else
 				{
 					// find closest point to the VO edges. First determine whether RelVel lies closer to the left or right VO leg.
-					bool closerToLeftLeg = (relVel - VOPos).x < 0.0f;
+					bool closerToLeftLeg = Utility::MathUtility::Dot(leftPerpendicular, relVel) >= 0;
 					if (closerToLeftLeg)
 					{
 						const Vec2& leftLegNormalized = VOLeftLeg.Normalized();
@@ -119,6 +137,41 @@ namespace ECM {
 					}
 				}
 			}
+		}
+
+		void RVO::RandomizedLP(const std::vector<Constraint>& constraints, const PositionComponent& position, const float maxSpeed, Vec2& outVelocity) const
+		{
+			// todo: we want a fixed array so this doesn't work. instead check if first element is an 'empty' vec2.
+			if (constraints.empty()) return;
+
+			// 1. maak een permutatie van het aantal constraints, zodat je de constraints random afgaat.
+			// >> is this necessary? could be slow...
+			// 
+			// For now: loop through constraints from 0..N.
+			// 
+			
+			// note we add the speed constraint using a circle of radius "Speed" around the agent's position
+			int numConstraints = constraints.size();
+			for (int i = 0; i < numConstraints; i++)
+			{
+				// find intersections and generate range [Xleft..Xright]
+				
+
+				// solve 1D constraint
+			}
+
+
+			// 2. Nu ga je iteratief constraints toevoegen.
+			//		- als Vn in de area van de nieuwe half-plane constraint ligt, dan blijft Vn onveranderd (nog steeds optimaal). Zie Lemma 4.5, een nieuwe constraint waar Vn
+			//			invalt kan geen nieuwe optimale verlocity creeeren.
+			//		- als Vn niet in de area van de nieuwe half-plane constraint ligt, dan moet er een nieuwe Vn gevonden worden. Deze ligt op de lijn L van de nieuwe constraint:
+			//			> bereken alle intersecties met de nieuwe constraint
+			//			> nu heb je een aantal intersecties, zie je lijn L als een horizontale lijn voor je
+			//			> je hebt nu intersecties die "left-bounded" zijn (d.w.z.: je mag niet naar links op L maar wel naar rechts) en je hebt "right-bounded" intersecties.
+			//			> van de left-bounded intersecties, pak degene met de hoogste X waarde: Xleft.
+			//			> van de right-bounded intersecties, pak degene met de laagste X waarde: Xright.
+			//			> nu heb je het segment (Xleft, Xright). hier ligt de nieuwe Vn op (bereken door closest point on line).
+			//		- herhaal tot je alle constraints hebt gehad.
 		}
 
 	}

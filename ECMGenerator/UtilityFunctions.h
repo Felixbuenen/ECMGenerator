@@ -29,6 +29,7 @@ namespace ECM {
 			static Vec2 Right(float x, float y);
 			static Vec2 Left(const Vec2& v);
 			static Vec2 Left(float x, float y);
+			static Vec2 RotateVector(const Vec2& v, float rad);
 			static float SquaredLength(const Vec2& v);
 			static float SquaredLength(float x, float y);
 			static float Length(const Vec2& v);

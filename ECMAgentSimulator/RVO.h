@@ -45,8 +45,8 @@ namespace ECM {
 			int m_MaxNeighbors;
 
 			// TODO:
-
-			// RandomizedLP(halfPlanes, prefVel); // given a set of half planes and the preferredVelocity, solve the LP
+			void GetNNearestAgents(const PositionComponent& positions, int N, std::vector<int>& outIndices) const;
+			void RandomizedLP(const std::vector<Constraint>& constraints, const PositionComponent& position, const float maxSpeed, Vec2& outVelocity) const; // given a set of half planes and the preferredVelocity, solve the LP
 		};
 
 	}

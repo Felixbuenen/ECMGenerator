@@ -161,6 +161,18 @@ namespace ECM {
 			return Vec2(-y, x);
 		}
 
+		Vec2 MathUtility::RotateVector(const Vec2& v, float rad)
+		{
+			float cs = cos(rad);
+			float sn = sin(rad);
+
+			float px = v.x * cs - v.y * sn;
+			float py = v.x * sn + v.y * cs;
+
+			return Vec2(px, py);
+		}
+
+
 		float MathUtility::SquaredLength(const Vec2& v)
 		{
 			return v.x * v.x + v.y * v.y;

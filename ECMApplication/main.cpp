@@ -22,11 +22,11 @@ int main()
 
 	// AGENT A
 	PositionComponent position;
-	position.x = -2;
-	position.y = 2;
+	position.x = 0;
+	position.y = 0;
 	VelocityComponent preferredVelocity;
-	preferredVelocity.dx = 3;
-	preferredVelocity.dy = 0;
+	preferredVelocity.dx = 0;
+	preferredVelocity.dy = 4;
 	ClearanceComponent clearance;
 	clearance.clearance = 1.0f;
 
@@ -34,10 +34,10 @@ int main()
 	PositionComponent* nPositions = new PositionComponent[1];
 	VelocityComponent* nPreferredVelocities = new VelocityComponent[1];
 	ClearanceComponent* nClearances = new ClearanceComponent[1];
-	nPositions[0].x = 2;
-	nPositions[0].y = 0;
-	nPreferredVelocities[0].dx = 0;
-	nPreferredVelocities[0].dy = 1;
+	nPositions[0].x = -3;
+	nPositions[0].y = 3;
+	nPreferredVelocities[0].dx = 4;
+	nPreferredVelocities[0].dy = 0;
 	nClearances[0].clearance = 1;
 	
 	std::vector<Constraint> outConstraints(1);
