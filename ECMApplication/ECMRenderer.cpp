@@ -698,8 +698,8 @@ namespace ECM {
 			SDL_Rect rect;
 			rect.x = -5;
 			rect.y = -5;
-			rect.w = 10;
-			rect.h = 10;
+			rect.w = 5;
+			rect.h = 5;
 			SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 255);
 			SDL_RenderFillRect(m_Renderer, &rect);
 

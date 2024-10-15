@@ -33,6 +33,11 @@ namespace ECM {
 			return sqrt(x * x + y * y);
 		}
 
+		float LengthSquared() const
+		{
+			return x * x + y * y;
+		}
+
 		void Normalize()
 		{
 			float l = Length();

@@ -113,6 +113,18 @@ namespace ECM {
 			AddObstacle(obstacle2);
 		}
 
+		if (type == Environment::TestEnvironment::EMPTY)
+		{
+			std::vector<Segment> walkableArea;
+			walkableArea.push_back(Segment(-500, -500, 500, -500));
+			walkableArea.push_back(Segment(500, -500, 500, 500));
+			walkableArea.push_back(Segment(-500, 500, 500, 500));
+			walkableArea.push_back(Segment(-500, 500, -500, -500));
+
+
+			AddWalkableArea(walkableArea);
+		}
+
 		// generate ECM from environment
 		ComputeECM();
 	}

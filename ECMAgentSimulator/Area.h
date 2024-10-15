@@ -46,7 +46,7 @@ namespace ECM {
 			float preferredSpeedMin = 20.0f;
 			float preferredSpeedMax = 80.0f;
 			float clearanceMin = 10.0f;
-			float clearanceMax = 30.0f;
+			float clearanceMax = 20.0f;
 			int spawnRate = 10;
 		};
 

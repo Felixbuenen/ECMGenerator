@@ -22,6 +22,7 @@ namespace ECM {
 
 		typedef int Entity;
 		class KDTree;
+		class RVO;
 
 		struct PositionComponent
 		{
@@ -53,7 +54,7 @@ namespace ECM {
 		public:
 
 			// TODO: add simulation step time (commonly 100ms)
-			Simulator(std::shared_ptr<ECM> ecm, PathPlanning::ECMPathPlanner* planner, Environment* environment, int maxAgents, int simStepTime = 100) 
+			Simulator(std::shared_ptr<ECM> ecm, PathPlanning::ECMPathPlanner* planner, Environment* environment, int maxAgents, float simStepTime) 
 				: m_Ecm(ecm), m_Planner(planner), m_Environment(environment), m_MaxNumEntities(maxAgents), m_SimStepTime(simStepTime)
 			{
 				for (int i = maxAgents - 1; i >= 0; i--)
@@ -84,11 +85,15 @@ namespace ECM {
 			const std::vector<SpawnArea>& GetSpawnAreas() const { return m_SpawnAreas; }
 			const std::vector<GoalArea>& GetGoalAreas() const { return m_GoalAreas; }
 
+			void FindNNearestNeighbors(const Entity& agent, int n, std::vector<Entity>& outNeighbors) const;
+			bool ValidSpawnLocation(const Point& location, float clearance) const;
+
+			// GETTERS
 			inline int GetNumAgents() const { return m_NumEntities; }
 			inline int GetLastIndex() const { return m_LastEntityIdx; }
 			inline PositionComponent* GetPositionData() const { return m_Positions; }
 			inline VelocityComponent* GetVelocityData() const { return m_Velocities; }
-			inline VelocityComponent* GetPreferredVelocityData() const { return m_Velocities; }
+			inline VelocityComponent* GetPreferredVelocityData() const { return m_PreferredVelocities; }
 			inline PathComponent* GetPathData() const { return m_Paths; }
 			inline ClearanceComponent* GetClearanceData() const { return m_Clearances; }
 			inline bool* GetActiveFlags() const { return m_ActiveAgents; }
@@ -104,10 +109,12 @@ namespace ECM {
 			void UpdateSpawnAreas(float dt);
 
 			// SYSTEMS
+			void UpdateAttractionPointSystem();
 			void UpdatePositionSystem(float dt);
-			void UpdateVelocitySystem();
+			void UpdateVelocitySystem(float dt);
 
-			void ApplyPathFollowForce(Vec2& steering);
+			void ApplySteeringForce();
+			void ApplyObstacleAvoidanceForce(float dt);
 			void ApplyBoundaryForce(Vec2& steering, const PositionComponent& pos, const ClearanceComponent& clearance);
 			
 
@@ -116,6 +123,7 @@ namespace ECM {
 			PathPlanning::ECMPathPlanner* m_Planner;
 			Environment* m_Environment;
 			KDTree* m_KDTree;
+			RVO* m_RVO;
 
 			int m_MaxNumEntities;
 			int m_NumEntities;
@@ -125,7 +133,7 @@ namespace ECM {
 			int m_LastEntityIdx;
 
 			float m_SpeedScale = 1.0f;
-			int m_SimStepTime;
+			float m_SimStepTime;
 			float m_CurrentStepDuration = 0.0f;
 
 			std::vector<SpawnArea> m_SpawnAreas;
@@ -133,6 +141,7 @@ namespace ECM {
 
 			// COMPONENTS
 			PositionComponent* m_Positions;
+			PositionComponent* m_AttractionPoints;
 			VelocityComponent* m_PreferredVelocities;
 			VelocityComponent* m_Velocities;
 			ClearanceComponent* m_Clearances;

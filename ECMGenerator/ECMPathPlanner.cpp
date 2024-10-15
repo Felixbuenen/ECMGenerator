@@ -282,7 +282,7 @@ namespace ECM {
 			//Timer timer("ECMPathPlanner::FitPortalRange");
 
 			// start portal
-			int first;
+			int first = 0;
 			for (int i = 0; i < portals.size(); i++)
 			{
 				const Segment& portal = portals[i];
@@ -300,7 +300,7 @@ namespace ECM {
 			}
 
 			// end portal
-			int last;
+			int last = portals.size() - 1;
 			for (int i = portals.size() - 1; i >= 0; i--)
 			{
 				const Segment& portal = portals[i];
