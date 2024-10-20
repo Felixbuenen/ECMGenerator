@@ -86,7 +86,7 @@ namespace ECM {
 			bool RandomizedLP(int nConstraints, const std::vector<Constraint>& constraints, const Vec2& prefVel, const float maxSpeed, Vec2& outVelocity) const; // given a set of half planes and the preferredVelocity, solve the LP
 		
 		private:
-			float m_lookAhead = 3.0f;
+			float m_lookAhead = 1.0f;
 
 		};
 

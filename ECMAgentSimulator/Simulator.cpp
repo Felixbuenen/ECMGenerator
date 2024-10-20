@@ -139,7 +139,7 @@ namespace ECM {
 			m_ActiveAgents[idx] = true;
 
 			// plan path
-			const float preferredAddClearance = 10.0f;
+			const float preferredAddClearance = 10.0f; // DEBUG
 			PathPlanning::Corridor dummy;
 			std::vector<Segment> portal;
 			PathPlanning::Path path;
@@ -368,8 +368,11 @@ namespace ECM {
 				else
 				{
 					// TODO: futurePosition should not be dependent on currentVelocity
+					//       instead, apply lookahead on the path, e.g. path(0) = start and path(1) = end.
+					//       MIRAN method could work (only look at subset of path to avoid shortcuts.
 					Point futurePosition = currentPosition + currentVelocity * attractionLookAheadMultiplier;
 					float closestPoint = Utility::MAX_FLOAT;
+
 					// calculate attraction point
 					std::vector<Point> points;
 					for (int j = 0; j < path.numPoints - 1; j++)
@@ -522,7 +525,7 @@ namespace ECM {
 		void Simulator::ApplyObstacleAvoidanceForce(float dt)
 		{
 			// todo: make global
-			const float speed = 30.0f;
+			const float speed = 20.0f;
 			const int numRVONeighbors = 20;
 
 			for (int i = 0; i <= m_LastEntityIdx; i++)

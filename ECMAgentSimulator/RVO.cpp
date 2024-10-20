@@ -8,13 +8,6 @@
 
 namespace ECM {
 
-	// ----------------
-	// TODO 2024-09-03:
-	// - first tests with ORCA done. asin(radius/posLength) returns > 1.0f, which means that 
-	// - next step: test ORCA with dynamic obstacles only!
-	// - next next step: add static obstacle avoidance
-	// ----------------
-
 	namespace Simulation {
 
 		void RVO::GetRVOVelocity(Simulator* simulator, const Entity& entity, float stepSize, float maxSpeed, int nNeighbors, Vec2& outVelocity)
@@ -35,12 +28,9 @@ namespace ECM {
 		}
 
 		/*
-		* TODO (2024-10-07):
-		* - Belangrijk om te kijken naar timeStep (delta simulatie tijd) en timeHorizon. TimeHorizon fungeert als een lookahead.
-		* - Nu zijn agents namelijk iedere keer te laat, aka ze gaan door elkaar heen. Of ze worden niet snel genoeg of niet sterk genoeg gecorrigeerd.
-		* - LookAhead kan het oplossen. Daarnaast moet ik nog een keer goed kijken of de juiste parameters (lookahead, timestep, dt..) gebruikt worden.. wordt
-		*    de agent wel voldoende geupdatet? of is de update te zwak, waardoor agents alsnog op elkaar af gaan?
-		* - OOK handig om bij spawn agents te testen of agents niet in het begin al overlappen, anders werkt orca ook niet
+		* TODO (2024-10-24)
+		* - check the usage of simstepTime and lookahead. It looks like agents are not fast enough with collision avoidance.
+		* - add 2D linear programming in case of unsolvable LP's.
 		*/
 		void RVO::GenerateConstraints(Simulator* simulator, const Entity& entity, const std::vector<Entity>& neighbors, float stepSize, int& outNConstraints, std::vector<Constraint>& outConstraints)
 		{
@@ -87,13 +77,11 @@ namespace ECM {
 					continue;
 				}
 
-				const Vec2& leftPerpendicular = Utility::MathUtility::Left(VOPos) / VOPosLength;
-
 				// calculate left and right leg of the VO. These legs are tangent to the VO circle. We can calculate the angle (relative to VOPos) using basic trigonometry.
 				float tanAngleFactor = VORadius / VOPosLength;
-				float tanAngle = asinf(tanAngleFactor);
-				Vec2 VOLeftLeg = Utility::MathUtility::RotateVector(VOPos, tanAngle); // note: positive angle is anti-clockwise rotation
-				Vec2 VORightLeg = Utility::MathUtility::RotateVector(VOPos, -tanAngle);
+				float tanHalfAngle = atan(tanAngleFactor);
+				Vec2 VOLeftLeg = Utility::MathUtility::RotateVector(VOPos, tanHalfAngle); // note: positive angle is anti-clockwise rotation
+				Vec2 VORightLeg = Utility::MathUtility::RotateVector(VOPos, -tanHalfAngle);
 
 				// Rel velocity (RelVel) ligt in VO wanneer:
 				// 1. RelVel tussen de twee legs ligt
@@ -104,11 +92,6 @@ namespace ECM {
 				// if not, than the rel velocity only lies in the VO if it lies above the VO circle position
 				float sqDistFromCircleCentre = Utility::MathUtility::SquareDistance(VOPos, relVel);
 				bool liesBelowCircleMiddle = Utility::MathUtility::IsLeftOfVector(VOLeftLeg - VOPos, relVel - VOPos);
-
-				// --------
-				// At this point we know the point lies within the VO.
-				// Now we calculate the constraint that is imposed by this VO.
-				// --------
 
 				if (liesBelowCircleMiddle)
 				{
@@ -125,6 +108,8 @@ namespace ECM {
 				}
 				else
 				{
+					const Vec2& leftPerpendicular = Utility::MathUtility::Left(VOPos) / VOPosLength;
+
 					// find closest point to the VO edges. First determine whether RelVel lies closer to the left or right VO leg.
 					bool closerToLeftLeg = Utility::MathUtility::Dot(leftPerpendicular, relVel) >= 0;
 					if (closerToLeftLeg)
@@ -167,8 +152,7 @@ namespace ECM {
 
 			if (nConstraints == 0) return true;
 
-			std::cout << std::endl;
-			std::cout << "starting LP for prefVel = (" << prefVel.x << ", " << prefVel.y << "). " << nConstraints << " constraints." << std::endl;
+			//std::cout << "starting LP for prefVel = (" << prefVel.x << ", " << prefVel.y << "). " << nConstraints << " constraints." << std::endl;
 
 			for (int i = 0; i < nConstraints; i++)
 			{
@@ -176,7 +160,6 @@ namespace ECM {
 				// if current solution satisfies this constraint, we don't need to do anything
 				if (h.Contains(outVelocity))
 				{
-					std::cout << "constraint " << i << " satisfied. Continuing..." << std::endl;
 					continue;
 				}
 
@@ -218,7 +201,7 @@ namespace ECM {
 				if (h.IsVertical())
 				{
 					// in case of a vertical line, we only need to know whether the vertical line crosses or touches the circle
-					// we don't calculate a discriminant, but rather encode the number of intersections (-1 = no inersections, 1 = two intersections, 0 = one intersection).
+					// we don't calculate a discriminant, but rather encode the number of intersections (<0 = no inersections, >0 = two intersections, ==0 = one intersection).
 
 					discriminant = (maxSpeed - abs(h.XIntercept()));
 				}
@@ -237,7 +220,7 @@ namespace ECM {
 					if (Utility::MathUtility::Dot(vecToCircle, h.Normal()) > 0.0f) continue;
 
 					// option 2: M is not contained in h. We must return an error.
-					std::cout << "Could not find RVO solution!" << std::endl;
+					std::cout << "M is not contained in h. Could not find RVO solution!" << std::endl;
 					return false;
 				}
 
@@ -283,7 +266,7 @@ namespace ECM {
 				// CASE 3: two intersections
 				else if (discriminant > 0.0f)
 				{
-					std::cout << "CASE 3: two intersections" << std::endl;
+					//std::cout << "CASE 3: two intersections" << std::endl;
 
 					// calculate Left and Right: the x-coordinates of the left-most and right-most point of the feasible region.
 					// this is determined by the two intersection points between h and M
@@ -378,7 +361,7 @@ namespace ECM {
 				}
 			}
 
-			std::cout << "ended with velocity (" << outVelocity.x << ", " << outVelocity.y << ")" << std::endl;
+			//std::cout << "ended with velocity (" << outVelocity.x << ", " << outVelocity.y << ")" << std::endl;
 
 
 			return true;

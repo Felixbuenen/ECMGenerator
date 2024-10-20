@@ -40,7 +40,7 @@ int main()
 	nPreferredVelocities[0].dx = 4;
 	nPreferredVelocities[0].dy = 0;
 	nClearances[0].clearance = 1;
-	
+
 	std::vector<Constraint> outConstraints(1);
 
 	RVO rvo;
@@ -88,8 +88,8 @@ int main()
 
 
 	// CIRCLE AGENTS
-	const int N = 10;
-	const float R = 200.0f;
+	const int N = 5;
+	const float R = 150.0f;
 	const float PI = 3.14159265358979323846;
 	float angleStep = 2 * PI / N; // Hoek tussen opeenvolgende punten
 	for (int i = 0; i < N; ++i) {
@@ -99,14 +99,20 @@ int main()
 	
 		sim.SpawnAgent(Point(x, y), Point(-x, -y), 10, 20);
 	}
-	
-	
+
+
 	//sim.SpawnAgent(Point(0, 400), Point(0, 200), 10, 30);
 	//sim.SpawnAgent(Point(0, 200), Point(0, 400), 10, 30);
 	//sim.SpawnAgent(Point(-100, 300), Point(100, 300), 10, 30);
-	
+
 	//sim.SpawnAgent(Point(-100, 280), Point(100, 300), 10, 30);
 	//sim.SpawnAgent(Point(-100, 340), Point(100, 280), 10, 30);
+
+	//for (int i = 0; i < 20; i++)
+	//{
+	//	sim.SpawnAgent(Point(-100 + 50 * i, 200), Point(-100 + 50 * i, -200), 10, 30);
+	//	sim.SpawnAgent(Point(-100 + 50 * i, -200), Point(-100 + 50 * i, 200), 10, 30);
+	//}
 
 	// TODO:
 	// 1. encapsulate this in SpawnArea and GoalArea

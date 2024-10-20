@@ -738,7 +738,9 @@ namespace ECM {
 				rect.h = size * 2;
 				
 				SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 255);
-				SDL_RenderFillRect(m_Renderer, &rect);
+				//SDL_RenderFillRect(m_Renderer, &rect);
+
+				DrawCircle(m_Renderer, x, y, clearance.clearance * m_CamZoomFactor);
 
 				//SDL_SetRenderDrawColor(m_Renderer, 255, 0, 0, 255);
 				//SDL_RenderDrawLineF(m_Renderer, x, y, vx, vy);
