@@ -19,7 +19,7 @@ namespace ECM {
 		{
 		}
 
-		bool ECMPathPlanner::GetPath(const Environment& environment, Point start, Point goal, float clearance, float preferredAdditionalClearance, Corridor& outCorridor, std::vector<Segment>& outPortals, Path& outPath)
+		bool ECMPathPlanner::FindPath(const Environment& environment, Point start, Point goal, float clearance, float preferredAdditionalClearance, Corridor& outCorridor, std::vector<Segment>& outPortals, Path& outPath)
 		{
 			clearance += preferredAdditionalClearance;
 			

@@ -143,7 +143,7 @@ namespace ECM {
 			PathPlanning::Corridor dummy;
 			std::vector<Segment> portal;
 			PathPlanning::Path path;
-			m_Planner->GetPath(*m_Environment, start, goal, clearance, preferredAddClearance, dummy, portal, path);
+			m_Planner->FindPath(*m_Environment, start, goal, clearance, preferredAddClearance, dummy, portal, path);
 			PathComponent& pComponent = m_Paths[idx];
 			pComponent.x = new float[(int)path.size()];
 			pComponent.y = new float[(int)path.size()];

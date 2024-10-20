@@ -52,7 +52,7 @@ namespace ECM
 			~ECMPathPlanner();
 
 			// standard path query
-			bool GetPath(const Environment& environment, Point start, Point goal, float clearance, float preferredClearance, Corridor& outCorridor, std::vector<Segment>& outPortals, Path& outPath);
+			bool FindPath(const Environment& environment, Point start, Point goal, float clearance, float preferredClearance, Corridor& outCorridor, std::vector<Segment>& outPortals, Path& outPath);
 
 		private:
 			bool ValidStartGoalLocation(const Point& start, const Point& goal, const ECMEdge& startEdge, const ECMEdge& goalEdge, float clearance) const;
