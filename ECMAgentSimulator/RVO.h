@@ -31,7 +31,7 @@ namespace ECM {
 				m_N = normal;
 				m_PointOnLine = pointOnLine;
 
-				m_isVertical = (normal.y < Utility::EPSILON) && (normal.y > -Utility::EPSILON);
+				m_isVertical = fabs(normal.y) < Utility::EPSILON;
 
 				// check if the line is vertical
 				if (m_isVertical)
@@ -48,7 +48,15 @@ namespace ECM {
 
 			bool Contains(const Point& p) const
 			{
-				return Utility::MathUtility::Dot(m_N, (p - m_PointOnLine)) >= 0;
+				bool methodA = Utility::MathUtility::Dot(m_N, (p - m_PointOnLine)) >= 0;
+				bool methodB = Utility::MathUtility::Determinant(Utility::MathUtility::Right(Normal()), PointOnLine() - p) <= 0.0f;
+				
+				if (methodA != methodB)
+				{
+					int pause = 1;
+				}
+
+				return methodB;
 			}
 
 			void SetNormal(const Vec2& normal) { m_N = normal; }
@@ -80,13 +88,14 @@ namespace ECM {
 
 			// get the RVO velocities based on the given simulator object
 			void GetRVOVelocity(Simulator* simulator, const Entity& entity, float stepSize, float maxSpeed, int nNeighbors, Vec2& outVelocity);
+			void RandomizedLP3D(int nConstraints, const std::vector<Constraint>& constraints, const float maxSpeed, int failedIndex, Vec2& outVelocity) const;
+			int RandomizedLP(int nConstraints, const std::vector<Constraint>& constraints, const Vec2& optVelocity, const float maxSpeed, bool useDirOpt, Vec2& outVelocity) const; // given a set of half planes and the preferredVelocity, solve the LP
 
 		private:
 			void GenerateConstraints(Simulator* simulator, const Entity& entity, const std::vector<Entity>& neighbors, float stepSize, int& outNConstraints, std::vector<Constraint>& outConstraints);
-			bool RandomizedLP(int nConstraints, const std::vector<Constraint>& constraints, const Vec2& prefVel, const float maxSpeed, Vec2& outVelocity) const; // given a set of half planes and the preferredVelocity, solve the LP
-		
+
 		private:
-			float m_lookAhead = 1.0f;
+			float m_lookAhead = 10.0f;
 
 		};
 
