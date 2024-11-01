@@ -695,13 +695,13 @@ namespace ECM {
 
 		void ECMRenderer::DrawAgents()
 		{
-			SDL_Rect rect;
-			rect.x = -5;
-			rect.y = -5;
-			rect.w = 5;
-			rect.h = 5;
-			SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 255);
-			SDL_RenderFillRect(m_Renderer, &rect);
+			//SDL_Rect rect;
+			//rect.x = -5;
+			//rect.y = -5;
+			//rect.w = 5;
+			//rect.h = 5;
+			//SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 255);
+			//SDL_RenderFillRect(m_Renderer, &rect);
 
 			int lastIdx = m_AppState->simulator->GetLastIndex();
 			const auto positions = m_AppState->simulator->GetPositionData();
@@ -718,26 +718,26 @@ namespace ECM {
 				const auto& pos = positions[i];
 				const auto& vel = velocities[i];
 				const auto& clearance = clearances[i];
-
+				
 				float x = pos.x * m_CamZoomFactor + m_CamOffsetX;
 				float y = pos.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
-				
-				float vx = (pos.x + vel.dx) * m_CamZoomFactor + m_CamOffsetX;
-				float vy = (pos.y + vel.dy) * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
-
-				float size = (clearance.clearance / recip) * m_CamZoomFactor;
-				//float size = clearance.clearance * 2;
-
+				//
+				//float vx = (pos.x + vel.dx) * m_CamZoomFactor + m_CamOffsetX;
+				//float vy = (pos.y + vel.dy) * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+				//
+				//float size = (clearance.clearance / recip) * m_CamZoomFactor;
+				////float size = clearance.clearance * 2;
+				//
+				////SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 255);
+				////DrawCircle(m_Renderer, x, y, clearance.clearance);
+				//
+				//SDL_Rect rect;
+				//rect.x = x - size;
+				//rect.y = y - size;
+				//rect.w = size * 2;
+				//rect.h = size * 2;
+				//
 				//SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 255);
-				//DrawCircle(m_Renderer, x, y, clearance.clearance);
-
-				SDL_Rect rect;
-				rect.x = x - size;
-				rect.y = y - size;
-				rect.w = size * 2;
-				rect.h = size * 2;
-				
-				SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 255);
 				//SDL_RenderFillRect(m_Renderer, &rect);
 
 				DrawCircle(m_Renderer, x, y, clearance.clearance * m_CamZoomFactor);

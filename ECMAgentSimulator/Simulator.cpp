@@ -139,7 +139,7 @@ namespace ECM {
 			m_ActiveAgents[idx] = true;
 
 			// plan path
-			const float preferredAddClearance = 10.0f; // DEBUG
+			const float preferredAddClearance = 0.0f; // DEBUG
 			PathPlanning::Corridor dummy;
 			std::vector<Segment> portal;
 			PathPlanning::Path path;
@@ -159,8 +159,11 @@ namespace ECM {
 			Vec2 dir = Point(pComponent.x[1], pComponent.y[1]) - Point(pComponent.x[0], pComponent.y[0]);
 			dir.Normalize();
 			
-			m_Velocities[idx].dx = dir.x;
-			m_Velocities[idx].dy = dir.y;
+			m_PreferredVelocities[idx].dx = dir.x;
+			m_PreferredVelocities[idx].dy = dir.y;
+
+			m_Velocities[idx].dx = 0.0f;
+			m_Velocities[idx].dy = 1.0f;
 
 			return idx;
 		}
@@ -233,11 +236,12 @@ namespace ECM {
 
 			// we update the simulation every fixed time interval (commonly every 100ms)
 			// we divide the simstep time by the speedscale in order to maintain the same simulation accuracy for different playback speeds
-			if (m_CurrentStepDuration >= (m_SimStepTime / m_SpeedScale))
-			{
-				UpdateVelocitySystem(dt);
-				m_CurrentStepDuration -= m_SimStepTime;
-			}
+			//if (m_CurrentStepDuration >= (m_SimStepTime / m_SpeedScale))
+			//{
+			//	UpdateVelocitySystem(dt);
+			//	m_CurrentStepDuration -= m_SimStepTime;
+			//}
+			UpdateVelocitySystem(dt);
 
 			UpdatePositionSystem(dt);
 		}
@@ -338,6 +342,34 @@ namespace ECM {
 			const float arrivalRadius = 50.0f;
 			const float attractionLookAheadMultiplier = 2.5f;
 
+			// ---------------- DEBUG
+			for (int i = 0; i <= m_LastEntityIdx; i++)
+			{
+				if (!m_ActiveAgents[i]) continue;
+
+				const Entity& e = m_Entities[i];
+				PathComponent& path = m_Paths[e];
+				const PositionComponent& pos = m_Positions[e];
+
+				m_AttractionPoints[e].x = path.x[path.numPoints - 1];
+				m_AttractionPoints[e].y = path.y[path.numPoints - 1];
+
+				float distFromArrival = Utility::MathUtility::Distance(pos.x, pos.y, path.x[path.numPoints - 1], path.y[path.numPoints - 1]);
+
+				if (distFromArrival < arrivalRadius)
+				{
+					m_AttractionPoints[e].x = path.x[path.numPoints - 1];
+					m_AttractionPoints[e].y = path.y[path.numPoints - 1];
+
+					if (distFromArrival < deleteDistance) {
+						DestroyAgent(e);
+					}
+				}
+			}
+
+			return;
+			// ---------------- DEBUG
+
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
 				if (!m_ActiveAgents[i]) continue;
@@ -375,7 +407,7 @@ namespace ECM {
 
 					// calculate attraction point
 					std::vector<Point> points;
-					for (int j = 0; j < path.numPoints - 1; j++)
+					for (int j = path.currentIndex; j < path.numPoints - 1; j++)
 					{
 						Point p = Utility::MathUtility::GetClosestPointOnSegment(futurePosition, Segment(path.x[j], path.y[j], path.x[j + 1], path.y[j + 1]));
 						float dist = Utility::MathUtility::Distance(futurePosition, p);
@@ -406,8 +438,15 @@ namespace ECM {
 				PositionComponent& pos = m_Positions[e];
 
 
-				pos.x += vel.dx * dt;
-				pos.y += vel.dy * dt;
+				//pos.x += vel.dx * dt;
+				//pos.y += vel.dy * dt;
+				pos.x += vel.dx * m_SimStepTime;
+				pos.y += vel.dy * m_SimStepTime;
+
+				if (i == 0)
+				{
+					std::cout << "(" << vel.dx << ", " << vel.dy << ")" << std::endl;
+				}
 			}
 		}
 
@@ -433,10 +472,9 @@ namespace ECM {
 
 			UpdateAttractionPointSystem();
 			ApplySteeringForce();
-			//TODO
-			// - where does boundary force occur? how does it work with ORCA?
-			//ApplyBoundaryForce();
 			ApplyObstacleAvoidanceForce(dt);
+
+			//ApplyBoundaryForce();
 			// TODO
 			// apply arrival force
 
@@ -498,7 +536,8 @@ namespace ECM {
 			// start by batch calculating steering force
 			// if possible, try batch calculating attraction points first, then apply steering force
 
-			const float speed = 30.0f;
+			// TODO: make global..
+			const float speed = 1.0f;
 
 			// force weights
 			const float pathFollowSteeringWeight = 1.0f;
@@ -519,7 +558,7 @@ namespace ECM {
 				//Vec2 steering = (desiredVelocity - currentVelocity) * pathFollowSteeringWeight;
 				m_PreferredVelocities[e].dx = desiredVelocity.x;
 				m_PreferredVelocities[e].dy = desiredVelocity.y;
-			}
+			}			
 		}
 
 		void Simulator::ApplyObstacleAvoidanceForce(float dt)

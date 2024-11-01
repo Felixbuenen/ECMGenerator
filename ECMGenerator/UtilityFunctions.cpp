@@ -116,6 +116,12 @@ namespace ECM {
 			return x0 * x1 + y0 * y1;
 		}
 
+		float MathUtility::Determinant(const Vec2 & v1, const Vec2 & v2)
+		{
+			return v1.x * v2.y - v1.y * v2.x;
+		}
+
+
 		float MathUtility::Cross(const Vec2& v1, const Vec2& v2)
 		{
 			return v1.x * v2.y - v1.y * v2.x;

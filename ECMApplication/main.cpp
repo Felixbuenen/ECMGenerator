@@ -83,12 +83,12 @@ int main()
 	Environment env;
 	env.Initialize(Environment::TestEnvironment::EMPTY);
 	ECMPathPlanner planner(env.GetECM()->GetECMGraph());
-	Simulator sim(env.GetECM(), &planner, &env, 20, 0.1f);
+	Simulator sim(env.GetECM(), &planner, &env, 20, 0.25f);
 	sim.Initialize();
 
 
 	// CIRCLE AGENTS
-	const int N = 5;
+	const int N = 15;
 	const float R = 150.0f;
 	const float PI = 3.14159265358979323846;
 	float angleStep = 2 * PI / N; // Hoek tussen opeenvolgende punten
@@ -97,10 +97,42 @@ int main()
 		float x = R * cos(theta + 0.5f) + 1.0f;
 		float y = R * sin(theta + 0.5f) + 1.0f;
 	
-		sim.SpawnAgent(Point(x, y), Point(-x, -y), 10, 20);
+		//if (i == 5) x += 10.0f;
+
+		sim.SpawnAgent(Point(x, y), Point(-x, -y), 10, 2);
 	}
 
+	//RVO rvo;
+	
+	//Constraint c;
+	//c.Init(Point(9.64906502f, 5.27687311f), Point(0.877230167f, 0.480070025f));
+	//std::vector<Constraint> constraints;
+	//constraints.push_back(c);
+	//Vec2 testResult(-0.87569201f, -0.482870013f);
+	//rvo.RandomizedLP3D(1, constraints, 2, 0, testResult);
+	
+	//Constraint c1;
+	//Constraint c2;
+	//Constraint c3;
+	//Vec2 n1 = Utility::MathUtility::Left(Vec2(0.600814700, -0.799388230));
+	//Vec2 n2 = Utility::MathUtility::Left(Vec2(-0.584312618, -0.811528683));
+	//Vec2 n3 = Utility::MathUtility::Left(Vec2(0.968583643, -0.248688012));
+	//Vec2 p1 = Vec2(-3.81258988, 5.18064976);
+	//Vec2 p2 = Vec2(1.89454556, -0.667740703);
+	//Vec2 p3 = Vec2(0.525458097, -4.39200497);
+	//std::vector<Constraint> constraints;
+	//
+	//c1.Init(p1, n1);
+	//c2.Init(p2, n2);
+	//c3.Init(p3, n3);
+	//constraints.push_back(c1);
+	//constraints.push_back(c2);
+	//constraints.push_back(c3);
+	//Vec2 result(1.22587729, -1.52306712);
+	//
+	//int error = rvo.RandomizedLP(3, constraints, Vec2(5,5), 20.0f, false, result);
 
+	int stop = 0;
 	//sim.SpawnAgent(Point(0, 400), Point(0, 200), 10, 30);
 	//sim.SpawnAgent(Point(0, 200), Point(0, 400), 10, 30);
 	//sim.SpawnAgent(Point(-100, 300), Point(100, 300), 10, 30);
@@ -111,7 +143,7 @@ int main()
 	//for (int i = 0; i < 20; i++)
 	//{
 	//	sim.SpawnAgent(Point(-100 + 50 * i, 200), Point(-100 + 50 * i, -200), 10, 30);
-	//	sim.SpawnAgent(Point(-100 + 50 * i, -200), Point(-100 + 50 * i, 200), 10, 30);
+	//	sim.SpawnAgent(Point(-100 + 55 * i, -200), Point(-100 + 55 * i, 200), 10, 30);
 	//}
 
 	// TODO:
