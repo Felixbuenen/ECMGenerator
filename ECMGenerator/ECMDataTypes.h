@@ -147,6 +147,7 @@ namespace ECM {
 		}
 	};
 
+	// TODO: currently there are many duplicate points.. consider storing indices of (obstacle) vertices
 	struct Segment {
 		Point p0;
 		Point p1;
@@ -155,7 +156,13 @@ namespace ECM {
 		Segment(Point point0, Point point1) : p0(point0), p1(point1) {}
 	};
 
+	struct Obstacle {
+		Point p;
+		Obstacle* prevObstacle;
+		Obstacle* nextObstacle;
 
+		bool isConvex;
+	};
 
 	struct BBOX {
 		Point min;

@@ -4,6 +4,8 @@
 #include "ECM.h"
 #include "ECMGenerator.h"
 
+#include <iostream>
+
 namespace ECM {
 
 	void Environment::Initialize(TestEnvironment type)
@@ -132,17 +134,68 @@ namespace ECM {
 
 	void Environment::AddWalkableArea(std::vector<Segment> waEdges)
 	{
-		_walkableArea = waEdges;
+		m_WalkableArea = waEdges;
 
-		for (Segment s : waEdges) _environmentObstacleUnion.push_back(s);
+		for (const Segment& s : waEdges) m_EnvironmentObstacleUnion.push_back(s);
 
 		UpdateBbox(waEdges);
 	}
 
 	void Environment::AddObstacle(std::vector<Segment> obstacleEdges)
 	{
-		_obstacles.push_back(obstacleEdges);
-		for (Segment s : obstacleEdges) _environmentObstacleUnion.push_back(s);
+		// we don't allow edge obstacles in our simulation
+		if (obstacleEdges.size() < 3)
+		{
+			std::cout << "ERROR: obstacles must have size of at least 3" << std::endl;
+			return;
+		}
+
+		int obstacleSize = obstacleEdges.size();
+
+		// add segments to obstacle union
+		for (int i = 0; i < obstacleSize; i++)
+		{
+			m_EnvironmentObstacleUnion.push_back(obstacleEdges[i]);
+		}
+
+		// all obstacles
+		int currentSize = m_Obstacles.size();
+		for (int i = 0; i < obstacleSize; i++)
+		{
+			Obstacle obstacle;
+			Segment& s1 = obstacleEdges[i];
+
+			obstacle.p = s1.p0;
+			m_Obstacles.push_back(obstacle);
+		}
+
+		// all neighboring obstacles + calculate if convex
+		for (int i = 0; i < obstacleSize; i++)
+		{
+			Obstacle& obstacle = m_Obstacles[currentSize + i];
+
+			if (i == 0)
+			{
+				obstacle.prevObstacle = &m_Obstacles[currentSize + obstacleSize - 1];
+				obstacle.nextObstacle = &m_Obstacles[currentSize + 1];
+			}
+			else
+			{
+				obstacle.prevObstacle = &m_Obstacles[currentSize + i - 1];
+				obstacle.nextObstacle = &m_Obstacles[currentSize + ((i + 1) % obstacleSize)];
+			}
+
+			// calculate if convex
+			float areaSum = 0;
+
+			areaSum += obstacle.prevObstacle->p.x * (obstacle.nextObstacle->p.y - obstacle.p.y);
+			areaSum += obstacle.p.x * (obstacle.prevObstacle->p.y - obstacle.nextObstacle->p.y);
+			areaSum += obstacle.nextObstacle->p.x * (obstacle.p.y - obstacle.prevObstacle->p.y);
+
+			obstacle.isConvex = areaSum < 0.0f;
+		}
+
+		m_ObstaclesDeprecated.push_back(obstacleEdges);
 
 		UpdateBbox(obstacleEdges);
 	}
@@ -158,24 +211,25 @@ namespace ECM {
 		for (const Segment& edge : newEdges)
 		{
 			// update min values
-			if (edge.p0.x < _bbox.min.x) _bbox.min.x = edge.p0.x;
-			if (edge.p0.y < _bbox.min.y) _bbox.min.y = edge.p0.y;
-			if (edge.p1.x < _bbox.min.x) _bbox.min.x = edge.p1.x;
-			if (edge.p1.y < _bbox.min.y) _bbox.min.y = edge.p1.y;
+			if (edge.p0.x < m_Bbox.min.x) m_Bbox.min.x = edge.p0.x;
+			if (edge.p0.y < m_Bbox.min.y) m_Bbox.min.y = edge.p0.y;
+			if (edge.p1.x < m_Bbox.min.x) m_Bbox.min.x = edge.p1.x;
+			if (edge.p1.y < m_Bbox.min.y) m_Bbox.min.y = edge.p1.y;
 
 			// update max values
-			if (edge.p0.x > _bbox.max.x) _bbox.max.x = edge.p0.x;
-			if (edge.p0.y > _bbox.max.y) _bbox.max.y = edge.p0.y;
-			if (edge.p1.x > _bbox.max.x) _bbox.max.x = edge.p1.x;
-			if (edge.p1.y > _bbox.max.y) _bbox.max.y = edge.p1.y;
+			if (edge.p0.x > m_Bbox.max.x) m_Bbox.max.x = edge.p0.x;
+			if (edge.p0.y > m_Bbox.max.y) m_Bbox.max.y = edge.p0.y;
+			if (edge.p1.x > m_Bbox.max.x) m_Bbox.max.x = edge.p1.x;
+			if (edge.p1.y > m_Bbox.max.y) m_Bbox.max.y = edge.p1.y;
 		}
 	}
 
+	// TODO: change to new m_Obstacle structure
 	bool Environment::InsideObstacle(const Point& p) const
 	{
 		// todo: something clever with kd-tree
 
-		for (const auto& obs : _obstacles)
+		for (const auto& obs : m_ObstaclesDeprecated)
 		{
 			if (obs.size() == 1) continue; // not a polygon
 

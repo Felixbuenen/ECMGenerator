@@ -163,7 +163,7 @@ namespace ECM {
 			m_PreferredVelocities[idx].dy = dir.y;
 
 			m_Velocities[idx].dx = 0.0f;
-			m_Velocities[idx].dy = 1.0f;
+			m_Velocities[idx].dy = 0.0f;
 
 			return idx;
 		}
@@ -202,9 +202,37 @@ namespace ECM {
 			for (int i = 0; i < n && i < distances.size(); ++i) {
 				outNeighbors.push_back(std::get<1>(distances[i]));
 			}
-
-			int test = 0;
 		}
+
+		void Simulator::FindNearestObstacles(const Entity& agent, float rangeSquared, std::vector<const Obstacle*>& outObstacles) const
+		{
+			// TODO: use KD tree
+			// for now do a brute force method
+
+			std::vector<std::tuple<float, int>> distances;
+			Point agentPos(m_Positions[agent].x, m_Positions[agent].y);
+
+			const std::vector<Obstacle>& obstacles = GetEnvironment()->GetObstacles();
+
+			for (int i = 0; i < obstacles.size(); i++)
+			{
+				const Obstacle* obst = &obstacles[i];
+				const Obstacle* obstNext = obstacles[i].nextObstacle
+					;
+				float signedLeftDist = Utility::MathUtility::LineLeftDistance(obst->p, obstNext->p, agentPos);
+				float sqDist = std::powf(signedLeftDist, 2.0f) / Utility::MathUtility::SquareDistance(obst->p, obstNext->p);
+
+				if (sqDist < rangeSquared) {
+					// if signedLeftDist < 0.0f, then the agent is right of the obstacle segment and therefor "in front of" the obstacle. This means we want
+					//  to test against this obstacle. If it would be left of the obstacle, the agent would be behind the obstacle and we don't take it into
+					//  consideration.
+					if (signedLeftDist < 0.0f) {
+						outObstacles.push_back(obst); // TODO: optimize...
+					}
+				}
+			}
+		}
+
 
 		bool Simulator::ValidSpawnLocation(const Point& location, float clearance) const
 		{
@@ -241,8 +269,8 @@ namespace ECM {
 			//	UpdateVelocitySystem(dt);
 			//	m_CurrentStepDuration -= m_SimStepTime;
 			//}
-			UpdateVelocitySystem(dt);
 
+			UpdateVelocitySystem(dt);
 			UpdatePositionSystem(dt);
 		}
 
@@ -342,34 +370,6 @@ namespace ECM {
 			const float arrivalRadius = 50.0f;
 			const float attractionLookAheadMultiplier = 2.5f;
 
-			// ---------------- DEBUG
-			for (int i = 0; i <= m_LastEntityIdx; i++)
-			{
-				if (!m_ActiveAgents[i]) continue;
-
-				const Entity& e = m_Entities[i];
-				PathComponent& path = m_Paths[e];
-				const PositionComponent& pos = m_Positions[e];
-
-				m_AttractionPoints[e].x = path.x[path.numPoints - 1];
-				m_AttractionPoints[e].y = path.y[path.numPoints - 1];
-
-				float distFromArrival = Utility::MathUtility::Distance(pos.x, pos.y, path.x[path.numPoints - 1], path.y[path.numPoints - 1]);
-
-				if (distFromArrival < arrivalRadius)
-				{
-					m_AttractionPoints[e].x = path.x[path.numPoints - 1];
-					m_AttractionPoints[e].y = path.y[path.numPoints - 1];
-
-					if (distFromArrival < deleteDistance) {
-						DestroyAgent(e);
-					}
-				}
-			}
-
-			return;
-			// ---------------- DEBUG
-
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
 				if (!m_ActiveAgents[i]) continue;
@@ -385,7 +385,7 @@ namespace ECM {
 				float arrivalMultiplier = 1.0f;
 
 				Point currentPosition(pos.x, pos.y);
-				Vec2 currentVelocity(m_Velocities[e].dx, m_Velocities[e].dy);
+				//Vec2 currentVelocity(m_Velocities[e].dx, m_Velocities[e].dy);
 
 				if (distFromArrival < arrivalRadius)
 				{

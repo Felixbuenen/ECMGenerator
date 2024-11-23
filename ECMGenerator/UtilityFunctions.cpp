@@ -3,6 +3,10 @@
 
 #include <cmath>
 
+// TODO:
+// remove class definition. simplify by making defining methods without class.
+
+
 namespace ECM {
 	namespace Utility {
 
@@ -40,6 +44,11 @@ namespace ECM {
 			float diffY = y0 - y1;
 
 			return diffX * diffX + diffY * diffY;
+		}
+
+		float MathUtility::LineLeftDistance(const Point& v1, const Point& v2, const Point& p1)
+		{
+			return MathUtility::Determinant(v1 - p1, v2 - v1);
 		}
 
 		bool MathUtility::Contains(const Point& p, const std::vector<Segment>& polygon)

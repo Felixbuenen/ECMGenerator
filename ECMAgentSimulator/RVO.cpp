@@ -12,55 +12,320 @@ namespace ECM {
 
 		void RVO::GetRVOVelocity(Simulator* simulator, const Entity& entity, float stepSize, float maxSpeed, int nNeighbors, Vec2& outVelocity)
 		{
-			std::vector<Entity> neighbors;
-			simulator->FindNNearestNeighbors(entity, nNeighbors, neighbors);
+			// agent neighbors
+			std::vector<Entity> agentNeighbors;
+			simulator->FindNNearestNeighbors(entity, nNeighbors, agentNeighbors);
 
-			std::vector<Constraint> constraints(neighbors.size());
-			int nConstraints;
-			GenerateConstraints(simulator, entity, neighbors, stepSize, nConstraints, constraints);
+			// static obstacle neighbors
+			std::vector<const Obstacle*> obstNeighbors;
+			float range = m_lookAheadObstacle * maxSpeed * simulator->GetClearanceData()[entity].clearance;
+			simulator->FindNearestObstacles(entity, range * range, obstNeighbors);
+
+			// generate constraints
+			std::vector<Constraint> constraints;
+			int nObstConstraints;
+			GenerateConstraints(simulator, entity, agentNeighbors, obstNeighbors, stepSize, nObstConstraints, constraints);
 
 			const VelocityComponent& prefVelComp = simulator->GetPreferredVelocityData()[entity];
 			Vec2 prefVel(prefVelComp.dx, prefVelComp.dy);
 
-			int failedIndex = RandomizedLP(nConstraints, constraints, prefVel, maxSpeed, false, outVelocity);
-			if (failedIndex < nConstraints)
+			// use constraints and LP to calculate new velocity
+			int failedIndex = RandomizedLP(constraints, prefVel, maxSpeed, false, outVelocity);
+			if (failedIndex < constraints.size())
 			{
-				RandomizedLP3D(nConstraints, constraints, maxSpeed, failedIndex, outVelocity);
+				RandomizedLP3D(nObstConstraints, constraints, maxSpeed, failedIndex, outVelocity);
 			}
 		}
 
-
-
 		/*
-		* TODO (2024-10-24)
-		* - check the usage of simstepTime and lookahead. It looks like agents are not fast enough with collision avoidance.
+		* TODO (2024-11-10)
 		* - add static obstacle constraints
 		*/
 		// generates the ORCA constraints
-		void RVO::GenerateConstraints(Simulator* simulator, const Entity& entity, const std::vector<Entity>& neighbors, float stepSize, int& outNConstraints, std::vector<Constraint>& outConstraints)
+		void RVO::GenerateConstraints(Simulator* simulator, const Entity& entity, const std::vector<Entity>& agentNeighbors, const std::vector<const Obstacle*>& obstNeighbors, float stepSize, int& outNObstacleConstraints, std::vector<Constraint>& outConstraints)
 		{
-			int nNeighbors = neighbors.size();
-			int counter = 0;
-
-			const PositionComponent& position = simulator->GetPositionData()[entity];
-			const VelocityComponent& velocity = simulator->GetVelocityData()[entity];
+			const PositionComponent& positionComp = simulator->GetPositionData()[entity];
 			const ClearanceComponent& clearance = simulator->GetClearanceData()[entity];
+			const VelocityComponent& velocityComp = simulator->GetVelocityData()[entity];
 
-			// for each neighboring agent, generate the VO
+			Point position(positionComp.x, positionComp.y);
+			Vec2 velocity(velocityComp.dx, velocityComp.dy);
+
+			// Calculate obstacle constraints
+			for (int i = 0; i < obstNeighbors.size(); i++)
+			{
+				const Obstacle* obstNeighborL = obstNeighbors[i];
+				const Obstacle* obstNeighborR = obstNeighbors[i]->nextObstacle; 
+
+				Vec2 relativePosition1 = obstNeighborL->p - position;
+				Vec2 relativePosition2 = obstNeighborR->p - position;
+
+				Vec2 segUnitDir = obstNeighborR->p - obstNeighborL->p;
+				const float s = (Utility::MathUtility::Dot(relativePosition1 * -1.0f, segUnitDir)) / Utility::MathUtility::SquaredLength(segUnitDir);
+				const float distSqLine = Utility::MathUtility::SquaredLength(relativePosition1 * -1.0f - segUnitDir * s);
+
+				// first check if the agent is currently colliding with the obstacle
+				const float distSq1 = Utility::MathUtility::SquaredLength(relativePosition1);
+				const float distSq2 = Utility::MathUtility::SquaredLength(relativePosition2);
+
+				segUnitDir.Normalize();
+				const float radiusSq = clearance.clearance * clearance.clearance;
+
+				// Collision case 1: agent is left of obstacle line and intersects with left obstacle vertex
+				if (s < 0.0f && distSq1 <= radiusSq) {
+
+					// If the obstacle point is convex, we want to push the agent away from this point to avoid further penetration
+					if (obstNeighborL->isConvex) {
+						Constraint c;
+						c.Init(Vec2(0.0f, 0.0f), (relativePosition1 * -1.0f).Normalized());
+
+						outConstraints.push_back(c);
+					}
+
+					// If the point is concave, then we don't want to push the agent away, because we might push the agent into the neighboring obstacle segment.
+					// Therefore we skip this iteration, and rely on the constraint of the neighboring obstacle line.
+					continue;
+				}
+
+				// Collision case 2: agent is right of obstacle line and intersects with right obstacle vertex
+				else if (s > 1.0f && distSq2 <= radiusSq) {
+
+					// same rules apply for collision case 1, except we push the agent away from the right vertex
+					if (obstNeighborR->isConvex) {
+						Constraint c;
+						c.Init(Vec2(0.0f, 0.0f), (relativePosition2 * -1.0f).Normalized());
+
+						outConstraints.push_back(c);
+					}
+
+					continue;
+				}
+
+				// Collision case 3: agent lies within obstacle segment and intersects with obstacle line
+				else if (s >= 0.0f && s < 1.0f && distSqLine <= radiusSq) {
+					Constraint c;
+
+					// we want to push the agent away from the segment (opposite direction of segment normal)
+					// the inverted obstacle segment normal is the normalized vector that is clockwise perpendicular to the obstacle segment
+					Vec2 invObstacleNormal = Utility::MathUtility::Right(segUnitDir);
+					c.Init(Vec2(0.0f, 0.0f), invObstacleNormal);
+
+					outConstraints.push_back(c);
+
+					continue;
+				}
+
+				// Now we know that the agent does not intersect with the obstacle segment. We can calculate the VO of the obstacle segment
+				// and construct the constraint this obstacle imposes on the agent.
+
+				Vec2 leftLegDirection, rightLegDirection;
+
+				// This means that the agent is left of the left obstacle vertex AND that the disk of the agent falls partly behind the obstacle line.
+				// This means that for calculating the obstacle constraint we should only take into account the left vertex, because from this angle, the only
+				// straight line collision we may have in the future is with the left vertex. Of course, if this vertex is not convex, we know for sure that
+				// we are colliding with the obstacle left of this vertex, so we should correct that and we can ignore this obstacle.
+				if (s < 0.0f && distSqLine <= radiusSq) {
+
+					// if the left vertex is not convex, we are colliding, and we can ignore this obstacle.
+					if (!obstNeighborL->isConvex) {
+						continue;
+					}
+
+					// since obstNeighborL is the only obstacle point we take into account, we set obstNeighborR to obstNeighborL
+					obstNeighborR = obstNeighborL;
+
+					// In this case, the VO (velocity obstacle) is represented as a cone because we are considering a single point (like the agent VO).
+					// The directions of the legs (leftLegDirection and rightLegDirection) are determined by the agent's radius. These legs represent
+					// the tangents from the agent's position to the obstacle point, accounting for the agent's clearance (its radius).
+					//
+					// For example, if the agent follows the 'leftLegDirection', it will move just to the right of the obstacle's left side (tangentially),
+					// while maintaining clearance defined by its radius. 
+					//
+					// To calculate this, we offset 'relativePosition1' (the vector from the agent to the obstacle) by the agent's clearance. 
+					// This is done by adjusting 'relativePosition1' in the direction of the tangent line of the agent's circle. The tangent directions
+					// are determined based on the geometry of the circle (agent) relative to the obstacle point.
+					const float leg1 = std::sqrt(distSq1 - radiusSq);
+					leftLegDirection = Vec2(relativePosition1.x * leg1 - relativePosition1.y * clearance.clearance, relativePosition1.x * clearance.clearance + relativePosition1.y * leg1) / distSq1;
+					rightLegDirection = Vec2(relativePosition1.x * leg1 + relativePosition1.y * clearance.clearance, -relativePosition1.x * clearance.clearance + relativePosition1.y * leg1) / distSq1;
+				}
+				// This means that the agent is right of the right obstacle vertex AND that the disk of the agent falls partly behind the obstacle line.
+				else if (s > 1.0f && distSqLine <= radiusSq) {
+
+					if (!obstNeighborR->isConvex) {
+						continue;
+					}
+
+					obstNeighborL = obstNeighborR;
+
+					// The below calculations are a mirrored version of the calculations done in "if (s < 0.0f && distSqLine <= radiusSq) {...}"
+					const float leg2 = std::sqrt(distSq2 - radiusSq);
+					leftLegDirection = Vec2(relativePosition2.x * leg2 - relativePosition2.y * clearance.clearance, relativePosition2.x * clearance.clearance + relativePosition2.y * leg2) / distSq2;
+					rightLegDirection = Vec2(relativePosition2.x * leg2 + relativePosition2.y * clearance.clearance, -relativePosition2.x * clearance.clearance + relativePosition2.y * leg2) / distSq2;
+				}
+				// The agent is in front of the obstacle segment. This is similar to the previous calculations, with the only exception that we now create the tangent lines separately for the
+				// left and right obstacle vertices.
+				else {
+					if (obstNeighborL->isConvex) {
+						const float leg1 = std::sqrt(distSq1 - radiusSq);
+						leftLegDirection = Vec2(relativePosition1.x * leg1 - relativePosition1.y * clearance.clearance, relativePosition1.x * clearance.clearance + relativePosition1.y * leg1) / distSq1;
+					}
+					else {
+						// The left point is not convex, meaning there is no well-defined left tangent line that the agent can follow to avoid a collision.
+						// In this case, we treat the obstacle segment itself as the left boundary for the VO. The left direction is set to align with the 
+						// obstacle segment's direction (reversed), ensuring that any movement further to the right (except up to the right tangent of the 
+						// obstacle) would result in a collision with the obstacle.
+						leftLegDirection = segUnitDir * -1.0f;
+					}
+
+					if (obstNeighborR->isConvex) {
+						const float leg2 = std::sqrt(distSq2 - radiusSq);
+						rightLegDirection = Vec2(relativePosition2.x * leg2 + relativePosition2.y * clearance.clearance, -relativePosition2.x * clearance.clearance + relativePosition2.y * leg2) / distSq2;
+					}
+					else {
+						// The right point is not convex, meaning there is no well-defined right tangent line that the agent can follow to avoid a collision.
+						// The same logic applies for when the left point is not convex, only we set the rightLegDirection to point to the opposite side.
+						rightLegDirection = segUnitDir;
+					}
+				}
+
+				// Now we have calculated the left and right leg directions of the VO. 
+				// However, our current left and right leg directions may point into the left resp. right (convex) neighbors
+				// Let's adjust for these cases...
+
+				const Obstacle* leftNeighbor = obstNeighborL->prevObstacle;
+
+				bool isLeftLegForeign = false;
+				bool isRightLegForeign = false;
+
+				// In the case below, the obstacle is convex, and the left VO leg initially points into the left neighbor of the obstacle.
+				// This could cause the agent to choose a velocity that leads into a collision with the left neighbor. To prevent this,
+				// we adjust the left leg of the VO to be parallel to the edge of the left neighboring obstacle.
+				Vec2 leftNeighborDir = leftNeighbor->prevObstacle->p - leftNeighbor->p;
+				if (obstNeighborL->isConvex && Utility::MathUtility::Determinant(leftLegDirection, leftNeighborDir) >= 0.0f) {
+					leftNeighborDir.Normalize();
+					leftLegDirection = leftNeighborDir;
+					isLeftLegForeign = true;
+				}
+
+				// ... and we apply the same logic to the right obstacle
+				Vec2 rightNeighborDir = obstNeighborR->nextObstacle->p - obstNeighborR->p;
+				if (obstNeighborR->isConvex && Utility::MathUtility::Determinant(rightLegDirection, rightNeighborDir) <= 0.0f) {
+					rightNeighborDir.Normalize();
+					rightLegDirection = rightNeighborDir;
+					isRightLegForeign = true;
+				}
+
+				float obstLookaheadRecip = 1.0f / m_lookAheadObstacle;
+
+				// calculate cutoff centers, aka the left- and right lower bounds of the VO
+				const Vec2 leftCutoff = (obstNeighborL->p - position) * obstLookaheadRecip;
+				const Vec2 rightCutoff = (obstNeighborR->p - position) * obstLookaheadRecip;
+				const Vec2 cutoffVec = rightCutoff - leftCutoff;
+
+				// now that we know the VO, we can project the current velocity on this VO 
+
+				// we first check if we should project the velocity on the left or right cutoff circles.
+				const float t = (obstNeighborL == obstNeighborR ? 0.5f : (Utility::MathUtility::Dot((velocity - leftCutoff), cutoffVec)) / Utility::MathUtility::SquaredLength(cutoffVec));
+				const float tLeft = Utility::MathUtility::Dot((velocity - leftCutoff), leftLegDirection);
+				const float tRight = Utility::MathUtility::Dot((velocity - rightCutoff), rightLegDirection);
+
+				// we project the velocity on the left cutoff circle in two cases:
+				// 1: the velocity lies in the lower-left part of the left cutoff circle that is the left corner of the VO
+				// 2: there is only one cutoff-circle. in this case we project on the circle if the velocity lies in the
+				//     lower part of the circle that forms the angled corner of the VO
+				if ((t < 0.0f && tLeft < 0.0f) || (obstNeighborL == obstNeighborR && tLeft < 0.0f && tRight < 0.0f)) {
+					Vec2 unitW = (velocity - leftCutoff).Normalized();
+
+					Constraint c;
+					Point pOnCircle = leftCutoff + unitW * obstLookaheadRecip * clearance.clearance;
+
+					c.Init(pOnCircle, unitW);
+					outConstraints.push_back(c);
+					continue;
+				}
+				// the same logic applies for the right cutoff circle...
+				else if (t > 1.0f && tRight < 0.0f) {
+					Vec2 unitW = (velocity - rightCutoff).Normalized();
+
+					Constraint c;
+					Point pOnCircle = rightCutoff + unitW * obstLookaheadRecip * clearance.clearance;
+
+					c.Init(pOnCircle, unitW);
+					outConstraints.push_back(c);
+					continue;
+				}
+
+				// now we know we should not project on the cutoff circles, but on either the left- or right bounding line of the VO, or the cutoff line (i.e. lower bound of the VO)
+				// of course we choose the projection with the least distance
+				const float distSqCutoff = ((t < 0.0f || t > 1.0f || obstNeighborL == obstNeighborR) ? std::numeric_limits<float>::infinity() : Utility::MathUtility::SquaredLength(velocity - (leftCutoff + cutoffVec * t)));
+				const float distSqLeft = ((tLeft < 0.0f) ? std::numeric_limits<float>::infinity() : Utility::MathUtility::SquaredLength(velocity - (leftCutoff + leftLegDirection * tLeft)));
+				const float distSqRight = ((tRight < 0.0f) ? std::numeric_limits<float>::infinity() : Utility::MathUtility::SquaredLength(velocity - (rightCutoff + rightLegDirection * tRight)));
+
+				// distance to cutoff line is shortest: project velocity on cutoff line
+				if (distSqCutoff <= distSqLeft && distSqCutoff <= distSqRight) {
+
+					// remember that we don't actually need to calculate the closest point on the cutoff line to the velocity.
+					// we just need to construct a constraint which consists of any point on the cutoff line and the correct normal.
+					Vec2 normal = Utility::MathUtility::Right(cutoffVec);
+					normal.Normalize();
+					Point pOnCutoff = leftCutoff + normal * obstLookaheadRecip * clearance.clearance;
+
+					Constraint c;
+					c.Init(pOnCutoff, normal);
+					outConstraints.push_back(c);
+
+					continue;
+				}
+				// distance to left leg is shortest
+				else if (distSqLeft <= distSqRight) {
+					// if the left leg is foreign, then we rely on the constraint of the left neighboring obstacle and we skip this obstacle
+					if (isLeftLegForeign) {
+						continue;
+					}
+
+					Vec2 normal = Utility::MathUtility::Left(leftLegDirection);
+					Point pOnLeftLeg = leftCutoff + normal * clearance.clearance * obstLookaheadRecip;
+
+					Constraint c;
+					c.Init(pOnLeftLeg, normal);
+					outConstraints.push_back(c);
+					continue;
+				}
+				// distance to right leg is shortest
+				else {
+					if (isRightLegForeign) {
+						continue;
+					}
+
+					Vec2 normal = Utility::MathUtility::Right(rightLegDirection);
+					Point pOnRightLeg = rightCutoff + normal * clearance.clearance * obstLookaheadRecip;
+
+					Constraint c;
+					c.Init(pOnRightLeg, normal);
+					outConstraints.push_back(c);
+					continue;
+				}
+			}
+
+			outNObstacleConstraints = outConstraints.size();
+
+			// Calculate agent constraints
+			int nNeighbors = agentNeighbors.size();
+
 			for (int i = 0; i < nNeighbors; i++)
 			{
-				const Entity& neighbor = neighbors[i];
+				const Entity& neighbor = agentNeighbors[i];
 				const PositionComponent& nPosition = simulator->GetPositionData()[neighbor];
 				const VelocityComponent& nVelocity = simulator->GetVelocityData()[neighbor];
 				const ClearanceComponent& nClearance = simulator->GetClearanceData()[neighbor];
 
-				Point VOPos((nPosition.x - position.x) / m_lookAhead, (nPosition.y - position.y) / m_lookAhead);
+				Point VOPos((nPosition.x - position.x) / m_lookAheadAgent, (nPosition.y - position.y) / m_lookAheadAgent);
 				float VOPosLength = Utility::MathUtility::Length(VOPos);
 				float combinedRadius = nClearance.clearance + clearance.clearance;
-				float VORadius = combinedRadius / m_lookAhead;
+				float VORadius = combinedRadius / m_lookAheadAgent;
 				float VORadiusSqr = VORadius * VORadius;
 
-				Vec2 relVel(velocity.dx - nVelocity.dx, velocity.dy - nVelocity.dy);
+				Vec2 relVel(velocity.x - nVelocity.dx, velocity.y - nVelocity.dy);
 				Vec2 relPos(nPosition.x - position.x, nPosition.y - position.y);
 				float relPosLength = Utility::MathUtility::Length(relPos);
 
@@ -75,10 +340,10 @@ namespace ECM {
 
 					const Vec2& U = unitW * (combinedRadius / stepSize - wLength);
 
-					outConstraints[counter].Init(Vec2(velocity.dx, velocity.dy) + U * 0.5f, unitW);
-
-					counter++;
-
+					Constraint c;
+					c.Init(velocity + U * 0.5f, unitW);
+					outConstraints.push_back(c);
+					
 					continue;
 				}
 
@@ -105,11 +370,11 @@ namespace ECM {
 					
 					Vec2 lineNormal = (relVel - VOPos);
 					lineNormal.Normalize();
-					Point pointOnLine = Point(velocity.dx, velocity.dy) + lineNormal * distToEdge * 0.5f;
+					Point pointOnLine = velocity + lineNormal * distToEdge * 0.5f;
 
-					outConstraints[counter].Init(pointOnLine, lineNormal);
-
-					counter++;
+					Constraint c;
+					c.Init(pointOnLine, lineNormal);
+					outConstraints.push_back(c);
 				}
 				else
 				{
@@ -122,34 +387,34 @@ namespace ECM {
 						const Vec2& leftLegNormalized = VOLeftLeg.Normalized();
 						const Vec2& U = Utility::MathUtility::GetClosestPointOnLineThroughOrigin(leftLegNormalized, relVel) - relVel;
 
-						outConstraints[counter].Init(Vec2(velocity.dx, velocity.dy) + U * 0.5f, Utility::MathUtility::Left(leftLegNormalized));
-
-						counter++;
+						Constraint c;
+						c.Init(velocity + U * 0.5f, Utility::MathUtility::Left(leftLegNormalized));
+						outConstraints.push_back(c);
 					}
 					else
 					{
 						const Vec2& rightLegNormalized = VORightLeg.Normalized();
 						const Vec2& U = Utility::MathUtility::GetClosestPointOnLineThroughOrigin(rightLegNormalized, relVel) - relVel;
 
-						outConstraints[counter].Init(Vec2(velocity.dx, velocity.dy) + U * 0.5f, Utility::MathUtility::Right(rightLegNormalized));
-
-						counter++;
+						Constraint c;
+						c.Init(velocity + U * 0.5f, Utility::MathUtility::Right(rightLegNormalized));
+						outConstraints.push_back(c);
 					}
 				}
 			}
-
-			outNConstraints = counter;
 		}
 
 		// applies randomized linear programming to find the optimal velocity, given the ORCA constraints.
 		// returns the number of constraints (if success) or the index of the constraint that failed.
-		int RVO::RandomizedLP(int nConstraints, const std::vector<Constraint>& constraints, const Vec2& optVelocity, const float maxSpeed, bool useDirOpt, Vec2& outVelocity) const
+		int RVO::RandomizedLP(const std::vector<Constraint>& constraints, const Vec2& optVelocity, const float maxSpeed, bool useDirOpt, Vec2& outVelocity) const
 		{
 
 			// 1. make random permutation of constraints
 			// 
 			// For now: loop through constraints from 0..N.
 			// 
+
+			int nConstraints = constraints.size();
 			
 			if (useDirOpt)
 			{
@@ -395,14 +660,15 @@ namespace ECM {
 		// applies randomized linear programming to find the optimal velocity, given the ORCA constraints. The difference with RVO::RandomizedLP(..) is that RVO::RandomizedLP3D(..)
 		//  relaxes the (non-static) obstacle constraints to find the "best possible" solution. This best possible solution does not completely avoid collision, but finds the velocity 
 		//  that minimizes the collision.
-		void RVO::RandomizedLP3D(int nConstraints, const std::vector<Constraint>& constraints, const float maxSpeed, int failedIndex, Vec2& outVelocity) const
+		void RVO::RandomizedLP3D(int nObstacleConstraints, const std::vector<Constraint>& constraints, const float maxSpeed, int failedIndex, Vec2& outVelocity) const
 		{
 			// loop through constraints (starting from failedIndex)
 
 			// maximum distance to constraints. note that penetration distance is a negative number.
 			float maxPenetration = 0.0f;
 
-			for (int i = failedIndex; i < nConstraints; i++)
+			int totalConstraints = constraints.size();
+			for (int i = failedIndex; i < totalConstraints; i++)
 			{
 				const Constraint& ci = constraints[i];
 
@@ -413,10 +679,12 @@ namespace ECM {
 
 				// the optimized velocity violates the current constraint more the the max constraint penetration: optimize for this constraint.
 
-				std::vector<Constraint> projectedConstraints; // TODO: add static constraints as they are, since we don't want to project static constraints.
+				// add static constraints as they are, since we don't want to project static constraints.
+				std::vector<Constraint> projectedConstraints(nObstacleConstraints); 
+				for (int i = 0; i < nObstacleConstraints; i++) projectedConstraints[i] = constraints[i];
 
-				// loop through all constraints so far
-				for (int j = 0; j < i; j++)
+				// loop through all constraints so far, starting from first agent constraint
+				for (int j = nObstacleConstraints; j < i; j++)
 				{
 					const Constraint& cj = constraints[j];
 					Constraint newC;
@@ -459,7 +727,7 @@ namespace ECM {
 				}
 
 				const Vec2 tempVel = outVelocity;
-				if (RandomizedLP(projectedConstraints.size(), projectedConstraints, ci.Normal(), maxSpeed, true, outVelocity) < projectedConstraints.size())
+				if (RandomizedLP(projectedConstraints, ci.Normal(), maxSpeed, true, outVelocity) < projectedConstraints.size())
 				{
 					// solving the linear program for the projected constraints should always return a solution, so this should not happen. If it happens, it is due to
 					// floating point errors and we revert back to the previous solution.
@@ -468,10 +736,6 @@ namespace ECM {
 
 				//maxPenetration = Utility::MathUtility::Dot(ci.Normal(), outVelocity - ci.PointOnLine());
 				maxPenetration = Utility::MathUtility::Determinant(dir, ci.PointOnLine() - outVelocity);
-				if (maxPenetration < -Utility::EPSILON)
-				{
-					std::cout << "this should not happen" << std::endl;
-				}
 			}
 		}
 }

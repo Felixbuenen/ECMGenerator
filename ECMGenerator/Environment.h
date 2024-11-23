@@ -40,10 +40,10 @@ namespace ECM {
 
 		void ComputeECM();
 
-		inline const std::vector<Segment>& GetWalkableArea() const { return _walkableArea; }
-		inline const std::vector<std::vector<Segment>>& GetObstacles() const { return _obstacles; }
-		inline BBOX GetBBOX() const { return _bbox; }
-		inline const std::vector<Segment>& GetEnvironmentObstacleUnion() const { return _environmentObstacleUnion; }
+		inline const std::vector<Segment>& GetWalkableArea() const { return m_WalkableArea; }
+		inline const std::vector<Obstacle>& GetObstacles() const { return m_Obstacles; }
+		inline BBOX GetBBOX() const { return m_Bbox; }
+		inline const std::vector<Segment>& GetEnvironmentObstacleUnion() const { return m_EnvironmentObstacleUnion; }
 		inline std::shared_ptr<ECM> GetECM(int index = 0) { return m_EcmList[index]; }
 
 		std::shared_ptr<ECM> QueryECM(Point position) const;
@@ -56,11 +56,12 @@ namespace ECM {
 		void CreateTestEnvironment_U();
 
 	private:
-		BBOX _bbox;
+		BBOX m_Bbox;
 
-		std::vector<Segment> _walkableArea;
-		std::vector<std::vector<Segment>> _obstacles;
-		std::vector<Segment> _environmentObstacleUnion;
+		std::vector<Segment> m_WalkableArea;
+		std::vector<std::vector<Segment>> m_ObstaclesDeprecated;
+		std::vector<Obstacle> m_Obstacles;
+		std::vector<Segment> m_EnvironmentObstacleUnion;
 
 		std::vector<std::shared_ptr<ECM>> m_EcmList;
 	};

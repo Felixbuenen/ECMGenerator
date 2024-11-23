@@ -81,26 +81,24 @@ int main()
 
 
 	Environment env;
-	env.Initialize(Environment::TestEnvironment::EMPTY);
+	env.Initialize(Environment::TestEnvironment::CLASSIC);
 	ECMPathPlanner planner(env.GetECM()->GetECMGraph());
-	Simulator sim(env.GetECM(), &planner, &env, 20, 0.25f);
+	Simulator sim(env.GetECM(), &planner, &env, 2, 0.25f);
 	sim.Initialize();
 
 
 	// CIRCLE AGENTS
-	const int N = 15;
-	const float R = 150.0f;
-	const float PI = 3.14159265358979323846;
-	float angleStep = 2 * PI / N; // Hoek tussen opeenvolgende punten
-	for (int i = 0; i < N; ++i) {
-		float theta = i * angleStep; // Hoek voor het i-de punt
-		float x = R * cos(theta + 0.5f) + 1.0f;
-		float y = R * sin(theta + 0.5f) + 1.0f;
-	
-		//if (i == 5) x += 10.0f;
-
-		sim.SpawnAgent(Point(x, y), Point(-x, -y), 10, 2);
-	}
+	//const int N = 20;
+	//const float R = 250.0f;
+	//const float PI = 3.14159265358979323846;
+	//float angleStep = 2 * PI / N; // Hoek tussen opeenvolgende punten
+	//for (int i = 0; i < N; ++i) {
+	//	float theta = i * angleStep; // Hoek voor het i-de punt
+	//	float x = R * cos(theta + 0.5f) + 1.0f;
+	//	float y = R * sin(theta + 0.5f) + 1.0f;
+	//	
+	//	sim.SpawnAgent(Point(x, y), Point(-x, -y), 10, 2);
+	//}
 
 	//RVO rvo;
 	
@@ -132,7 +130,6 @@ int main()
 	//
 	//int error = rvo.RandomizedLP(3, constraints, Vec2(5,5), 20.0f, false, result);
 
-	int stop = 0;
 	//sim.SpawnAgent(Point(0, 400), Point(0, 200), 10, 30);
 	//sim.SpawnAgent(Point(0, 200), Point(0, 400), 10, 30);
 	//sim.SpawnAgent(Point(-100, 300), Point(100, 300), 10, 30);

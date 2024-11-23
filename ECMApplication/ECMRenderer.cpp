@@ -210,17 +210,17 @@ namespace ECM {
 		{
 			SDL_SetRenderDrawColor(m_Renderer, m_ColorSettings.obstacle_R, m_ColorSettings.obstacle_G, m_ColorSettings.obstacle_B, 0xff);
 
-			const std::vector<std::vector<Segment>>& obstacles = m_Env->GetObstacles();
-			for (const std::vector<Segment>& obstacle : obstacles) {
-				for (const Segment& edge : obstacle) {
+			const std::vector<Obstacle>& obstacles = m_Env->GetObstacles();
+			for (const Obstacle& obstacle : obstacles) {
+				Point leftP = obstacle.p;
+				Point rightP = obstacle.nextObstacle->p;
 
-					int x1 = edge.p0.x * m_CamZoomFactor + m_CamOffsetX;
-					int y1 = edge.p0.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
-					int x2 = edge.p1.x * m_CamZoomFactor + m_CamOffsetX;
-					int y2 = edge.p1.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+				int x1 = leftP.x * m_CamZoomFactor + m_CamOffsetX;
+				int y1 = leftP.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+				int x2 = rightP.x * m_CamZoomFactor + m_CamOffsetX;
+				int y2 = rightP.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 
-					SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
-				}
+				SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
 			}
 
 			// _ecm->GetObstacles();

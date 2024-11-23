@@ -86,6 +86,7 @@ namespace ECM {
 			const std::vector<GoalArea>& GetGoalAreas() const { return m_GoalAreas; }
 
 			void FindNNearestNeighbors(const Entity& agent, int n, std::vector<Entity>& outNeighbors) const;
+			void FindNearestObstacles(const Entity& agent, float rangeSquared, std::vector<const Obstacle*>& outObstacles) const;
 			bool ValidSpawnLocation(const Point& location, float clearance) const;
 
 			// GETTERS
@@ -98,6 +99,7 @@ namespace ECM {
 			inline ClearanceComponent* GetClearanceData() const { return m_Clearances; }
 			inline bool* GetActiveFlags() const { return m_ActiveAgents; }
 			inline KDTree* GetKDTree() const { return m_KDTree; }
+			inline Environment* GetEnvironment() const { return m_Environment; }
 
 		private:
 			void ClearSimulator();
