@@ -230,6 +230,27 @@ namespace ECM {
 			return posOnSegment;
 		}
 
+		Point MathUtility::GetClosestPointOnSegment(const Point& point, const Point& segPt1, const Point& segPt2)
+		{
+			// dot product to find closest point on a segment to another point
+			if (segPt1.Approximate(segPt2))
+			{
+				return segPt1;
+			}
+
+			Point segmentVec = segPt2 - segPt1;
+			Point pToSeg = point - segPt1;
+			float tSquared = MathUtility::SquareDistance(segPt1, segPt2);
+			float dotProd = (pToSeg.x * segmentVec.x + pToSeg.y * segmentVec.y) / tSquared;
+
+			if (dotProd > 1.0) dotProd = 1.0f;
+			if (dotProd < 0.0) dotProd = 0.0f;
+
+			Point posOnSegment(segPt1.x + dotProd * segmentVec.x, segPt1.y + dotProd * segmentVec.y); // todo: implement t * Point operator
+
+			return posOnSegment;
+		}
+
 		Point MathUtility::GetClosestPointOnLine(const Point& linePoint, const Vec2& normalizedLineDir, const Point& referencePoint)
 		{
 			Vec2 pointToRef = Vec2(referencePoint.x - linePoint.x, referencePoint.y - linePoint.y);

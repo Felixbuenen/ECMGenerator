@@ -37,6 +37,7 @@ namespace ECM {
 			static float Length(const Vec2& v);
 			static float Length(float x, float y);
 			static Point GetClosestPointOnSegment(const Point& point, const Segment& segment);
+			static Point GetClosestPointOnSegment(const Point& point, const Point& segPt1, const Point& segPt2);
 			static Point GetClosestPointOnLine(const Point& linePoint, const Vec2& normalizedLineDir, const Point& referencePoint);
 			static Point GetClosestPointOnLineThroughOrigin(const Vec2& normalizedLineDir, const Point& referencePoint);
 			static bool GetRayToLineSegmentIntersection(const Point& rayOrigin, const Vec2& rayDirection, const Point& point1, const Point& point2, Point& outPoint, float& outDist);

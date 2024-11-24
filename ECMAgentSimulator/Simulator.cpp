@@ -385,7 +385,7 @@ namespace ECM {
 				float arrivalMultiplier = 1.0f;
 
 				Point currentPosition(pos.x, pos.y);
-				//Vec2 currentVelocity(m_Velocities[e].dx, m_Velocities[e].dy);
+				Vec2 currentVelocity(m_Velocities[e].dx, m_Velocities[e].dy);
 
 				if (distFromArrival < arrivalRadius)
 				{
@@ -590,7 +590,7 @@ namespace ECM {
 		void Simulator::ApplyBoundaryForce(Vec2& steering, const PositionComponent& pos, const ClearanceComponent& clearance)
 		{
 			// query current position in ECM (returns ECM cell)
-			ECMCell* cell = m_Ecm->GetECMCell(pos.x, pos.y);
+			const ECMCell* cell = m_Ecm->GetECMCell(pos.x, pos.y);
 
 			if (cell == nullptr) return;
 

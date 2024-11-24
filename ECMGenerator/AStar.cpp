@@ -96,7 +96,7 @@ namespace ECM {
 
 
 			int halfEdgeIdx = m_Graph.GetVertex(current.index)->half_edge_idx;
-			ECMHalfEdge* incidentEdge = m_Graph.GetHalfEdge(halfEdgeIdx);
+			const ECMHalfEdge* incidentEdge = m_Graph.GetHalfEdge(halfEdgeIdx);
 			int startNeighborV = incidentEdge->v_target_idx;
 			int nextNeighborV = startNeighborV;
 

@@ -16,7 +16,7 @@ namespace ECM {
 		m_MedialAxis = std::make_shared<MedialAxis>();
 	}
 
-	bool ECM::RetractPoint(Point location, ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge, float clearance)
+	bool ECM::RetractPoint(Point location, const ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge, float clearance)
 	{
 		//Timer timer("ECM::RetractPoint");
 
@@ -166,7 +166,7 @@ namespace ECM {
 	}
 
 
-	ECMCell* ECMGraph::FindCell(float x, float y)
+	const ECMCell* ECMGraph::FindCell(float x, float y) const
 	{
 		return m_Cells->PointLocationQueryLinear(*this, Point(x, y));
 	}
@@ -196,7 +196,7 @@ namespace ECM {
 		//return _ecmGraph.GetRandomTestPath(startIdx);
 	}
 
-	ECMCell* ECM::GetECMCell(float x, float y)
+	const ECMCell* ECM::GetECMCell(float x, float y)
 	{
 		return m_EcmGraph.FindCell(x, y);
 	}

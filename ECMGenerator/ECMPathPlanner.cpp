@@ -37,8 +37,8 @@ namespace ECM {
 
 			//printf("query start/goal locations...\n");
 			auto ecm = ecmStart;
-			ECMCell* startCell;
-			ECMCell* goalCell;
+			const ECMCell* startCell;
+			const ECMCell* goalCell;
 
 			{
 				//Timer findCellTime("Find cell...");
@@ -90,7 +90,7 @@ namespace ECM {
 
 
 			//printf("generate edge path...\n");
-			std::vector<ECMHalfEdge*> edgePath;
+			std::vector<const ECMHalfEdge*> edgePath;
 
 			{
 				//Timer timer("generate edge path..");
@@ -98,10 +98,10 @@ namespace ECM {
 				{
 					int index1 = astarPath[i];
 					int index2 = astarPath[i + 1];
-					ECMVertex* v = ecm->GetECMGraph().GetVertex(index1);
-					ECMHalfEdge* incEdge = ecm->GetECMGraph().GetHalfEdge(v->half_edge_idx);
+					const ECMVertex* v = ecm->GetECMGraph().GetVertex(index1);
+					const ECMHalfEdge* incEdge = ecm->GetECMGraph().GetHalfEdge(v->half_edge_idx);
 
-					ECMHalfEdge* incEdgeStart = incEdge;
+					const ECMHalfEdge* incEdgeStart = incEdge;
 					do {
 						if (incEdge->v_target_idx == index2) {
 							edgePath.push_back(incEdge);
@@ -143,11 +143,11 @@ namespace ECM {
 		}
 
 
-		void ECMPathPlanner::CreateCorridor(const std::vector<ECMHalfEdge*>& maPath, Corridor& outCorridor, std::shared_ptr<ECM> ecm)
+		void ECMPathPlanner::CreateCorridor(const std::vector<const ECMHalfEdge*>& maPath, Corridor& outCorridor, std::shared_ptr<ECM> ecm)
 		{
 			//Timer timer("ECMPathPlanner::CreateCorridor");
 			auto& graph = ecm->GetECMGraph();
-			for (ECMHalfEdge* edge : maPath)
+			for (const ECMHalfEdge* edge : maPath)
 			{
 				Point pos = graph.GetSource(edge)->position;
 				outCorridor.diskCenters.push_back(pos);

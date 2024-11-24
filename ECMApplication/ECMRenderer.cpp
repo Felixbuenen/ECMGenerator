@@ -413,7 +413,7 @@ namespace ECM {
 
 				int firstHalfEdge = vert.half_edge_idx;
 				int currentHalfEdge = firstHalfEdge;
-				ECMHalfEdge* edge = graph.GetHalfEdge(firstHalfEdge);
+				const ECMHalfEdge* edge = graph.GetHalfEdge(firstHalfEdge);
 				do
 				{
 					edge = graph.GetHalfEdge(currentHalfEdge);

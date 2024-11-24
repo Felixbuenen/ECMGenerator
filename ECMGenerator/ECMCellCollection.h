@@ -32,7 +32,7 @@ namespace ECM {
 	{
 	public:
 		void Construct(ECMGraph& graph, ECMCellCollectionType type);
-		ECMCell* PointLocationQueryLinear(ECMGraph& graph, const Point& location);
+		const ECMCell* PointLocationQueryLinear(const ECMGraph& graph, const Point& location) const;
 
 	private:
 		std::vector<ECMCell> m_ECMCells; // todo: trapezoidal decomp

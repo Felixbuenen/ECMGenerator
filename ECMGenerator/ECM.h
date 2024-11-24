@@ -51,16 +51,18 @@ namespace ECM {
 
 	class ECMGraph
 	{
+		friend class ECMGenerator;
+
 	public:
 
 		ECMGraph();
 
 		// getters
-		inline ECMVertex* GetVertex(int idx) { return &(m_Vertices[idx]); }
-		inline ECMEdge* GetEdge(int idx) { return &(m_Edges[idx]); }
-		inline ECMHalfEdge* GetHalfEdge(int idx) { return &(m_Edges[idx >> 1].half_edges[idx & 1]); };
+		inline const ECMVertex* GetVertex(int idx) const { return &(m_Vertices[idx]); }
+		inline const ECMEdge* GetEdge(int idx) const { return &(m_Edges[idx]); }
+		inline const ECMHalfEdge* GetHalfEdge(int idx) const { return &(m_Edges[idx >> 1].half_edges[idx & 1]); };
 
-		inline ECMVertex* GetSource(ECMHalfEdge* halfEdge)
+		inline const ECMVertex* GetSource(const ECMHalfEdge* halfEdge) const
 		{
 			// get the byte position of the half edge pointer in memory (relative to the start of the edge list)
 			const char* firstEdge = reinterpret_cast<const char*>(&m_Edges[0]);
@@ -69,7 +71,7 @@ namespace ECM {
 
 			// get the edge by dividing this relative byte position to the size of ECMEdge. this way you get a pointer to the edge
 			//  that holds the half edge
-			ECMEdge* edge = &m_Edges[0] + diff / sizeof(ECMEdge);
+			const ECMEdge* edge = &m_Edges[0] + diff / sizeof(ECMEdge);
 			int sourceIdx = &edge->half_edges[0] == halfEdge ? edge->half_edges[1].v_target_idx : edge->half_edges[0].v_target_idx;
 
 			return GetVertex(sourceIdx);
@@ -80,7 +82,7 @@ namespace ECM {
 
 		// queries
 		int FindVertex(float x, float y) const;
-		ECMCell* FindCell(float x, float y);
+		const ECMCell* FindCell(float x, float y) const;
 		bool IsArc(const ECMEdge&, int& outPtLeftOfIdx) const;
 
 		// construction methods
@@ -91,6 +93,10 @@ namespace ECM {
 		void ConstructECMCells();
 
 	private:
+		void SetVertexClearance(int vertID, float clearance) { m_Vertices[vertID].clearance = clearance; }
+		void SetVertexHalfEdge(int vertID, int halfEdge) { m_Vertices[vertID].half_edge_idx = halfEdge; }
+		void SetNextEdge(int edgeID, int offset, int nextEdge) { m_Edges[edgeID].half_edges[offset].next_idx = nextEdge; }
+
 		std::vector<ECMVertex> m_Vertices;
 		std::vector<ECMEdge> m_Edges;
 		std::unique_ptr<ECMCellCollection> m_Cells;
@@ -107,8 +113,8 @@ namespace ECM {
 		ECM();
 
 		// querying
-		ECMCell* GetECMCell(float x, float y);
-		bool RetractPoint(Point location, ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge, float clearance);
+		const ECMCell* GetECMCell(float x, float y);
+		bool RetractPoint(Point location, const ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge, float clearance);
 
 		inline std::shared_ptr<MedialAxis> GetMedialAxis() { return m_MedialAxis; }
 		inline ECMGraph& GetECMGraph() { return m_EcmGraph; }

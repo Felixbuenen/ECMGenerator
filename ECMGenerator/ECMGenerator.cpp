@@ -77,16 +77,6 @@ namespace ECM {
 			
 			Point vertLocation(it->x(), it->y());
 
-			// DEBUG
-			Point pCheck1(-55.847958, 55.847965);
-
-			if (Utility::MathUtility::Distance(vertLocation, pCheck1) < 1.0f)
-			{
-				int stop = 1;
-			}
-
-			// DEBUG
-
 			// don't add vertex if it lies inside obstacle
 			if (environment.InsideObstacle(vertLocation)) 
 				continue;
@@ -134,28 +124,6 @@ namespace ECM {
 			it != vd.edges().end(); ++it) {
 			boostEdgeIndex++;
 
-			// ----------------------- DEBUG ----------------
-
-			Point pCheck1(-55.847958, 55.847965);
-			Point pCheck2(-60.233921, -59.649117);
-
-			if (it->vertex0() == nullptr) continue;
-			if (it->vertex1() == nullptr) continue;
-
-			Point edgeP1(it->vertex0()->x(), it->vertex0()->y());
-			Point edgeP2(it->vertex1()->x(), it->vertex1()->y());
-
-			if (Utility::MathUtility::Distance(edgeP1, pCheck1) < 1.0f || Utility::MathUtility::Distance(edgeP1, pCheck2) < 1.0f)
-			{
-				int test = 0;
-			}
-			if (Utility::MathUtility::Distance(edgeP2, pCheck1) < 5.0f && Utility::MathUtility::Distance(edgeP1, pCheck2) < 5.0f)
-			{
-				int test = 0;
-			}
-
-			// ---------------------- / DEBUG --------------------
-
 			if (handled[boostEdgeIndex])
 				continue;
 
@@ -192,8 +160,8 @@ namespace ECM {
 				GetClosestPointsToSource(environment, srcIdx, p1, p2, isPoint, isStartPoint, closestRight1, closestRight2);
 
 				// add clearance information for vertices
-				ecmGraph.GetVertex(v0_index)->clearance = Utility::MathUtility::Distance(p1, closestLeft1);
-				ecmGraph.GetVertex(v1_index)->clearance = Utility::MathUtility::Distance(p2, closestLeft2);
+				ecmGraph.SetVertexClearance(v0_index, Utility::MathUtility::Distance(p1, closestLeft1));
+				ecmGraph.SetVertexClearance(v1_index, Utility::MathUtility::Distance(p2, closestLeft2));
 
 				// construct half-edges
 				ecmGraph.AddHalfEdge(edge->idx, v1_index, closestLeft1, closestRight1, 0);
@@ -227,13 +195,13 @@ namespace ECM {
 				ecmEdgeIdx = mapECMEdgeIndices[boostEdgeIdx];
 			}
 
-			ECMEdge* edge = ecmGraph.GetEdge(ecmEdgeIdx);
+			const ECMEdge* edge = ecmGraph.GetEdge(ecmEdgeIdx);
 			int halfEdgeOffset = edge->half_edges[0].v_target_idx == i ? 1 : 0;
-			ECMHalfEdge* halfEdge = &edge->half_edges[halfEdgeOffset];
+			const ECMHalfEdge* halfEdge = &edge->half_edges[halfEdgeOffset];
 
-			ECMVertex* vert = ecmGraph.GetVertex(i);
-			vert->half_edge_idx = ecmEdgeIdx * 2 + halfEdgeOffset; // refactor?
+			ecmGraph.SetVertexHalfEdge(i, ecmEdgeIdx * 2 + halfEdgeOffset);
 
+			const ECMVertex* vert = ecmGraph.GetVertex(i);
 			int startHalfEdgeIdx = vert->half_edge_idx;
 			int nextHalfEdgeIndex = startHalfEdgeIdx;
 
@@ -248,11 +216,12 @@ namespace ECM {
 					continue;
 				}
 
-				ECMEdge* nextEdge = ecmGraph.GetEdge(nextEcmEdgeIdx);
+				const ECMEdge* nextEdge = ecmGraph.GetEdge(nextEcmEdgeIdx);
 				int nextHalfEdgeOffset = nextEdge->half_edges[0].v_target_idx == i ? 1 : 0;
 				nextHalfEdgeIndex = nextEcmEdgeIdx * 2 + nextHalfEdgeOffset;
 
-				halfEdge->next_idx = nextHalfEdgeIndex;
+				//halfEdge->next_idx = nextHalfEdgeIndex;
+				ecmGraph.SetNextEdge(ecmEdgeIdx, halfEdgeOffset, nextHalfEdgeIndex);
 				halfEdge = &nextEdge->half_edges[nextHalfEdgeOffset];
 			} while (e != eStart);
 		

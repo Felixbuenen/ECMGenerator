@@ -23,8 +23,8 @@ namespace ECM {
 			const ECMHalfEdge& edge0 = edge.half_edges[0];
 			const ECMHalfEdge& edge1 = edge.half_edges[1];
 
-			ECMVertex* v0 = graph.GetVertex(edge.half_edges[1].v_target_idx);
-			ECMVertex* v1 = graph.GetVertex(edge.half_edges[0].v_target_idx);
+			const ECMVertex* v0 = graph.GetVertex(edge.half_edges[1].v_target_idx);
+			const ECMVertex* v1 = graph.GetVertex(edge.half_edges[0].v_target_idx);
 
 			Point p0 = v0->position;
 			Point p1 = v1->position;
@@ -46,16 +46,16 @@ namespace ECM {
 		}
 	}
 
-	ECMCell* ECMCellCollection::PointLocationQueryLinear(ECMGraph& graph, const Point& location)
+	const ECMCell* ECMCellCollection::PointLocationQueryLinear(const ECMGraph& graph, const Point& location) const
 	{
 		//std::printf("%d\n", m_ECMCells.size());
 		std::vector<Segment> polygon;
 		polygon.resize(4);
 
-		for (ECMCell& cell : m_ECMCells)
+		for (const ECMCell& cell : m_ECMCells)
 		{
-			ECMVertex* v0 = graph.GetVertex(cell.edge->half_edges[0].v_target_idx);
-			ECMVertex* v1 = graph.GetVertex(cell.edge->half_edges[1].v_target_idx);
+			const ECMVertex* v0 = graph.GetVertex(cell.edge->half_edges[0].v_target_idx);
+			const ECMVertex* v1 = graph.GetVertex(cell.edge->half_edges[1].v_target_idx);
 
 			const Segment& obstacle = cell.boundary;
 			Point p1 = graph.GetVertex(cell.edge->half_edges[1].v_target_idx)->position;
