@@ -115,6 +115,18 @@ namespace ECM {
 			}
 		}
 
+		bool MathUtility::IsPointOnSegment(const Point& start, const Point& end, const Point& p)
+		{
+			Vec2 seg = end - start;
+			Vec2 toPoint = p - start;
+
+			float t = Dot(seg, toPoint);
+			float segLengthSq = seg.LengthSquared();
+
+			return t >= 0 && t <= segLengthSq;
+		}
+
+
 		float MathUtility::Dot(const Vec2& v1, const Vec2& v2)
 		{
 			return v1.x * v2.x + v1.y * v2.y;
@@ -285,8 +297,8 @@ namespace ECM {
 			if (t1 >= 0.0 && (t2 >= 0.0 && t2 <= 1.0))
 			{
 				outDist = t1;
-				outPoint.x = rayOrigin.x + rayDirection.x * t1; // TODO: fix operator overloading error
-				outPoint.y = rayOrigin.y + rayDirection.y * t1; // TODO: fix operator overloading error
+				outPoint.x = rayOrigin.x + rayDirection.x * t1;
+				outPoint.y = rayOrigin.y + rayDirection.y * t1;
 
 				return true;
 			}

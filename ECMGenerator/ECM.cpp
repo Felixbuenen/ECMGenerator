@@ -16,9 +16,10 @@ namespace ECM {
 		m_MedialAxis = std::make_shared<MedialAxis>();
 	}
 
-	bool ECM::RetractPoint(Point location, const ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge, float clearance)
+	bool ECM::RetractPoint(Point location, Point& outRetractedLocation, ECMEdge& outEdge) const
 	{
 		//Timer timer("ECM::RetractPoint");
+		const ECMCell& cell = *GetECMCell(location.x, location.y);
 
 		outEdge = *cell.edge;
 		const ECMVertex* p1 = m_EcmGraph.GetVertex(outEdge.half_edges[1].v_target_idx);
@@ -73,17 +74,17 @@ namespace ECM {
 		}
 
 		// first check if enough clearance from obstacle
-		float distFromObstacle;
-		Point obstacleIntersect;
-		Vec2 invDir(-rayDir.x, -rayDir.y);
-		if (Utility::MathUtility::GetRayToLineSegmentIntersection(location, invDir, obstacleP1, obstacleP2, obstacleIntersect, distFromObstacle))
-		{
-			if (distFromObstacle < clearance)
-			{
-				printf("ERROR: not enough clearance from obstacle.\n");
-				return false;
-			}
-		}
+		//float distFromObstacle;
+		//Point obstacleIntersect;
+		//Vec2 invDir(-rayDir.x, -rayDir.y);
+		//if (Utility::MathUtility::GetRayToLineSegmentIntersection(location, invDir, obstacleP1, obstacleP2, obstacleIntersect, distFromObstacle))
+		//{
+		//	if (distFromObstacle < clearance)
+		//	{
+		//		printf("ERROR: not enough clearance from obstacle.\n");
+		//		return false;
+		//	}
+		//}
 
 		float outDist;
 		return Utility::MathUtility::GetRayToLineSegmentIntersection(location, rayDir, p1->position, p2->position, outRetractedLocation, outDist);
@@ -196,7 +197,7 @@ namespace ECM {
 		//return _ecmGraph.GetRandomTestPath(startIdx);
 	}
 
-	const ECMCell* ECM::GetECMCell(float x, float y)
+	const ECMCell* ECM::GetECMCell(float x, float y) const
 	{
 		return m_EcmGraph.FindCell(x, y);
 	}

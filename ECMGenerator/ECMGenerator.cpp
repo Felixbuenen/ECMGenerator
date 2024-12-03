@@ -124,6 +124,7 @@ namespace ECM {
 			it != vd.edges().end(); ++it) {
 			boostEdgeIndex++;
 
+
 			if (handled[boostEdgeIndex])
 				continue;
 
@@ -195,9 +196,9 @@ namespace ECM {
 				ecmEdgeIdx = mapECMEdgeIndices[boostEdgeIdx];
 			}
 
-			const ECMEdge* edge = ecmGraph.GetEdge(ecmEdgeIdx);
+			ECMEdge* edge = ecmGraph.GetEdge(ecmEdgeIdx);
 			int halfEdgeOffset = edge->half_edges[0].v_target_idx == i ? 1 : 0;
-			const ECMHalfEdge* halfEdge = &edge->half_edges[halfEdgeOffset];
+			ECMHalfEdge* halfEdge = &edge->half_edges[halfEdgeOffset];
 
 			ecmGraph.SetVertexHalfEdge(i, ecmEdgeIdx * 2 + halfEdgeOffset);
 
@@ -216,25 +217,19 @@ namespace ECM {
 					continue;
 				}
 
-				const ECMEdge* nextEdge = ecmGraph.GetEdge(nextEcmEdgeIdx);
+				ECMEdge* nextEdge = ecmGraph.GetEdge(nextEcmEdgeIdx);
 				int nextHalfEdgeOffset = nextEdge->half_edges[0].v_target_idx == i ? 1 : 0;
 				nextHalfEdgeIndex = nextEcmEdgeIdx * 2 + nextHalfEdgeOffset;
 
-				//halfEdge->next_idx = nextHalfEdgeIndex;
-				ecmGraph.SetNextEdge(ecmEdgeIdx, halfEdgeOffset, nextHalfEdgeIndex);
+				halfEdge->next_idx = nextHalfEdgeIndex;
+				//ecmGraph.SetNextEdge(ecmEdgeIdx, halfEdgeOffset, nextHalfEdgeIndex);
 				halfEdge = &nextEdge->half_edges[nextHalfEdgeOffset];
 			} while (e != eStart);
 		
 		}
-		//std::printf("Done\n");
-		//
-		//std::printf("construct ecm cells...");
 
 		// finally construct the cells
 		ecmGraph.ConstructECMCells();
-
-		//std::printf("Done\n");
-
 	}
 
 

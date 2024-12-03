@@ -37,10 +37,6 @@ namespace ECM {
 			}
 		}
 
-		/*
-		* TODO (2024-11-10)
-		* - add static obstacle constraints
-		*/
 		// generates the ORCA constraints
 		void RVO::GenerateConstraints(Simulator* simulator, const Entity& entity, const std::vector<Entity>& agentNeighbors, const std::vector<const Obstacle*>& obstNeighbors, float stepSize, int& outNObstacleConstraints, std::vector<Constraint>& outConstraints)
 		{
@@ -461,10 +457,6 @@ namespace ECM {
 				//		    Now we must check if that one solution satisfies all other constraints. If yes, return solution. If no, return error.
 				// 3. There are two intersections. Calculate Left and Right (x-coordinates that bound the feasible region of possible solutions). 
 
-
-				float a = powf(h.Slope(), 2) + 1;
-				float b = 2 * h.Slope() * h.YIntercept();
-
 				
 				// TODO:
 				// figure out why left = -dirPointDot - discrSqrt  and right=...
@@ -480,107 +472,21 @@ namespace ECM {
 				float dirPointDot = Utility::MathUtility::Dot(dir, h.PointOnLine());
 				float discriminant = dirPointDot * dirPointDot + maxSpeed * maxSpeed - Utility::MathUtility::Dot(h.PointOnLine(), h.PointOnLine());
 
-				//if (h.IsVertical())
-				//{
-				//	// in case of a vertical line, we only need to know whether the vertical line crosses or touches the circle
-				//	// we don't calculate a discriminant, but rather encode the number of intersections (<0 = no inersections, >0 = two intersections, ==0 = one intersection).
-				//
-				//	discriminant = (maxSpeed - abs(h.XIntercept()));
-				//}
-				//else
-				//{
-				//	//discriminant = 4 * (powf(maxSpeed, 2) * (powf(h.Slope(), 2) + 1) - powf(h.YIntercept(), 2));
-				//	discriminant = powf(maxSpeed, 2) * drSq - powf(det, 2.0f);
-				//}
-
-				// CASE 1: no intersections
-				if (discriminant < 0.0f)
+				// CASE 1: no intersections or CASE 2: one intersection
+				if (discriminant <= 0.0f)
 				{
-					//std::cout << "CASE 1: no intersections" << std::endl;
-					//
-					//// option 1: M is contained in h. We can ignore this constraint.
-					//Vec2 vecToCircle = Point() - h.PointOnLine();
-					//if (Utility::MathUtility::Dot(vecToCircle, h.Normal()) > 0.0f) continue;
-					//
-					//// option 2: M is not contained in h. We must return an error.
-					//std::cout << "M is not contained in h. Could not find RVO solution!" << std::endl;
+					// program failed at index i
 					return i;
 				}
-
-				// CASE 2: only one intersection
-				//else if (fabs(discriminant) < Utility::EPSILON)
-				//{
-				//	//std::cout << "CASE 2: only one intersection" << std::endl;
-				//
-				//	// option 1: M is contained in h. We can ignore this constraint.
-				//	Vec2 vecToCircle = Point() - h.PointOnLine();
-				//	if (Utility::MathUtility::Dot(vecToCircle, h.Normal()) > 0.0f) continue;
-				//
-				//	// option 2: M is not contained in h. There is only 1 possible solution, namely the intersection point.
-				//	// we can now loop over all other constraints and see if the point satisfies those constraints. If so,
-				//	// then we can return this point as the solution. If there is only 1 constraint which the point does not
-				//	// satisfy, then we must return an error.
-				//
-				//	Vec2 tempVelocity = outVelocity;
-				//
-				//	if (h.IsVertical())
-				//	{
-				//		outVelocity = Vec2(h.XIntercept(), 0.0f); // vertical tangent of circle with origin (0,0) must be at y=0.
-				//	}
-				//	else
-				//	{
-				//		// we know the x coordinate of the intersections can be calculated as x = (-b +- sqrt(D)) / 2a.
-				//		// since D = 0, this becomes x = -b / 2a
-				//		//float x = -b / 2 * a;
-				//		//float y = h.Slope() * x + h.YIntercept();
-				//
-				//		float t = -dirPointDot;
-				//		outVelocity = h.PointOnLine() + dir * t;
-				//	}
-				//
-				//	// lastly, we check if the new velocity is satisfied by all other constraints
-				//	for (int j = 0; j < constraints.size(); j++)
-				//	{
-				//		if (!constraints[j].Contains(outVelocity))
-				//		{
-				//			std::cout << "NO SOLUTION: 1 intersection with max speed circle" << std::endl;
-				//
-				//			// revert back to the last feasible solution
-				//			outVelocity = tempVelocity;
-				//			return i;
-				//		}
-				//	}
-				//
-				//	return nConstraints;
-				//}
 
 				// CASE 3: two intersections
 				else if (discriminant > 0.0f)
 				{
-					//std::cout << "CASE 3: two intersections" << std::endl;
-
 					// We can rewrite ||position(t)||^2 = maxSpeed^2 to at^2 + bt + c = 0 form
 					// Now we know the values of a, b and c we can apply the ABC-formula to get tLeft and tRight...
 					float discriminantSqrt = sqrtf(discriminant);
 					float left = -dirPointDot - discriminantSqrt;
 					float right = -dirPointDot + discriminantSqrt;
-
-					// if h is vertical, than we cannot parameterize for x. In this case we parameterize for y. We calculate the intersection point using
-					//  pythagoras theorem.
-					//if (h.IsVertical())
-					//{
-					//	// assuming half-plane points to the right, i.e. normal = (1, 0)...
-					//	left = sqrtf(powf(maxSpeed, 2.0f) - powf(h.XIntercept(), 2.0f));
-					//	right = -left;
-					//}
-					//else
-					//{
-					//	//left = (-b - sqrt(discriminant)) / (2 * a);
-					//	//right = (-b + sqrt(discriminant)) / (2 * a);
-					//
-					//
-					//}
-
 
 					// loop through previous constraints to update Left and Right
 					// we know the optimal solution lies on h, so we check the line-line intersections between h and all previous

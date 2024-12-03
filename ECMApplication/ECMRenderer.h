@@ -68,6 +68,7 @@ namespace ECM {
 			void DrawCorridor();
 			void DrawPortals();
 			void DrawHalfEdge(int idx);
+			void DrawAttractionPoints();
 
 			void DebugDrawECMCell();
 			void DebugDrawSecondaryLines();

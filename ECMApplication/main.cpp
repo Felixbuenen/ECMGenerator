@@ -83,7 +83,7 @@ int main()
 	Environment env;
 	env.Initialize(Environment::TestEnvironment::CLASSIC);
 	ECMPathPlanner planner(env.GetECM()->GetECMGraph());
-	Simulator sim(env.GetECM(), &planner, &env, 2, 0.25f);
+	Simulator sim(env.GetECM().get(), &planner, &env, 100, 0.25f);
 	sim.Initialize();
 
 

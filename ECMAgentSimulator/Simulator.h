@@ -23,6 +23,7 @@ namespace ECM {
 		typedef int Entity;
 		class KDTree;
 		class RVO;
+		class IRMPathFollower;
 
 		struct PositionComponent
 		{
@@ -54,7 +55,7 @@ namespace ECM {
 		public:
 
 			// TODO: add simulation step time (commonly 100ms)
-			Simulator(std::shared_ptr<ECM> ecm, PathPlanning::ECMPathPlanner* planner, Environment* environment, int maxAgents, float simStepTime) 
+			Simulator(ECM* ecm, PathPlanning::ECMPathPlanner* planner, Environment* environment, int maxAgents, float simStepTime)
 				: m_Ecm(ecm), m_Planner(planner), m_Environment(environment), m_MaxNumEntities(maxAgents), m_SimStepTime(simStepTime)
 			{
 				for (int i = maxAgents - 1; i >= 0; i--)
@@ -75,12 +76,12 @@ namespace ECM {
 			void Initialize();
 			void Update(float dt);
 
-			inline void AddPosition(Entity entity, float x, float y) { 
+			inline void AddPosition(Entity entity, float x, float y) {
 				m_Positions[entity].x = x;
 				m_Positions[entity].y = y;
 			}
 
-			void AddSpawnArea(const Point& position, const Vec2& halfSize, const SpawnConfiguration& config ); // TODO: expand with agent profile
+			void AddSpawnArea(const Point& position, const Vec2& halfSize, const SpawnConfiguration& config); // TODO: expand with agent profile
 			void AddGoalArea(const Point& position, const Vec2& halfSize);
 			const std::vector<SpawnArea>& GetSpawnAreas() const { return m_SpawnAreas; }
 			const std::vector<GoalArea>& GetGoalAreas() const { return m_GoalAreas; }
@@ -97,6 +98,7 @@ namespace ECM {
 			inline VelocityComponent* GetPreferredVelocityData() const { return m_PreferredVelocities; }
 			inline PathComponent* GetPathData() const { return m_Paths; }
 			inline ClearanceComponent* GetClearanceData() const { return m_Clearances; }
+			inline PositionComponent* GetAttractionPointData() const { return m_AttractionPoints; }
 			inline bool* GetActiveFlags() const { return m_ActiveAgents; }
 			inline KDTree* GetKDTree() const { return m_KDTree; }
 			inline Environment* GetEnvironment() const { return m_Environment; }
@@ -121,11 +123,12 @@ namespace ECM {
 			
 
 		private:
-			std::shared_ptr<ECM> m_Ecm;
+			ECM* m_Ecm;
 			PathPlanning::ECMPathPlanner* m_Planner;
 			Environment* m_Environment;
 			KDTree* m_KDTree;
 			RVO* m_RVO;
+			IRMPathFollower* m_PathFollower;
 
 			int m_MaxNumEntities;
 			int m_NumEntities;

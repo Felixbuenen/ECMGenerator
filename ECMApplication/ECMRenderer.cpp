@@ -42,9 +42,7 @@ namespace ECM {
 			//DrawClosestObstaclePoints();
 			//DrawCorridor();
 			//DrawPortals();
-			//HighlightECMVertex(11);
-			//HighlightECMVertex(21);
-			//HighlightECMVertex(18);
+			//DrawAttractionPoints();
 			
 			//DrawHalfEdge(22);
 
@@ -57,7 +55,7 @@ namespace ECM {
 			//DebugDrawBoostVoronoiDiagram();
 
 			DrawSimulationAreas();
-			DrawPath();
+			//DrawPaths();
 
 			DrawAgents();
 			//DrawPaths();
@@ -521,6 +519,29 @@ namespace ECM {
 			HighlightECMVertex(vert->idx);
 		}
 
+		void ECMRenderer::DrawAttractionPoints()
+		{
+			const auto attractData = m_AppState->simulator->GetAttractionPointData();
+
+			int lastIdx = m_AppState->simulator->GetLastIndex();
+			const auto activeFlags = m_AppState->simulator->GetActiveFlags();
+
+			SDL_SetRenderDrawColor(m_Renderer, 0xff, 0x00, 0x00, 0xff);
+
+			for (int i = 0; i <= lastIdx; i++)
+			{
+				if (!activeFlags[i]) continue;
+
+				const auto& pos = attractData[i];
+
+				float x = pos.x * m_CamZoomFactor + m_CamOffsetX;
+				float y = pos.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+
+				DrawCircle(m_Renderer, x, y, 5.0f * m_CamZoomFactor);
+			}
+		}
+
+
 		void ECMRenderer::DebugDrawECMCell()
 		{
 			if (!m_AppState->cellToDraw) return;
@@ -693,6 +714,33 @@ namespace ECM {
 			}
 		}
 
+		void ECMRenderer::DrawPaths()
+		{
+			int lastIdx = m_AppState->simulator->GetLastIndex();
+			const auto activeFlags = m_AppState->simulator->GetActiveFlags();
+			const auto paths = m_AppState->simulator->GetPathData();
+
+			for (int i = 0; i <= lastIdx; i++)
+			{
+				if (!activeFlags[i]) continue;
+
+				const auto path = paths[i];
+
+				for (int j = 0; j < path.numPoints - 1; j++)
+				{
+					Point p1(path.x[j], path.y[j]);
+					Point p2(path.x[j + 1], path.y[j + 1]);
+
+					float x1 = p1.x * m_CamZoomFactor + m_CamOffsetX;
+					float y1 = p1.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+					float x2 = p2.x * m_CamZoomFactor + m_CamOffsetX;
+					float y2 = p2.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+
+					SDL_RenderDrawLineF(m_Renderer, x1, y1, x2, y2);
+				}
+			}
+		}
+
 		void ECMRenderer::DrawAgents()
 		{
 			//SDL_Rect rect;
@@ -745,29 +793,6 @@ namespace ECM {
 				//SDL_SetRenderDrawColor(m_Renderer, 255, 0, 0, 255);
 				//SDL_RenderDrawLineF(m_Renderer, x, y, vx, vy);
 			}
-		}
-
-		void ECMRenderer::DrawPaths()
-		{
-			
-			const auto paths = m_AppState->simulator->GetPathData();
-			int numPaths = m_AppState->simulator->GetNumAgents();
-
-			SDL_SetRenderDrawColor(m_Renderer, 0x00, 0xaa, 0x00, 0xff);
-			for (int i = 0; i < numPaths; i++)
-			{
-				int numPoints = paths[i].numPoints;
-				for (int j = 0; j < numPoints-1; j++)
-				{
-					float x0 = paths[i].x[j] * m_CamZoomFactor + m_CamOffsetX;
-					float x1 = paths[i].x[j + 1] * m_CamZoomFactor + m_CamOffsetX;
-					float y0 = paths[i].y[j] * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
-					float y1 = paths[i].y[j + 1] * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
-
-					SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
-				}
-			}
-			
 		}
 
 		// https://stackoverflow.com/questions/38334081/how-to-draw-circles-arcs-and-vector-graphics-in-sdl

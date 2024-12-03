@@ -59,7 +59,7 @@ namespace ECM {
 
 		// getters
 		inline const ECMVertex* GetVertex(int idx) const { return &(m_Vertices[idx]); }
-		inline const ECMEdge* GetEdge(int idx) const { return &(m_Edges[idx]); }
+		inline ECMEdge* GetEdge(int idx) { return &(m_Edges[idx]); } // TODO: make const
 		inline const ECMHalfEdge* GetHalfEdge(int idx) const { return &(m_Edges[idx >> 1].half_edges[idx & 1]); };
 
 		inline const ECMVertex* GetSource(const ECMHalfEdge* halfEdge) const
@@ -113,8 +113,8 @@ namespace ECM {
 		ECM();
 
 		// querying
-		const ECMCell* GetECMCell(float x, float y);
-		bool RetractPoint(Point location, const ECMCell& cell, Point& outRetractedLocation, ECMEdge& outEdge, float clearance);
+		const ECMCell* GetECMCell(float x, float y) const;
+		bool RetractPoint(Point location, Point& outRetractedLocation, ECMEdge& outEdge) const;
 
 		inline std::shared_ptr<MedialAxis> GetMedialAxis() { return m_MedialAxis; }
 		inline ECMGraph& GetECMGraph() { return m_EcmGraph; }

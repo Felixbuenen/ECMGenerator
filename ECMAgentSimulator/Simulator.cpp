@@ -8,6 +8,7 @@
 #include "Area.h"
 #include "KDTree.h"
 #include "RVO.h"
+#include "IRMPathFollower.h"
 
 #include <math.h>
 
@@ -47,6 +48,7 @@ namespace ECM {
 
 			m_KDTree = new KDTree();
 			m_RVO = new RVO();
+			m_PathFollower = new IRMPathFollower();
 
 			printf("SIMULATOR: Data for %d agents was created.\n", m_MaxNumEntities);
 
@@ -116,6 +118,7 @@ namespace ECM {
 
 			delete m_KDTree;
 			delete m_RVO;
+			delete m_PathFollower;
 
 			printf("SIMULATOR: Data was destroyed.\n");
 		}
@@ -156,14 +159,14 @@ namespace ECM {
 			}
 
 			// calculate initial velocity (in the direction of the next path vertex
-			Vec2 dir = Point(pComponent.x[1], pComponent.y[1]) - Point(pComponent.x[0], pComponent.y[0]);
-			dir.Normalize();
+			//Vec2 dir = Point(pComponent.x[1], pComponent.y[1]) - Point(pComponent.x[0], pComponent.y[0]);
+			//dir.Normalize();
 			
-			m_PreferredVelocities[idx].dx = dir.x;
-			m_PreferredVelocities[idx].dy = dir.y;
-
-			m_Velocities[idx].dx = 0.0f;
-			m_Velocities[idx].dy = 0.0f;
+			//m_PreferredVelocities[idx].dx = 0.0f;
+			//m_PreferredVelocities[idx].dy = 0.0f;
+			//
+			//m_Velocities[idx].dx = 0.0f;
+			//m_Velocities[idx].dy = 0.0f;
 
 			return idx;
 		}
@@ -382,14 +385,12 @@ namespace ECM {
 				const PositionComponent& pos = m_Positions[e];
 
 				float distFromArrival = Utility::MathUtility::Distance(pos.x, pos.y, path.x[path.numPoints - 1], path.y[path.numPoints - 1]);
-				float arrivalMultiplier = 1.0f;
 
 				Point currentPosition(pos.x, pos.y);
 				Vec2 currentVelocity(m_Velocities[e].dx, m_Velocities[e].dy);
 
 				if (distFromArrival < arrivalRadius)
 				{
-					arrivalMultiplier = distFromArrival / arrivalRadius;
 					m_AttractionPoints[e].x = path.x[path.numPoints - 1];
 					m_AttractionPoints[e].y = path.y[path.numPoints - 1];
 
@@ -399,27 +400,30 @@ namespace ECM {
 				}
 				else
 				{
+					Point attractionPoint = m_PathFollower->FindAttractionPoint(*m_Ecm, m_Ecm->GetECMGraph(), currentPosition, path);
+					m_AttractionPoints[e].x = attractionPoint.x;
+					m_AttractionPoints[e].y = attractionPoint.y;
 					// TODO: futurePosition should not be dependent on currentVelocity
 					//       instead, apply lookahead on the path, e.g. path(0) = start and path(1) = end.
 					//       MIRAN method could work (only look at subset of path to avoid shortcuts.
-					Point futurePosition = currentPosition + currentVelocity * attractionLookAheadMultiplier;
-					float closestPoint = Utility::MAX_FLOAT;
-
-					// calculate attraction point
-					std::vector<Point> points;
-					for (int j = path.currentIndex; j < path.numPoints - 1; j++)
-					{
-						Point p = Utility::MathUtility::GetClosestPointOnSegment(futurePosition, Segment(path.x[j], path.y[j], path.x[j + 1], path.y[j + 1]));
-						float dist = Utility::MathUtility::Distance(futurePosition, p);
-
-						if (dist < closestPoint)
-						{
-							m_AttractionPoints[e].x = p.x;
-							m_AttractionPoints[e].y = p.y;
-							path.currentIndex = j;
-							closestPoint = dist;
-						}
-					}
+					//Point futurePosition = currentPosition + currentVelocity * attractionLookAheadMultiplier;
+					//float closestPoint = Utility::MAX_FLOAT;
+					//
+					//// calculate attraction point
+					//std::vector<Point> points;
+					//for (int j = path.currentIndex; j < path.numPoints - 1; j++)
+					//{
+					//	Point p = Utility::MathUtility::GetClosestPointOnSegment(futurePosition, Segment(path.x[j], path.y[j], path.x[j + 1], path.y[j + 1]));
+					//	float dist = Utility::MathUtility::Distance(futurePosition, p);
+					//
+					//	if (dist < closestPoint)
+					//	{
+					//		m_AttractionPoints[e].x = p.x;
+					//		m_AttractionPoints[e].y = p.y;
+					//		path.currentIndex = j;
+					//		closestPoint = dist;
+					//	}
+					//}
 				}
 			}
 		}
@@ -455,80 +459,9 @@ namespace ECM {
 		// Now, the loop must maintain all the local variables which will clutter the cache.
 		void Simulator::UpdateVelocitySystem(float dt)
 		{
-			// Let's start simple:
-			// 1. calculate future position (velocity * lookAhead)
-			// 2. iterate through all path segments to find the segment where the future position lies closest
-			// 3. project the future position on this line segment. this is the attraction point.
-
-			//const float reachedRadius = 2.5f;
-			//const float arrivalRadius = 50.0f;
-			//const float mass = 1.0f;
-			//const float massRecip = 1.0f / mass;
-			//const float speed = 30.0f;
-			//const float attractionLookAheadMultiplier = 0.5f;
-			//
-			//const bool deleteAgent = true;
-			//const float deleteDistance = 2.0f;
-
 			UpdateAttractionPointSystem();
 			ApplySteeringForce();
 			ApplyObstacleAvoidanceForce(dt);
-
-			//ApplyBoundaryForce();
-			// TODO
-			// apply arrival force
-
-			/*
-			// force weights
-			const float pathFollowSteeringWeight = 1.0f;
-
-			for (int i = 0; i <= m_LastEntityIdx; i++)
-			{
-				if (!m_ActiveAgents[i]) continue;
-
-				// note that currently this is redundant, but this method is clean for when we want to have different entities.
-				// likely we don't have different entities, so maybe just use i for indexation.
-				const Entity& e = m_Entities[i];
-
-				const PathComponent& path = m_Paths[e];
-				const PositionComponent& pos = m_Positions[e];
-
-				float distFromArrival = Utility::MathUtility::Distance(pos.x, pos.y, path.x[path.numPoints-1], path.y[path.numPoints - 1]);
-				float arrivalMultiplier = 1.0f;
-
-				Point currentPosition(pos.x, pos.y);
-				Vec2 currentVelocity(m_Velocities[e].dx, m_Velocities[e].dy);
-
-
-
-				// TODO: batch processing
-				// 1. obstacle avoidance
-				const ClearanceComponent& clearance = m_Clearances[e];
-				//ApplyBoundaryForce(steering, pos, clearance);
-
-			
-				// 2. dynamic obstacle avoidance
-				m_KDTree->Clear();
-				m_KDTree->Construct(this);
-
-				Vec2 steering(m_PreferredVelocities[e].dx, m_PreferredVelocities[e].dy);
-				float steeringForce = Utility::MathUtility::Length(steering);
-				float steeringMultiplier = std::min(steeringForce, speed);
-				steering.Normalize();
-				steering = steering * steeringMultiplier;
-				steering = steering * massRecip;
-
-
-				Vec2 finalVelocity = currentVelocity + steering;
-				float strength = Utility::MathUtility::Length(finalVelocity);
-				float multiplier = std::min(strength, speed);
-				finalVelocity.Normalize();
-				finalVelocity = finalVelocity * multiplier * arrivalMultiplier;
-
-				m_Velocities[e].dx = finalVelocity.x;
-				m_Velocities[e].dy = finalVelocity.y;
-			}
-			*/
 		}
 
 		void Simulator::ApplySteeringForce()
@@ -558,6 +491,10 @@ namespace ECM {
 				//Vec2 steering = (desiredVelocity - currentVelocity) * pathFollowSteeringWeight;
 				m_PreferredVelocities[e].dx = desiredVelocity.x;
 				m_PreferredVelocities[e].dy = desiredVelocity.y;
+
+				// DEBUG
+				//m_Velocities[e].dx = m_PreferredVelocities[e].dx;
+				//m_Velocities[e].dy = m_PreferredVelocities[e].dy;
 			}			
 		}
 

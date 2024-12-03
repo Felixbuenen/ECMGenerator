@@ -58,14 +58,14 @@ namespace ECM {
 			Point retrStart, retrGoal;
 			ECMEdge startEdge;
 			ECMEdge goalEdge;
-			if (!ecm->RetractPoint(start, *startCell, retrStart, startEdge, clearance))
+			if (!ecm->RetractPoint(start, retrStart, startEdge))
 			{
-				//printf("retraction for start point failed");
+				printf("retraction for start point failed");
 				return false;
 			}
-			if (!ecm->RetractPoint(goal, *goalCell, retrGoal, goalEdge, clearance))
+			if (!ecm->RetractPoint(goal, retrGoal, goalEdge))
 			{
-				//printf("retraction for end point failed");
+				printf("retraction for end point failed");
 				return false;
 			}
 
