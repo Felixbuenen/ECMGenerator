@@ -13,10 +13,9 @@
 #include <memory>
 #include <map>
 
-// TODO
-// > Er zit een hoop boost code verwerkt in ECM code. Misschien een idee om de boost VD code + types te verbergen achter een ECMVoronoiDiagram class oid,
-//   zodat de alleen de implementatie van de VD met Boost wordt gedaan. Dat is iets netter. 
-
+// TODO: 
+// add more comments, refactor
+// 
 	// ---------- /this should all be refactored\ -------------
 using boost::polygon::voronoi_builder;
 using boost::polygon::voronoi_diagram;

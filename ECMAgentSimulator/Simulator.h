@@ -115,12 +115,13 @@ namespace ECM {
 			// SYSTEMS
 			void UpdateAttractionPointSystem();
 			void UpdatePositionSystem(float dt);
+			void UpdateForceSystem(float dt);
 			void UpdateVelocitySystem(float dt);
 
 			void ApplySteeringForce();
 			void ApplyObstacleAvoidanceForce(float dt);
 			void ApplyBoundaryForce(Vec2& steering, const PositionComponent& pos, const ClearanceComponent& clearance);
-			
+			void CalculateForces();
 
 		private:
 			ECM* m_Ecm;
@@ -148,6 +149,7 @@ namespace ECM {
 			PositionComponent* m_Positions;
 			PositionComponent* m_AttractionPoints;
 			VelocityComponent* m_PreferredVelocities;
+			VelocityComponent* m_Forces;
 			VelocityComponent* m_Velocities;
 			ClearanceComponent* m_Clearances;
 			PathComponent* m_Paths;

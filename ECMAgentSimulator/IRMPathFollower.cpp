@@ -10,6 +10,7 @@ namespace ECM {
 
 	namespace Simulation {
 
+        // TODO: ecm/ecmGraph should probably be a member of this class
 		Point IRMPathFollower::FindAttractionPoint(const ECM& ecm, const ECMGraph& ecmGraph, const Point& position, const PathComponent& path)
 		{
 			// retract point on the medial axis

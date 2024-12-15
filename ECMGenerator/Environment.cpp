@@ -19,16 +19,33 @@ namespace ECM {
 			walkableArea.push_back(Segment(-500, 500, 500, 500));
 			walkableArea.push_back(Segment(-500, 500, -500, -500));
 
-			std::vector<Segment> obstacle{
-				Segment(-200, 250, -200, -250),
-					Segment(-200, -250, 200, -250),
-					Segment(200, -250, 200, 250),
-					Segment(200, 250, 100, 250),
-					Segment(100, 250, 100, -150),
-					Segment(100, -150, -100, -150),
-					Segment(100, -150, -100, -150),
-					Segment(-100, -150, -100, 250),
-					Segment(-100, 250, -200, 250)
+			std::vector<Point> obstacle{
+				Point(200, -250),
+				Point(200, 250),
+				Point(100, 250),
+				Point(100, -150),
+				Point(-100, -150),
+				Point(-100, 250),
+				Point(-200, 250),
+				Point(-200, -250)
+			};
+
+			AddWalkableArea(walkableArea);
+			AddObstacle(obstacle);
+		}
+		if (type == Environment::TestEnvironment::SQUARE)
+		{
+			std::vector<Segment> walkableArea;
+			walkableArea.push_back(Segment(-500, -500, 500, -500));
+			walkableArea.push_back(Segment(500, -500, 500, 500));
+			walkableArea.push_back(Segment(-500, 500, 500, 500));
+			walkableArea.push_back(Segment(-500, 500, -500, -500));
+
+			std::vector<Point> obstacle{
+				Point(200, -250),
+					Point(200, 250),
+					Point(-200, 250),
+					Point(-200, -250)
 			};
 
 			AddWalkableArea(walkableArea);
@@ -64,7 +81,7 @@ namespace ECM {
 							Segment(Point(x, y - obstacleSize), Point(x, y))
 					};
 
-					AddObstacle(obstacle);
+					//AddObstacle(obstacle);
 				}
 			}
 		}
@@ -91,8 +108,8 @@ namespace ECM {
 			};
 
 			AddWalkableArea(walkableArea);
-			AddObstacle(obstacle1);
-			AddObstacle(obstacle2);
+			//AddObstacle(obstacle1);
+			//AddObstacle(obstacle2);
 		}
 
 		if (type == Environment::TestEnvironment::LINES)
@@ -111,8 +128,8 @@ namespace ECM {
 			};
 
 			AddWalkableArea(walkableArea);
-			AddObstacle(obstacle1);
-			AddObstacle(obstacle2);
+			//AddObstacle(obstacle1);
+			//AddObstacle(obstacle2);
 		}
 
 		if (type == Environment::TestEnvironment::EMPTY)
@@ -141,64 +158,77 @@ namespace ECM {
 		UpdateBbox(waEdges);
 	}
 
-	void Environment::AddObstacle(std::vector<Segment> obstacleEdges)
+	// adds a static obstacle to the scene, defined by its vertices.
+	// NOTE: it's important that the vertices are passed in anti-clockwise order!
+	void Environment::AddObstacle(std::vector<Point> obstacleVerts)
 	{
 		// we don't allow edge obstacles in our simulation
-		if (obstacleEdges.size() < 3)
+		if (obstacleVerts.size() < 2)
 		{
 			std::cout << "ERROR: obstacles must have size of at least 3" << std::endl;
 			return;
 		}
 
-		int obstacleSize = obstacleEdges.size();
+		int obstacleSize = obstacleVerts.size();
+		int obstacleIdx = m_Obstacles.size();
 
 		// add segments to obstacle union
 		for (int i = 0; i < obstacleSize; i++)
 		{
-			m_EnvironmentObstacleUnion.push_back(obstacleEdges[i]);
+			Segment s;
+			s.p0 = obstacleVerts[i];
+			s.p1 = obstacleVerts[(i + 1) % obstacleSize];
+			m_EnvironmentObstacleUnion.push_back(s);
 		}
 
-		// all obstacles
-		int currentSize = m_Obstacles.size();
+		int obstacleOffset = m_Obstacles.size();
+
+		// add obstacle data
 		for (int i = 0; i < obstacleSize; i++)
 		{
-			Obstacle obstacle;
-			Segment& s1 = obstacleEdges[i];
-
-			obstacle.p = s1.p0;
-			m_Obstacles.push_back(obstacle);
+			Obstacle o;
+			o.p = obstacleVerts[i];
+			m_Obstacles.push_back(o);
 		}
 
-		// all neighboring obstacles + calculate if convex
+		// add neighbor information
 		for (int i = 0; i < obstacleSize; i++)
 		{
-			Obstacle& obstacle = m_Obstacles[currentSize + i];
+			Obstacle& obstacle = m_Obstacles[obstacleOffset + i];
 
 			if (i == 0)
 			{
-				obstacle.prevObstacle = &m_Obstacles[currentSize + obstacleSize - 1];
-				obstacle.nextObstacle = &m_Obstacles[currentSize + 1];
+				obstacle.prevObstacle = &m_Obstacles[obstacleOffset + obstacleSize - 1];
+				obstacle.nextObstacle = &m_Obstacles[obstacleOffset + 1];
 			}
 			else
 			{
-				obstacle.prevObstacle = &m_Obstacles[currentSize + i - 1];
-				obstacle.nextObstacle = &m_Obstacles[currentSize + ((i + 1) % obstacleSize)];
+				obstacle.prevObstacle = &m_Obstacles[obstacleOffset + i - 1];
+				obstacle.nextObstacle = &m_Obstacles[obstacleOffset + ((i + 1) % obstacleSize)];
 			}
 
 			// calculate if convex
-			float areaSum = 0;
+			if (obstacleSize == 2)
+			{
+				obstacle.isConvex = true;
+			}
+			else
+			{
+				float areaSum = 0;
 
-			areaSum += obstacle.prevObstacle->p.x * (obstacle.nextObstacle->p.y - obstacle.p.y);
-			areaSum += obstacle.p.x * (obstacle.prevObstacle->p.y - obstacle.nextObstacle->p.y);
-			areaSum += obstacle.nextObstacle->p.x * (obstacle.p.y - obstacle.prevObstacle->p.y);
+				areaSum += obstacle.prevObstacle->p.x * (obstacle.nextObstacle->p.y - obstacle.p.y);
+				areaSum += obstacle.p.x * (obstacle.prevObstacle->p.y - obstacle.nextObstacle->p.y);
+				areaSum += obstacle.nextObstacle->p.x * (obstacle.p.y - obstacle.prevObstacle->p.y);
 
-			obstacle.isConvex = areaSum < 0.0f;
+				obstacle.isConvex = areaSum < 0.0f;
+			}
 		}
 
-		m_ObstaclesDeprecated.push_back(obstacleEdges);
+		m_ObstacleIndices.push_back(obstacleIdx);
 
-		UpdateBbox(obstacleEdges);
+		UpdateBbox(m_EnvironmentObstacleUnion);
 	}
+
 
 	void Environment::ComputeECM()
 	{		
@@ -227,13 +257,10 @@ namespace ECM {
 	// TODO: change to new m_Obstacle structure
 	bool Environment::InsideObstacle(const Point& p) const
 	{
-		// todo: something clever with kd-tree
-
-		for (const auto& obs : m_ObstaclesDeprecated)
+		for (int i = 0; i < m_ObstacleIndices.size(); i++)
 		{
-			if (obs.size() == 1) continue; // not a polygon
-
-			if (Utility::MathUtility::Contains(p, obs)) return true;
+			int obstIdx = m_ObstacleIndices[i];
+			if (Utility::MathUtility::Contains(p, &m_Obstacles[obstIdx])) return true;
 		}
 
 		return false;

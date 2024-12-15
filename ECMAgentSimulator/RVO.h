@@ -95,8 +95,8 @@ namespace ECM {
 			void GenerateConstraints(Simulator* simulator, const Entity& entity, const std::vector<Entity>& agentNeighbors, const std::vector<const Obstacle*>& obstNeighbors, float stepSize, int& outNObstacleConstraints, std::vector<Constraint>& outConstraints);
 
 		private:
-			float m_lookAheadAgent = 3.0f;
-			float m_lookAheadObstacle = 1.0f;
+			float m_lookAheadAgent = 10.0f;
+			float m_lookAheadObstacle = 10.0f;
 
 		};
 

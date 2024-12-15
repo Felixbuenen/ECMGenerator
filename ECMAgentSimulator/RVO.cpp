@@ -18,7 +18,7 @@ namespace ECM {
 
 			// static obstacle neighbors
 			std::vector<const Obstacle*> obstNeighbors;
-			float range = m_lookAheadObstacle * maxSpeed * simulator->GetClearanceData()[entity].clearance;
+			float range = m_lookAheadObstacle * maxSpeed + simulator->GetClearanceData()[entity].clearance;
 			simulator->FindNearestObstacles(entity, range * range, obstNeighbors);
 
 			// generate constraints
@@ -58,6 +58,8 @@ namespace ECM {
 
 				Vec2 segUnitDir = obstNeighborR->p - obstNeighborL->p;
 				const float s = (Utility::MathUtility::Dot(relativePosition1 * -1.0f, segUnitDir)) / Utility::MathUtility::SquaredLength(segUnitDir);
+
+				// squared distance to infinite line on which the line segment lies
 				const float distSqLine = Utility::MathUtility::SquaredLength(relativePosition1 * -1.0f - segUnitDir * s);
 
 				// first check if the agent is currently colliding with the obstacle
@@ -87,7 +89,9 @@ namespace ECM {
 				else if (s > 1.0f && distSq2 <= radiusSq) {
 
 					// same rules apply for collision case 1, except we push the agent away from the right vertex
-					if (obstNeighborR->isConvex) {
+					Vec2 rightNeighborDir = (obstNeighborR->nextObstacle->p - obstNeighborR->p);
+					rightNeighborDir.Normalize();
+					if (obstNeighborR->isConvex && Utility::MathUtility::Determinant(relativePosition2, rightNeighborDir) >= 0.0f) {
 						Constraint c;
 						c.Init(Vec2(0.0f, 0.0f), (relativePosition2 * -1.0f).Normalized());
 
@@ -103,8 +107,8 @@ namespace ECM {
 
 					// we want to push the agent away from the segment (opposite direction of segment normal)
 					// the inverted obstacle segment normal is the normalized vector that is clockwise perpendicular to the obstacle segment
-					Vec2 invObstacleNormal = Utility::MathUtility::Right(segUnitDir);
-					c.Init(Vec2(0.0f, 0.0f), invObstacleNormal);
+					Vec2 invObstNormal = Utility::MathUtility::Right(segUnitDir);
+					c.Init(Vec2(0.0f, 0.0f), invObstNormal);
 
 					outConstraints.push_back(c);
 
@@ -161,11 +165,13 @@ namespace ECM {
 				// The agent is in front of the obstacle segment. This is similar to the previous calculations, with the only exception that we now create the tangent lines separately for the
 				// left and right obstacle vertices.
 				else {
-					if (obstNeighborL->isConvex) {
+					if (obstNeighborL->isConvex) 
+					{
 						const float leg1 = std::sqrt(distSq1 - radiusSq);
 						leftLegDirection = Vec2(relativePosition1.x * leg1 - relativePosition1.y * clearance.clearance, relativePosition1.x * clearance.clearance + relativePosition1.y * leg1) / distSq1;
 					}
-					else {
+					else 
+					{
 						// The left point is not convex, meaning there is no well-defined left tangent line that the agent can follow to avoid a collision.
 						// In this case, we treat the obstacle segment itself as the left boundary for the VO. The left direction is set to align with the 
 						// obstacle segment's direction (reversed), ensuring that any movement further to the right (except up to the right tangent of the 
@@ -173,11 +179,13 @@ namespace ECM {
 						leftLegDirection = segUnitDir * -1.0f;
 					}
 
-					if (obstNeighborR->isConvex) {
+					if (obstNeighborR->isConvex) 
+					{
 						const float leg2 = std::sqrt(distSq2 - radiusSq);
 						rightLegDirection = Vec2(relativePosition2.x * leg2 + relativePosition2.y * clearance.clearance, -relativePosition2.x * clearance.clearance + relativePosition2.y * leg2) / distSq2;
 					}
-					else {
+					else 
+					{
 						// The right point is not convex, meaning there is no well-defined right tangent line that the agent can follow to avoid a collision.
 						// The same logic applies for when the left point is not convex, only we set the rightLegDirection to point to the opposite side.
 						rightLegDirection = segUnitDir;
@@ -196,17 +204,17 @@ namespace ECM {
 				// In the case below, the obstacle is convex, and the left VO leg initially points into the left neighbor of the obstacle.
 				// This could cause the agent to choose a velocity that leads into a collision with the left neighbor. To prevent this,
 				// we adjust the left leg of the VO to be parallel to the edge of the left neighboring obstacle.
-				Vec2 leftNeighborDir = leftNeighbor->prevObstacle->p - leftNeighbor->p;
-				if (obstNeighborL->isConvex && Utility::MathUtility::Determinant(leftLegDirection, leftNeighborDir) >= 0.0f) {
-					leftNeighborDir.Normalize();
-					leftLegDirection = leftNeighborDir;
+				Vec2 leftNeighborDir = obstNeighborL->p - leftNeighbor->p;
+				leftNeighborDir.Normalize();
+				if (obstNeighborL->isConvex && Utility::MathUtility::Determinant(leftLegDirection, leftNeighborDir * -1.0f) >= 0.0f) {
+					leftLegDirection = leftNeighborDir * -1.0f;
 					isLeftLegForeign = true;
 				}
 
 				// ... and we apply the same logic to the right obstacle
 				Vec2 rightNeighborDir = obstNeighborR->nextObstacle->p - obstNeighborR->p;
+				rightNeighborDir.Normalize();
 				if (obstNeighborR->isConvex && Utility::MathUtility::Determinant(rightLegDirection, rightNeighborDir) <= 0.0f) {
-					rightNeighborDir.Normalize();
 					rightLegDirection = rightNeighborDir;
 					isRightLegForeign = true;
 				}
@@ -248,6 +256,7 @@ namespace ECM {
 
 					c.Init(pOnCircle, unitW);
 					outConstraints.push_back(c);
+
 					continue;
 				}
 
@@ -262,8 +271,7 @@ namespace ECM {
 
 					// remember that we don't actually need to calculate the closest point on the cutoff line to the velocity.
 					// we just need to construct a constraint which consists of any point on the cutoff line and the correct normal.
-					Vec2 normal = Utility::MathUtility::Right(cutoffVec);
-					normal.Normalize();
+					Vec2 normal = Utility::MathUtility::Left(segUnitDir * -1.0f);
 					Point pOnCutoff = leftCutoff + normal * obstLookaheadRecip * clearance.clearance;
 
 					Constraint c;
@@ -285,6 +293,7 @@ namespace ECM {
 					Constraint c;
 					c.Init(pOnLeftLeg, normal);
 					outConstraints.push_back(c);
+
 					continue;
 				}
 				// distance to right leg is shortest
@@ -299,6 +308,7 @@ namespace ECM {
 					Constraint c;
 					c.Init(pOnRightLeg, normal);
 					outConstraints.push_back(c);
+
 					continue;
 				}
 			}
@@ -329,7 +339,7 @@ namespace ECM {
 				{
 					// neighbors are colliding. in the next timestep, agents should be collision free.
 
-					/* Vector from cutoff center to relative velocity. */
+					// Vector from cutoff center to relative velocity.
 					const Vec2& w = relVel - relPos / stepSize;
 					const float wLength = w.Length();
 					const Vec2 unitW = w / wLength;
@@ -348,11 +358,6 @@ namespace ECM {
 				float tanHalfAngle = atan(tanAngleFactor);
 				Vec2 VOLeftLeg = Utility::MathUtility::RotateVector(VOPos, tanHalfAngle); // note: positive angle is anti-clockwise rotation
 				Vec2 VORightLeg = Utility::MathUtility::RotateVector(VOPos, -tanHalfAngle);
-
-				// Rel velocity (RelVel) ligt in VO wanneer:
-				// 1. RelVel tussen de twee legs ligt
-				// 2. De afstand van de cirkel tot RelVel kleiner is dan de cirkel radius
-				//    OF RelVel ligt boven de relatieve middellijn van de cirkel
 
 				// if the distance of the relative velocity to the VO circle centre is smaller than its radius, the relative velocity lies inside the VO.
 				// if not, than the rel velocity only lies in the VO if it lies above the VO circle position
@@ -419,8 +424,8 @@ namespace ECM {
 				outVelocity = optVelocity * maxSpeed;
 			}
 			else if (Utility::MathUtility::Length(optVelocity) > maxSpeed) {
-				// optimal velocity bigger than maximum allowed velocity; correct
 
+				// optimal velocity bigger than maximum allowed velocity: clamp to max velocity
 				outVelocity = optVelocity.Normalized() * maxSpeed;
 			}
 			else

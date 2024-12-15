@@ -31,12 +31,13 @@ namespace ECM {
 			BIG,
 			NARROW,
 			LINES,
+			SQUARE,
 			EMPTY
 		};
 
 		void Initialize(TestEnvironment type);
 		void AddWalkableArea(std::vector<Segment> waEdges); // for now just allow 1 walkable area
-		void AddObstacle(std::vector<Segment> obstacleEdges);
+		void AddObstacle(std::vector<Point> obstacleVerts);
 
 		void ComputeECM();
 
@@ -61,6 +62,7 @@ namespace ECM {
 		std::vector<Segment> m_WalkableArea;
 		std::vector<std::vector<Segment>> m_ObstaclesDeprecated;
 		std::vector<Obstacle> m_Obstacles;
+		std::vector<int> m_ObstacleIndices;
 		std::vector<Segment> m_EnvironmentObstacleUnion;
 
 		std::vector<std::shared_ptr<ECM>> m_EcmList;

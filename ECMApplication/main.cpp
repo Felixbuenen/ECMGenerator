@@ -81,10 +81,19 @@ int main()
 
 
 	Environment env;
-	env.Initialize(Environment::TestEnvironment::CLASSIC);
+	env.Initialize(Environment::TestEnvironment::SQUARE);
 	ECMPathPlanner planner(env.GetECM()->GetECMGraph());
-	Simulator sim(env.GetECM().get(), &planner, &env, 100, 0.25f);
+	Simulator sim(env.GetECM().get(), &planner, &env, 50, 0.25f);
 	sim.Initialize();
+
+	//sim.SpawnAgent(Point(-227, -138), Point(127, -300), 10.0f, 20.0f);
+
+	//std::vector<Point> obst;
+	//obst.push_back(Point(5, 0));
+	//obst.push_back(Point(100,0));
+	//env.AddObstacle(obst);
+	//
+	//sim.SpawnAgent(Point(0, 100), Point(0, -100), 10.0f, 2.0f);
 
 
 	// CIRCLE AGENTS

@@ -85,6 +85,49 @@ namespace ECM {
 			return inside;
 		}
 
+		bool MathUtility::Contains(const Point& p, const Obstacle* obstacle)
+		{
+			// ray cast algorithm
+
+			bool inside = false;
+
+			const Obstacle* currentObstacle = obstacle;
+
+			do {
+				const Point& p0 = currentObstacle->p;
+				if (currentObstacle->nextObstacle == nullptr) return false;
+
+				const Point& p1 = currentObstacle->nextObstacle->p;
+
+				// check if point equal to segment endpoint (in which case we don't want it to be considered "contained"
+				// this check is enough for the purpose of this demo: we don't have a case where we need to check if a point
+				// is on a line segment.
+				if (p.Approximate(p0)) return false;
+				if (p.Approximate(p1)) return false;
+
+				if (p.y > fmin(p0.y, p1.y))
+				{
+					if (p.y < fmax(p0.y, p1.y))
+					{
+						if (p.x < fmax(p0.x, p1.x))
+						{
+							float x_intersection = (p.y - p0.y) * (p1.x - p0.x) / (p1.y - p0.y) + p0.x;
+
+							if (p0.x == p1.x || p.x < x_intersection)
+							{
+								inside = !inside;
+							}
+						}
+					}
+				}
+
+				currentObstacle = currentObstacle->nextObstacle;
+			} while (currentObstacle != obstacle);
+
+			return inside;
+		}
+
+
 		bool MathUtility::IsPointInQuadrilateral(const Point& point, const Point& A, const Point& B, const Point& C, const Point& D) {
 			// Define the four edges of the quadrilateral
 			Point edge1 = B - A;

@@ -38,11 +38,12 @@ namespace ECM {
 			DrawWalkableArea();
 			DrawObstacles();
 			DrawMedialAxis();
+			DrawSimulationAreas();
 			//DrawECMVertices();
 			//DrawClosestObstaclePoints();
 			//DrawCorridor();
 			//DrawPortals();
-			//DrawAttractionPoints();
+			DrawAttractionPoints();
 			
 			//DrawHalfEdge(22);
 
@@ -54,7 +55,6 @@ namespace ECM {
 			//DebugDrawCellValues();
 			//DebugDrawBoostVoronoiDiagram();
 
-			DrawSimulationAreas();
 			//DrawPaths();
 
 			DrawAgents();
@@ -212,13 +212,22 @@ namespace ECM {
 			for (const Obstacle& obstacle : obstacles) {
 				Point leftP = obstacle.p;
 				Point rightP = obstacle.nextObstacle->p;
+				Point normalP = leftP + (rightP - leftP) * 0.5f;
+				Vec2 normal = Utility::MathUtility::Left((rightP - leftP));
+				normal.Normalize();
 
 				int x1 = leftP.x * m_CamZoomFactor + m_CamOffsetX;
 				int y1 = leftP.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 				int x2 = rightP.x * m_CamZoomFactor + m_CamOffsetX;
 				int y2 = rightP.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 
+				int nx1 = normalP.x * m_CamZoomFactor + m_CamOffsetX;
+				int ny1 = normalP.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+				int nx2 = (normalP.x + normal.x * 10.0f) * m_CamZoomFactor + m_CamOffsetX;
+				int ny2 = (normalP.y + normal.y * 10.0f) * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+
 				SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
+				SDL_RenderDrawLine(m_Renderer, nx1, ny1, nx2, ny2);
 			}
 
 			// _ecm->GetObstacles();
@@ -670,7 +679,7 @@ namespace ECM {
 				spawnRect.y = pos.y;
 				spawnRect.w = halfWidth * 2 * m_CamZoomFactor;
 				spawnRect.h = halfHeight * 2 * m_CamZoomFactor;
-				SDL_SetRenderDrawColor(m_Renderer, 120.0f, 200.0f, 120.0f, 255);
+				SDL_SetRenderDrawColor(m_Renderer, 120.0f, 200.0f, 120.0f, 125);
 				SDL_RenderFillRect(m_Renderer, &spawnRect);
 			}
 
@@ -690,7 +699,7 @@ namespace ECM {
 				goalRect.y = pos.y;
 				goalRect.w = halfWidth * 2 * m_CamZoomFactor;
 				goalRect.h = halfHeight * 2 * m_CamZoomFactor;
-				SDL_SetRenderDrawColor(m_Renderer, 200.0f, 120.0f, 120.0f, 255);
+				SDL_SetRenderDrawColor(m_Renderer, 200.0f, 120.0f, 120.0f, 125);
 				SDL_RenderFillRect(m_Renderer, &goalRect);
 			}
 

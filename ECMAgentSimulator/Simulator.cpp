@@ -29,6 +29,7 @@ namespace ECM {
 			//m_Goals = new PositionComponent[m_MaxNumEntities];
 			m_Velocities = new VelocityComponent[m_MaxNumEntities];
 			m_PreferredVelocities = new VelocityComponent[m_MaxNumEntities];
+			m_Forces = new VelocityComponent[m_MaxNumEntities];
 			m_Clearances = new ClearanceComponent[m_MaxNumEntities];
 			m_Paths = new PathComponent[m_MaxNumEntities];
 
@@ -52,41 +53,7 @@ namespace ECM {
 
 			printf("SIMULATOR: Data for %d agents was created.\n", m_MaxNumEntities);
 
-
-			// --------------- DEBUG -------------
-
-			// TODO:
-			// 1. make a simple ImGui menu with a spawn and goal area
-			// 2. implement click-drag behavior
-			// 3. start with assumption that there are as many spawn as goal areas. 
-			// 4. next, implement connection logic
-
-			//GoalArea ga;
-			//ga.ID = 0;
-			//ga.Position = Point(0.0f, 390.0f);
-			//ga.HalfHeight = 70;
-			//ga.HalfWidth = 320;
-
-			AreaConnector con;
-			con.goalID = 0;
-
-			//SpawnArea sa;
-			//sa.HalfWidth = 250;
-			//sa.HalfHeight = 60;
-			//sa.ID = 0;
-			//sa.Position = Point(0.0f, -375.0f);
-			//sa.spawnRate = 2000;
-			//sa.spawnConfiguration.clearanceMin = 7.0f;
-			//sa.spawnConfiguration.clearanceMax = 7.0f;
-			//sa.spawnConfiguration.preferredSpeedMin = 5.0f;
-			//sa.spawnConfiguration.preferredSpeedMax = 5.0f;
-			//
-			//sa.connectors.push_back(con);
-			//
-			//m_SpawnAreas.push_back(sa);
-			//m_GoalAreas.push_back(ga);
-
-			// --------------- DEBUG -------------
+			m_CurrentStepDuration = m_SimStepTime;
 		}
 
 		void Simulator::ClearSimulator()
@@ -111,6 +78,7 @@ namespace ECM {
 			delete[] m_AttractionPoints;
 			delete[] m_Velocities;
 			delete[] m_PreferredVelocities;
+			delete[] m_Forces;
 			delete[] m_Paths;
 			delete[] m_ActiveAgents;
 			delete[] m_Clearances;
@@ -125,8 +93,10 @@ namespace ECM {
 
 		int Simulator::SpawnAgent(const Point& start, const Point& goal, float clearance, float preferredSpeed)
 		{
-			if (m_freeEntitySpaces.empty()) return -1;
-			if (!ValidSpawnLocation(start, clearance)) return -1;
+			if (m_freeEntitySpaces.empty()) 
+				return -1;
+			if (!ValidSpawnLocation(start, clearance)) 
+				return -1;
 
 			m_NumEntities++;
 
@@ -162,11 +132,12 @@ namespace ECM {
 			//Vec2 dir = Point(pComponent.x[1], pComponent.y[1]) - Point(pComponent.x[0], pComponent.y[0]);
 			//dir.Normalize();
 			
-			//m_PreferredVelocities[idx].dx = 0.0f;
-			//m_PreferredVelocities[idx].dy = 0.0f;
-			//
-			//m_Velocities[idx].dx = 0.0f;
-			//m_Velocities[idx].dy = 0.0f;
+			m_PreferredVelocities[idx].dx = 0.0f;
+			m_PreferredVelocities[idx].dy = 0.0f;
+			m_Velocities[idx].dx = 0.0f;
+			m_Velocities[idx].dy = 0.0f;
+			m_Forces[idx].dx = 0.0f;
+			m_Forces[idx].dy = 0.0f;
 
 			return idx;
 		}
@@ -226,11 +197,14 @@ namespace ECM {
 				float sqDist = std::powf(signedLeftDist, 2.0f) / Utility::MathUtility::SquareDistance(obst->p, obstNext->p);
 
 				if (sqDist < rangeSquared) {
-					// if signedLeftDist < 0.0f, then the agent is right of the obstacle segment and therefor "in front of" the obstacle. This means we want
-					//  to test against this obstacle. If it would be left of the obstacle, the agent would be behind the obstacle and we don't take it into
-					//  consideration.
+					// if signedLeftDist < 0.0f, then the agent is right of the obstacle segment and therefor "in front of" the obstacle.
+					// only test against these lines.
 					if (signedLeftDist < 0.0f) {
-						outObstacles.push_back(obst); // TODO: optimize...
+						Point p = Utility::MathUtility::GetClosestPointOnSegment(agentPos, obst->p, obstNext->p);
+						if (Utility::MathUtility::SquareDistance(p, agentPos) < rangeSquared)
+						{
+							outObstacles.push_back(obst);
+						}
 					}
 				}
 			}
@@ -267,11 +241,11 @@ namespace ECM {
 
 			// we update the simulation every fixed time interval (commonly every 100ms)
 			// we divide the simstep time by the speedscale in order to maintain the same simulation accuracy for different playback speeds
-			//if (m_CurrentStepDuration >= (m_SimStepTime / m_SpeedScale))
-			//{
-			//	UpdateVelocitySystem(dt);
-			//	m_CurrentStepDuration -= m_SimStepTime;
-			//}
+			if (m_CurrentStepDuration >= (m_SimStepTime / m_SpeedScale))
+			{
+				UpdateForceSystem(dt);
+				m_CurrentStepDuration -= m_SimStepTime;
+			}
 
 			UpdateVelocitySystem(dt);
 			UpdatePositionSystem(dt);
@@ -369,32 +343,29 @@ namespace ECM {
 		void Simulator::UpdateAttractionPointSystem()
 		{
 			const bool deleteAgent = true;
-			const float deleteDistance = 2.0f;
-			const float arrivalRadius = 50.0f;
-			const float attractionLookAheadMultiplier = 2.5f;
+			const float deleteDistanceSq = 2.0f * 2.0f;
+			const float arrivalRadiusSq = 20.0f * 20.0f;
 
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
 				if (!m_ActiveAgents[i]) continue;
 				
-				// note that currently this is redundant, but this method is clean for when we want to have different entities.
-				// likely we don't have different entities, so maybe just use i for indexation.
 				const Entity& e = m_Entities[i];
 				
 				PathComponent& path = m_Paths[e];
 				const PositionComponent& pos = m_Positions[e];
 
-				float distFromArrival = Utility::MathUtility::Distance(pos.x, pos.y, path.x[path.numPoints - 1], path.y[path.numPoints - 1]);
+				float distFromArrival = Utility::MathUtility::SquareDistance(pos.x, pos.y, path.x[path.numPoints - 1], path.y[path.numPoints - 1]);
 
 				Point currentPosition(pos.x, pos.y);
 				Vec2 currentVelocity(m_Velocities[e].dx, m_Velocities[e].dy);
 
-				if (distFromArrival < arrivalRadius)
+				if (distFromArrival < arrivalRadiusSq)
 				{
 					m_AttractionPoints[e].x = path.x[path.numPoints - 1];
 					m_AttractionPoints[e].y = path.y[path.numPoints - 1];
 
-					if (distFromArrival < deleteDistance) {
+					if (distFromArrival < deleteDistanceSq) {
 						DestroyAgent(e);
 					}
 				}
@@ -403,27 +374,6 @@ namespace ECM {
 					Point attractionPoint = m_PathFollower->FindAttractionPoint(*m_Ecm, m_Ecm->GetECMGraph(), currentPosition, path);
 					m_AttractionPoints[e].x = attractionPoint.x;
 					m_AttractionPoints[e].y = attractionPoint.y;
-					// TODO: futurePosition should not be dependent on currentVelocity
-					//       instead, apply lookahead on the path, e.g. path(0) = start and path(1) = end.
-					//       MIRAN method could work (only look at subset of path to avoid shortcuts.
-					//Point futurePosition = currentPosition + currentVelocity * attractionLookAheadMultiplier;
-					//float closestPoint = Utility::MAX_FLOAT;
-					//
-					//// calculate attraction point
-					//std::vector<Point> points;
-					//for (int j = path.currentIndex; j < path.numPoints - 1; j++)
-					//{
-					//	Point p = Utility::MathUtility::GetClosestPointOnSegment(futurePosition, Segment(path.x[j], path.y[j], path.x[j + 1], path.y[j + 1]));
-					//	float dist = Utility::MathUtility::Distance(futurePosition, p);
-					//
-					//	if (dist < closestPoint)
-					//	{
-					//		m_AttractionPoints[e].x = p.x;
-					//		m_AttractionPoints[e].y = p.y;
-					//		path.currentIndex = j;
-					//		closestPoint = dist;
-					//	}
-					//}
 				}
 			}
 		}
@@ -434,46 +384,49 @@ namespace ECM {
 			{
 				if (!m_ActiveAgents[i]) continue;
 
-				// note that currently this is redundant, but this method is clean for when we want to have different entities.
-				// likely we don't have different entities, so maybe just use i for indexation.
 				const Entity& e = m_Entities[i];
 
 				const VelocityComponent& vel = m_Velocities[e];
 				PositionComponent& pos = m_Positions[e];
 
-
+				// DEBUG
 				//pos.x += vel.dx * dt;
 				//pos.y += vel.dy * dt;
-				pos.x += vel.dx * m_SimStepTime;
-				pos.y += vel.dy * m_SimStepTime;
-
-				if (i == 0)
-				{
-					std::cout << "(" << vel.dx << ", " << vel.dy << ")" << std::endl;
-				}
+				pos.x += vel.dx / m_SimStepTime * dt;
+				pos.y += vel.dy / m_SimStepTime * dt;
 			}
 		}
 
 		// TODO: currently all forces are calculated for each agent.
 		// It is likely more efficient to calculate each force invidividually in batches for all agents.
 		// Now, the loop must maintain all the local variables which will clutter the cache.
-		void Simulator::UpdateVelocitySystem(float dt)
+		void Simulator::UpdateForceSystem(float dt)
 		{
 			UpdateAttractionPointSystem();
 			ApplySteeringForce();
 			ApplyObstacleAvoidanceForce(dt);
 		}
 
+		void Simulator::UpdateVelocitySystem(float dt)
+		{
+			for (int i = 0; i <= m_LastEntityIdx; i++)
+			{
+				if (!m_ActiveAgents[i]) continue;
+
+				Entity e = m_Entities[i];
+
+				// <DEBUG>
+				//m_Velocities[e].dx = m_Forces[e].dx;
+				//m_Velocities[e].dy = m_Forces[e].dy;
+				// </DEBUG>
+			}
+		}
+
+
 		void Simulator::ApplySteeringForce()
 		{
-			// start by batch calculating steering force
-			// if possible, try batch calculating attraction points first, then apply steering force
-
-			// TODO: make global..
-			const float speed = 1.0f;
-
-			// force weights
-			const float pathFollowSteeringWeight = 1.0f;
+			// TODO: make global or agent specific..
+			const float speed = 10.0f;
 
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
@@ -481,27 +434,21 @@ namespace ECM {
 
 				const Entity& e = m_Entities[i];
 				Point currentPosition(m_Positions[e].x, m_Positions[e].y);
-				Vec2 currentVelocity(m_Velocities[e].dx, m_Velocities[e].dy);
-
 				Point attractionPoint(m_AttractionPoints[e].x, m_AttractionPoints[e].y);
+
 				Vec2 desiredVelocity = (attractionPoint - currentPosition);
 				desiredVelocity.Normalize();
 				desiredVelocity = desiredVelocity * speed;
 				
-				//Vec2 steering = (desiredVelocity - currentVelocity) * pathFollowSteeringWeight;
 				m_PreferredVelocities[e].dx = desiredVelocity.x;
 				m_PreferredVelocities[e].dy = desiredVelocity.y;
-
-				// DEBUG
-				//m_Velocities[e].dx = m_PreferredVelocities[e].dx;
-				//m_Velocities[e].dy = m_PreferredVelocities[e].dy;
 			}			
 		}
 
 		void Simulator::ApplyObstacleAvoidanceForce(float dt)
 		{
 			// todo: make global
-			const float speed = 20.0f;
+			const float speed = 10.0f;
 			const int numRVONeighbors = 20;
 
 			for (int i = 0; i <= m_LastEntityIdx; i++)
@@ -513,47 +460,15 @@ namespace ECM {
 				Vec2 outVel;
 				m_RVO->GetRVOVelocity(this, e, m_SimStepTime, speed, numRVONeighbors, outVel);
 
+				// <DEBUG>
+				//m_Forces[e].dx = (outVel.x - m_Velocities[e].dx) / m_SimStepTime;
+				//m_Forces[e].dy = (outVel.y - m_Velocities[e].dy) / m_SimStepTime;
 				m_Velocities[e].dx = outVel.x;
 				m_Velocities[e].dy = outVel.y;
+
+				// </DEBUG>
 			}
 		}
-
-
-		// THIS MUST BE DEPCRECATED
-		// - Boundary force should be included in ORCA
-		// TODO:
-		// > proper parameter values
-		// > calculate weight such that agent can never cross boundary
-		void Simulator::ApplyBoundaryForce(Vec2& steering, const PositionComponent& pos, const ClearanceComponent& clearance)
-		{
-			// query current position in ECM (returns ECM cell)
-			const ECMCell* cell = m_Ecm->GetECMCell(pos.x, pos.y);
-
-			if (cell == nullptr) return;
-
-			// from ECM cell, get the obstacle segment
-			const Segment& obstacle = cell->boundary;
-			
-			// calculate the distance from the position to the segment. If below threshold, return;
-			float preferredSafeDistance = 100.0f; // TODO: make variable
-			Point closestPoint = Utility::MathUtility::GetClosestPointOnSegment(Point(pos.x, pos.y), obstacle);
-			float distance = Utility::MathUtility::Distance(Point(pos.x, pos.y), closestPoint);
-			if ((distance - clearance.clearance) > preferredSafeDistance) return;
-			
-			// otherwise calculate the force direction (normal of segment)
-			Vec2 oNormal = Point(pos.x, pos.y) - closestPoint;
-			oNormal.Normalize();
-
-			// calculate the weight of the force (scalar value, see paper Indicative Routes for Path Planning and Crowd Simulation
-			// apply force to steering
-			const float repulsiveSteepness = 0.5f;
-			float weight = (preferredSafeDistance + clearance.clearance - distance) / std::pow((distance - clearance.clearance), repulsiveSteepness);
-
-			//float weight = (distance / distThreshold);
-
-			steering = steering + oNormal * weight;
-		}
-
 	}
 
 }
