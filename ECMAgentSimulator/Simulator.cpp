@@ -241,12 +241,13 @@ namespace ECM {
 
 			// we update the simulation every fixed time interval (commonly every 100ms)
 			// we divide the simstep time by the speedscale in order to maintain the same simulation accuracy for different playback speeds
-			if (m_CurrentStepDuration >= (m_SimStepTime / m_SpeedScale))
-			{
-				UpdateForceSystem(dt);
-				m_CurrentStepDuration -= m_SimStepTime;
-			}
+			//if (m_CurrentStepDuration >= (m_SimStepTime / m_SpeedScale))
+			//{
+			//	UpdateForceSystem(dt);
+			//	m_CurrentStepDuration -= m_SimStepTime;
+			//}
 
+			UpdateForceSystem(dt);
 			UpdateVelocitySystem(dt);
 			UpdatePositionSystem(dt);
 		}
@@ -392,8 +393,8 @@ namespace ECM {
 				// DEBUG
 				//pos.x += vel.dx * dt;
 				//pos.y += vel.dy * dt;
-				pos.x += vel.dx / m_SimStepTime * dt;
-				pos.y += vel.dy / m_SimStepTime * dt;
+				pos.x += (vel.dx * m_SimStepTime);
+				pos.y += (vel.dy * m_SimStepTime);
 			}
 		}
 
@@ -416,8 +417,8 @@ namespace ECM {
 				Entity e = m_Entities[i];
 
 				// <DEBUG>
-				//m_Velocities[e].dx = m_Forces[e].dx;
-				//m_Velocities[e].dy = m_Forces[e].dy;
+				m_Velocities[e].dx += m_Forces[e].dx;
+				m_Velocities[e].dy += m_Forces[e].dy;
 				// </DEBUG>
 			}
 		}
@@ -461,10 +462,10 @@ namespace ECM {
 				m_RVO->GetRVOVelocity(this, e, m_SimStepTime, speed, numRVONeighbors, outVel);
 
 				// <DEBUG>
-				//m_Forces[e].dx = (outVel.x - m_Velocities[e].dx) / m_SimStepTime;
-				//m_Forces[e].dy = (outVel.y - m_Velocities[e].dy) / m_SimStepTime;
-				m_Velocities[e].dx = outVel.x;
-				m_Velocities[e].dy = outVel.y;
+				m_Forces[e].dx = (outVel.x - m_Velocities[e].dx) * m_SimStepTime;
+				m_Forces[e].dy = (outVel.y - m_Velocities[e].dy) * m_SimStepTime;
+				//m_Velocities[e].dx = outVel.x;
+				//m_Velocities[e].dy = outVel.y;
 
 				// </DEBUG>
 			}
