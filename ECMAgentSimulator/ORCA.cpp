@@ -1,4 +1,4 @@
-#include "RVO.h"
+#include "ORCA.h"
 
 #include "Simulator.h"
 #include "UtilityFunctions.h"
@@ -10,7 +10,7 @@ namespace ECM {
 
 	namespace Simulation {
 
-		void RVO::GetRVOVelocity(Simulator* simulator, const Entity& entity, float stepSize, float maxSpeed, int nNeighbors, Vec2& outVelocity)
+		void ORCA::GetVelocity(Simulator* simulator, const Entity& entity, float stepSize, float maxSpeed, int nNeighbors, Vec2& outVelocity)
 		{
 			// agent neighbors
 			std::vector<Entity> agentNeighbors;
@@ -38,7 +38,7 @@ namespace ECM {
 		}
 
 		// generates the ORCA constraints
-		void RVO::GenerateConstraints(Simulator* simulator, const Entity& entity, const std::vector<Entity>& agentNeighbors, const std::vector<const Obstacle*>& obstNeighbors, float stepSize, int& outNObstacleConstraints, std::vector<Constraint>& outConstraints)
+		void ORCA::GenerateConstraints(Simulator* simulator, const Entity& entity, const std::vector<Entity>& agentNeighbors, const std::vector<const Obstacle*>& obstNeighbors, float stepSize, int& outNObstacleConstraints, std::vector<Constraint>& outConstraints)
 		{
 			const PositionComponent& positionComp = simulator->GetPositionData()[entity];
 			const ClearanceComponent& clearance = simulator->GetClearanceData()[entity];
@@ -407,7 +407,7 @@ namespace ECM {
 
 		// applies randomized linear programming to find the optimal velocity, given the ORCA constraints.
 		// returns the number of constraints (if success) or the index of the constraint that failed.
-		int RVO::RandomizedLP(const std::vector<Constraint>& constraints, const Vec2& optVelocity, const float maxSpeed, bool useDirOpt, Vec2& outVelocity) const
+		int ORCA::RandomizedLP(const std::vector<Constraint>& constraints, const Vec2& optVelocity, const float maxSpeed, bool useDirOpt, Vec2& outVelocity) const
 		{
 
 			// 1. make random permutation of constraints
@@ -568,10 +568,10 @@ namespace ECM {
 			return nConstraints;
 		}
 	
-		// applies randomized linear programming to find the optimal velocity, given the ORCA constraints. The difference with RVO::RandomizedLP(..) is that RVO::RandomizedLP3D(..)
+		// applies randomized linear programming to find the optimal velocity, given the ORCA constraints. The difference with ORCA::RandomizedLP(..) is that ORCA::RandomizedLP3D(..)
 		//  relaxes the (non-static) obstacle constraints to find the "best possible" solution. This best possible solution does not completely avoid collision, but finds the velocity 
 		//  that minimizes the collision.
-		void RVO::RandomizedLP3D(int nObstacleConstraints, const std::vector<Constraint>& constraints, const float maxSpeed, int failedIndex, Vec2& outVelocity) const
+		void ORCA::RandomizedLP3D(int nObstacleConstraints, const std::vector<Constraint>& constraints, const float maxSpeed, int failedIndex, Vec2& outVelocity) const
 		{
 			// loop through constraints (starting from failedIndex)
 

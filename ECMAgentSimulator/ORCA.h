@@ -81,13 +81,12 @@ namespace ECM {
 
 		// TODO:
 		// - change class name/script name to ORCA
-		// - static obstacles are not yet taken into account; implement
-		class RVO 
+		class ORCA 
 		{
 		public:
 
 			// get the RVO velocities based on the given simulator object
-			void GetRVOVelocity(Simulator* simulator, const Entity& entity, float stepSize, float maxSpeed, int nNeighbors, Vec2& outVelocity);
+			void GetVelocity(Simulator* simulator, const Entity& entity, float stepSize, float maxSpeed, int nNeighbors, Vec2& outVelocity);
 			void RandomizedLP3D(int nObstacleConstraints, const std::vector<Constraint>& constraints, const float maxSpeed, int failedIndex, Vec2& outVelocity) const;
 			int RandomizedLP(const std::vector<Constraint>& constraints, const Vec2& optVelocity, const float maxSpeed, bool useDirOpt, Vec2& outVelocity) const; // given a set of half planes and the preferredVelocity, solve the LP
 

@@ -8,7 +8,7 @@
 #include "Simulator.h"
 #include "KDTree.h"
 #include "Timer.h"
-#include "RVO.h"
+#include "ORCA.h"
 
 #include <stdio.h>
 
@@ -81,9 +81,9 @@ int main()
 
 
 	Environment env;
-	env.Initialize(Environment::TestEnvironment::SQUARE);
+	env.Initialize(Environment::TestEnvironment::CLASSIC);
 	ECMPathPlanner planner(env.GetECM()->GetECMGraph());
-	Simulator sim(env.GetECM().get(), &planner, &env, 50, 0.25f);
+	Simulator sim(env.GetECM().get(), &planner, &env, 50, 0.1f);
 	sim.Initialize();
 
 	//sim.SpawnAgent(Point(-227, -138), Point(127, -300), 10.0f, 20.0f);

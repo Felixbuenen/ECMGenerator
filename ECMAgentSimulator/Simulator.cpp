@@ -7,7 +7,7 @@
 #include "ECMDataTypes.h"
 #include "Area.h"
 #include "KDTree.h"
-#include "RVO.h"
+#include "ORCA.h"
 #include "IRMPathFollower.h"
 
 #include <math.h>
@@ -48,7 +48,7 @@ namespace ECM {
 			}
 
 			m_KDTree = new KDTree();
-			m_RVO = new RVO();
+			m_ORCA = new ORCA();
 			m_PathFollower = new IRMPathFollower();
 
 			printf("SIMULATOR: Data for %d agents was created.\n", m_MaxNumEntities);
@@ -85,7 +85,7 @@ namespace ECM {
 			//delete[] m_Goals;
 
 			delete m_KDTree;
-			delete m_RVO;
+			delete m_ORCA;
 			delete m_PathFollower;
 
 			printf("SIMULATOR: Data was destroyed.\n");
@@ -459,7 +459,7 @@ namespace ECM {
 				const Entity e = m_Entities[i];
 
 				Vec2 outVel;
-				m_RVO->GetRVOVelocity(this, e, m_SimStepTime, speed, numRVONeighbors, outVel);
+				m_ORCA->GetVelocity(this, e, m_SimStepTime, speed, numRVONeighbors, outVel);
 
 				// <DEBUG>
 				m_Forces[e].dx = (outVel.x - m_Velocities[e].dx) * m_SimStepTime;

@@ -22,7 +22,7 @@ namespace ECM {
 
 		typedef int Entity;
 		class KDTree;
-		class RVO;
+		class ORCA;
 		class IRMPathFollower;
 
 		struct PositionComponent
@@ -128,7 +128,7 @@ namespace ECM {
 			PathPlanning::ECMPathPlanner* m_Planner;
 			Environment* m_Environment;
 			KDTree* m_KDTree;
-			RVO* m_RVO;
+			ORCA* m_ORCA;
 			IRMPathFollower* m_PathFollower;
 
 			int m_MaxNumEntities;
