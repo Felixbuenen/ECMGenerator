@@ -252,6 +252,17 @@ namespace ECM {
 			UpdatePositionSystem(dt);
 		}
 
+		void Simulator::Reset()
+		{
+			for (int i = 0; i <= m_LastEntityIdx; i++)
+			{
+				if (!m_ActiveAgents[i]) continue;
+
+				DestroyAgent(m_Entities[i]);
+			}
+		}
+
+
 		void Simulator::AddSpawnArea(const Point& position, const Vec2& halfSize, const SpawnConfiguration& config)
 		{
 			SpawnArea sa;
@@ -410,16 +421,19 @@ namespace ECM {
 
 		void Simulator::UpdateVelocitySystem(float dt)
 		{
+			// TODO: make global
+			const float mass = 0.8f;
+			const float massRecip = 1.0f / mass;
+
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
 				if (!m_ActiveAgents[i]) continue;
 
 				Entity e = m_Entities[i];
 
-				// <DEBUG>
-				m_Velocities[e].dx += m_Forces[e].dx;
-				m_Velocities[e].dy += m_Forces[e].dy;
-				// </DEBUG>
+				// a = F / m
+				m_Velocities[e].dx += m_Forces[e].dx * massRecip * m_SimStepTime;
+				m_Velocities[e].dy += m_Forces[e].dy * massRecip * m_SimStepTime;
 			}
 		}
 
@@ -461,13 +475,8 @@ namespace ECM {
 				Vec2 outVel;
 				m_ORCA->GetVelocity(this, e, m_SimStepTime, speed, numRVONeighbors, outVel);
 
-				// <DEBUG>
-				m_Forces[e].dx = (outVel.x - m_Velocities[e].dx) * m_SimStepTime;
-				m_Forces[e].dy = (outVel.y - m_Velocities[e].dy) * m_SimStepTime;
-				//m_Velocities[e].dx = outVel.x;
-				//m_Velocities[e].dy = outVel.y;
-
-				// </DEBUG>
+				m_Forces[e].dx = (outVel.x - m_Velocities[e].dx);
+				m_Forces[e].dy = (outVel.y - m_Velocities[e].dy);
 			}
 		}
 	}

@@ -75,6 +75,7 @@ namespace ECM {
 
 			void Initialize();
 			void Update(float dt);
+			void Reset();
 
 			inline void AddPosition(Entity entity, float x, float y) {
 				m_Positions[entity].x = x;
@@ -120,8 +121,6 @@ namespace ECM {
 
 			void ApplySteeringForce();
 			void ApplyObstacleAvoidanceForce(float dt);
-			void ApplyBoundaryForce(Vec2& steering, const PositionComponent& pos, const ClearanceComponent& clearance);
-			void CalculateForces();
 
 		private:
 			ECM* m_Ecm;

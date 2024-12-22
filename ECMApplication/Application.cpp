@@ -267,7 +267,12 @@ namespace ECM
 				m_ApplicationState.simulationPlaying = false;
 			}
 			ImGui::SameLine();
-			ImGui::Button("Stop", ImVec2(playbackPanelWidth / 3.0f, playbackPanelHeight));
+			if (ImGui::Button("Stop", ImVec2(playbackPanelWidth / 3.0f, playbackPanelHeight)))
+			{
+				m_ApplicationState.simulationPaused = true;
+				m_ApplicationState.simulationPlaying = false;
+				m_ApplicationState.simulator->Reset();
+			}
 			ImGui::End();
 
 			ImGui::PopStyleVar(4);
