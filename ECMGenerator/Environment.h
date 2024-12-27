@@ -20,7 +20,7 @@ namespace ECM {
 		// > An ECM graph (aka navigation mesh)
 		// 
 		// This means that we initialize an Environment, and the environment HAS AN ECM.
-		// The ECM can then be calculated usign the environment data.
+		// The ECM can then be calculated using the environment data.
 		//
 		// For now, we only support 2D environments (aka no multilayered environments)
 

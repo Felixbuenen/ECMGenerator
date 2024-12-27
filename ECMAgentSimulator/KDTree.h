@@ -52,10 +52,8 @@ namespace ECM {
 		// Have 2 KD-trees used by the simulation:
 		// 1. Active tree. This is the tree that is used by KNN queries. By the simulation. It is read-only.
 		// 2. Build tree. This is the tree object that gets updated by a separate thread. The simulation object does not use this tree. When the build tree is completed, it
-		//    it will be the new 'active' tree. This way, we relax the requirement that a KD-tree must be finished before the next simulation update. Why is this okay? It depends of course.
-		//    But the simulation is a flowing motion. Let's say it takes 200ms to update a KD-tree. Then, on average, the simulation will use an outdated tree every other update (if sim step = 100ms).
-		//    After one simulation step, we make the assumption/relaxation that the neighbors have not changed drastically. Any KNN errors will therefor be minimal. We exploit this fact. 
-		// In fact, we could say: rebuild tree every 500ms to make it more explicit.
+		//    it will be the new 'active' tree. This way, we relax the requirement that a KD-tree must be finished before the next simulation update. We could explicitly
+		//	  define a KD-tree update interval.
 		class KDTree
 		{
 		public:
