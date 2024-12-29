@@ -229,6 +229,7 @@ namespace ECM {
 			return true;
 		}
 
+		// TODO: https://gafferongames.com/post/fix_your_timestep/
 		void Simulator::Update(float dt)
 		{
 			dt *= m_SpeedScale;
@@ -270,30 +271,42 @@ namespace ECM {
 			sa.HalfHeight = halfSize.y;
 			sa.ID = 1; // TODO: get ID through method
 			sa.Position = position;
-			sa.spawnRate = config.spawnRate;
+			//sa.spawnRate = config.spawnRate;
 			sa.spawnConfiguration.clearanceMin = config.clearanceMin;
 			sa.spawnConfiguration.clearanceMax = config.clearanceMax;
 			sa.spawnConfiguration.preferredSpeedMin = config.preferredSpeedMin;
 			sa.spawnConfiguration.preferredSpeedMax = config.preferredSpeedMax;
 
-			AreaConnector conn;
-			conn.goalID = 0; // TODO: make dynamic. connection shouldn't be made here.
-
-			sa.connectors.push_back(conn);
 			m_SpawnAreas.push_back(sa);
 		}
 
 		void Simulator::AddGoalArea(const Point& position, const Vec2& halfSize)
 		{
 			GoalArea ga;
-			ga.ID = 0;
+			ga.ID = m_GoalAreas.size();
 			ga.Position = position;
 			ga.HalfHeight = halfSize.y;
 			ga.HalfWidth = halfSize.x;
 
+			// TODO: don't automatically add spawn connection, use UI to do this
+			ConnectSpawnGoalAreas(0, ga.ID, 4.0f);
+
 			m_GoalAreas.push_back(ga);
 		}
 
+		void Simulator::ConnectSpawnGoalAreas(int spawnID, int goalID, float spawnRate)
+		{
+			// check if goal area is not already connected
+			for (int ga : m_SpawnAreas[spawnID].connectedGoalAreas)
+			{
+				if (ga == goalID) return;
+			}
+
+			SpawnArea& sa = m_SpawnAreas[spawnID];
+			sa.connectedGoalAreas.push_back(goalID);
+			sa.timeSinceLastSpawn.push_back(0.0f);
+			sa.spawnRate.push_back(spawnRate);
+		}
 
 		void Simulator::UpdateMaxAgentIndex()
 		{
@@ -312,43 +325,42 @@ namespace ECM {
 		{
 			for (SpawnArea& area : m_SpawnAreas)
 			{
-				area.timeSinceLastSpawn += dt;
-
-				int agentsToSpawn = area.timeSinceLastSpawn * area.spawnRate;
-				const int maxSpawnAttempts = 10;
-				for (int i = 0; i < agentsToSpawn; i++)
+				for (int ga = 0 ; ga < area.connectedGoalAreas.size(); ga++)
 				{
-					// TODO: implement random values
-					float clearance = area.spawnConfiguration.clearanceMin;
-					float speed = area.spawnConfiguration.preferredSpeedMin;
+					area.timeSinceLastSpawn[ga] += dt;
 
-					bool foundValidLocation = false;
-					Point start;
-
-					for (int spawnAttempts = 0; spawnAttempts < maxSpawnAttempts; spawnAttempts++)
+					int agentsToSpawn = area.timeSinceLastSpawn[ga] * area.spawnRate[ga];
+					const int maxSpawnAttempts = 10;
+					for (int i = 0; i < agentsToSpawn; i++)
 					{
-						if (spawnAttempts > 0)
+						// TODO: implement random values
+						float clearance = area.spawnConfiguration.clearanceMin;
+						float speed = area.spawnConfiguration.preferredSpeedMin;
+
+						bool foundValidLocation = false;
+						Point start;
+
+						for (int spawnAttempts = 0; spawnAttempts < maxSpawnAttempts; spawnAttempts++)
 						{
-							int test = 0;
+							start = area.GetRandomPositionInArea();
+							foundValidLocation = ValidSpawnLocation(start, clearance);
+							if (foundValidLocation) break;
 						}
-						start = area.GetRandomPositionInArea();
-						foundValidLocation = ValidSpawnLocation(start, clearance);
-						if (foundValidLocation) break;
+
+						if (!foundValidLocation)
+						{
+							std::cout << "Could not find a valid spawn position in the spawn area!" << std::endl;
+							continue;
+						}
+
+						// TODO: implement weighted random goal area selection
+						Point goal = m_GoalAreas[area.connectedGoalAreas[ga]].GetRandomPositionInArea();
+
+						SpawnAgent(start, goal, clearance, speed);
 					}
 
-					if (!foundValidLocation)
-					{
-						std::cout << "Could not find a valid spawn position in the spawn area!" << std::endl;
-						continue;
-					}
-
-					// TODO: implement weighted random goal area selection
-					Point goal = m_GoalAreas[area.connectors[0].goalID].GetRandomPositionInArea();
-
-					SpawnAgent(start, goal, clearance, speed);
+					area.timeSinceLastSpawn[ga] -= (float)agentsToSpawn / area.spawnRate[ga];
 				}
-
-				area.timeSinceLastSpawn -= (float)agentsToSpawn / area.spawnRate;
 			}
 		}
 

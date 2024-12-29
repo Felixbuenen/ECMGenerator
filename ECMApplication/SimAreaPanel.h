@@ -34,7 +34,6 @@ namespace ECM {
 			bool m_IsDragging = false;
 			SimAreaDrag m_DragType = SimAreaDrag::NONE;
 			PanelMode m_PanelMode = PanelMode::BUILD;
-			Vec2 m_AreaHalfSize = Vec2(50, 50);
 		};
 	}
 

@@ -36,28 +36,21 @@ namespace ECM {
 		{
 		};
 
-		struct AreaConnector
-		{
-			int goalID;
-		};
-
 		struct SpawnConfiguration
 		{
 			float preferredSpeedMin = 20.0f;
 			float preferredSpeedMax = 80.0f;
 			float clearanceMin = 10.0f;
 			float clearanceMax = 20.0f;
-			int spawnRate = 10;
 		};
 
 		struct SpawnArea : public Area
 		{
-			float spawnRate; // number of agents per second
-			float timeSinceLastSpawn = 0.0f;
-
-			// spawn configuration
 			SpawnConfiguration spawnConfiguration;
-			std::vector<AreaConnector> connectors;
+
+			std::vector<int> connectedGoalAreas;
+			std::vector<float> spawnRate; // number of agents per second, per connected goal area
+			std::vector<float> timeSinceLastSpawn;
 		};
 	}
 

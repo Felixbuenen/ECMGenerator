@@ -69,7 +69,7 @@ namespace ECM
 				m_ApplicationState.simulator = simulator;
 			}
 
-			bool InitializeApplication(const char* title, int screenWidth, int screenHeight);
+			bool InitializeApplication(const char* title, bool fullScreen, int screenWidth=0, int screenHeight=0);
 			void Run();
 			void Clear();
 
@@ -80,12 +80,16 @@ namespace ECM
 
 
 		private:
-			bool InitializeWindow(const char* title, int screenWidth, int screenHeight);
+			bool InitializeWindow(const char* title, bool fullScreen, int screenWidth, int screenHeight);
 			bool InitializeRenderer();
 			void HandleMouseEvent(SDL_Event& event);
 			void HandleKeyEvent(SDL_Event& event);
 
-			void CreateUI(SDL_Event& event);
+			void CreateUI();
+			
+			bool HandleInput(SDL_Event& event);
+			void Update(SDL_Event& event);
+			void Render();
 
 			ApplicationState m_ApplicationState;
 			ECMRenderer m_Renderer;
@@ -93,8 +97,10 @@ namespace ECM
 			PathPlanning::ECMPathPlanner* m_Planner;
 			bool m_Quit;
 
-			// TODO: encapsulate UI panels in a single ApplicationUI class
 			SimAreaPanel m_AreaPanel;
+			
+			float m_DeltaTime;
+			float m_DeltaTimeSmooth;
 
 			// UI state variables
 			// TODO: create separate class for panels (e.g. SimAreaPanel, PlaybackPanel, PropertiesPanel..)

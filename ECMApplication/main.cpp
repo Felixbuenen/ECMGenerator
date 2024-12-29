@@ -80,11 +80,6 @@ int main()
 	//tree.AgentsInRangeTest(positions, 25, range, 5, agents);
 
 
-	Environment env;
-	env.Initialize(Environment::TestEnvironment::CLASSIC);
-	ECMPathPlanner planner(env.GetECM()->GetECMGraph());
-	Simulator sim(env.GetECM().get(), &planner, &env, 50, 0.1f);
-	sim.Initialize();
 
 	//sim.SpawnAgent(Point(-227, -138), Point(127, -300), 10.0f, 20.0f);
 
@@ -174,8 +169,14 @@ int main()
 	//	sim.SpawnAgent(Point(xStart, yStart), Point(xEnd, yEnd), 10.0f, 3.0f);
 	//}
 
+	Environment env;
+	env.Initialize(Environment::TestEnvironment::CLASSIC);
+	ECMPathPlanner planner(env.GetECM()->GetECMGraph());
+	Simulator sim(env.GetECM().get(), &planner, &env, 500, 0.1f);
+	sim.Initialize();
+
 	Application app(&planner, &env, &sim);
-	if (!app.InitializeApplication("ECM generation tool", 1080, 720))
+	if (!app.InitializeApplication("Crowd Simulator", true))
 	{
 		printf("ERROR: could not initialize ECM applciation.\n");
 		return -1;

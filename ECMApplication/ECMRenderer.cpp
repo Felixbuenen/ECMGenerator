@@ -21,7 +21,7 @@ namespace ECM {
 
 		void ECMRenderer::Initialize(Application* app)
 		{
-			m_Renderer = SDL_CreateRenderer(app->GetWindow(), -1, SDL_RENDERER_PRESENTVSYNC | SDL_RENDERER_ACCELERATED);
+			m_Renderer = SDL_CreateRenderer(app->GetWindow(), -1, SDL_RENDERER_ACCELERATED);
 			m_AppState = app->GetApplicationState();
 		}
 
@@ -43,7 +43,7 @@ namespace ECM {
 			//DrawClosestObstaclePoints();
 			//DrawCorridor();
 			//DrawPortals();
-			DrawAttractionPoints();
+			//DrawAttractionPoints();
 			
 			//DrawHalfEdge(22);
 

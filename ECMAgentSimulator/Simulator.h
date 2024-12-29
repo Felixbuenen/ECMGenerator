@@ -54,7 +54,6 @@ namespace ECM {
 		{
 		public:
 
-			// TODO: add simulation step time (commonly 100ms)
 			Simulator(ECM* ecm, PathPlanning::ECMPathPlanner* planner, Environment* environment, int maxAgents, float simStepTime)
 				: m_Ecm(ecm), m_Planner(planner), m_Environment(environment), m_MaxNumEntities(maxAgents), m_SimStepTime(simStepTime)
 			{
@@ -84,6 +83,7 @@ namespace ECM {
 
 			void AddSpawnArea(const Point& position, const Vec2& halfSize, const SpawnConfiguration& config); // TODO: expand with agent profile
 			void AddGoalArea(const Point& position, const Vec2& halfSize);
+			void ConnectSpawnGoalAreas(int spawnID, int goalID, float spawnRate = 0.0f);
 			const std::vector<SpawnArea>& GetSpawnAreas() const { return m_SpawnAreas; }
 			const std::vector<GoalArea>& GetGoalAreas() const { return m_GoalAreas; }
 

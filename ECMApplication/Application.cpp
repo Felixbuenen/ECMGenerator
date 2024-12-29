@@ -17,11 +17,11 @@ namespace ECM
 {
 	namespace WindowApplication
 	{
-		bool Application::InitializeApplication(const char* title, int screenWidth, int screenHeight)
+		bool Application::InitializeApplication(const char* title, bool fullScreen, int screenWidth, int screenHeight)
 		{
 			m_ApplicationState.ecm = m_ApplicationState.environment->GetECM();
 
-			if (!InitializeWindow(title, screenWidth, screenHeight)) return false;
+			if (!InitializeWindow(title, fullScreen, screenWidth, screenHeight)) return false;
 			if (!InitializeRenderer()) return false;
 
 			// Setup Dear ImGui context
@@ -45,8 +45,8 @@ namespace ECM
 		{
 			Uint64 currentTime = SDL_GetPerformanceCounter();
 			Uint64 lastTime = 0;
-			Uint64 lastUpdateTime = 100;
-			double deltaTime = 0.0;
+			m_DeltaTime = 0.0;
+			m_DeltaTimeSmooth = 0.0;
 			const double timeScale = 1.0 / SDL_GetPerformanceFrequency();
 
 			// start main loop
@@ -55,46 +55,19 @@ namespace ECM
 				// update timing information
 				lastTime = currentTime;
 				currentTime = SDL_GetPerformanceCounter();
-				deltaTime = (currentTime - lastTime) * timeScale;
-
-				// UPDATE SIMULATION
-				{
-					//Timer timer("SIMULATION");
-					if (m_ApplicationState.simulationPlaying)
-					{
-						m_ApplicationState.simulator->Update(deltaTime);
-					}
-				}
+				float oldDT = m_DeltaTime;
+				m_DeltaTime = (currentTime - lastTime) * timeScale;
 
 				// HANDLE INPUT
 				while (SDL_PollEvent(&e)) {
-
-					// first input layer: UI
-					ImGui_ImplSDL2_ProcessEvent(&e);
-
-					// second input layer: Application
-					if (ImGui::GetIO().WantCaptureMouse) break;
-					HandleMouseEvent(e);
-
-					if (ImGui::GetIO().WantCaptureKeyboard) break;
-					HandleKeyEvent(e);
+					if (!HandleInput(e)) break;
 				}
 				
+				// UPDATE APPLICATION
+				Update(e);
 				
-				// Rendering
-				SDL_RenderClear(m_Renderer.GetSDLRenderer());
-
-				m_Renderer.Render();
-				CreateUI(e);
-				ImGui::Render();
-
-				ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
-
-				SDL_RenderPresent(m_Renderer.GetSDLRenderer());
-
-				// TODO:
-				// add user interface and real-time stats information.
-				//printf("FPS: %f\n", 1.0f/deltaTime);
+				// RENDER APPLICATION
+				Render();
 			}
 
 			// Cleanup
@@ -119,25 +92,55 @@ namespace ECM
 			return true;
 		}
 
-		bool Application::InitializeWindow(const char* title, int screenWidth, int screenHeight)
+		bool Application::HandleInput(SDL_Event& e)
 		{
-			const Environment& env = *m_ApplicationState.environment;
+			// first input layer: UI
+			ImGui_ImplSDL2_ProcessEvent(&e);
 
-			float bboxW = (env.GetBBOX().max.x - env.GetBBOX().min.x);
-			float bboxH = (env.GetBBOX().max.y - env.GetBBOX().min.y);
-			float zoomW = screenWidth / bboxW;
-			float zoomH = screenHeight / bboxH;
-			m_ApplicationState.camZoomFactor = zoomW < zoomH ? zoomW : zoomH;
-			m_ApplicationState.camZoomFactor *= 0.95f;
+			// second input layer: Application
+			if (ImGui::GetIO().WantCaptureMouse) return false;
+			HandleMouseEvent(e);
 
-			m_ApplicationState.camZoomFactor = m_ApplicationState.camZoomFactor;
+			if (ImGui::GetIO().WantCaptureKeyboard) return false;
+			HandleKeyEvent(e);
 
-			bboxW *= m_ApplicationState.camZoomFactor;
-			bboxH *= m_ApplicationState.camZoomFactor;
+			return true;
+		}
 
-			m_ApplicationState.camOffsetX = -env.GetBBOX().min.x * m_ApplicationState.camZoomFactor + screenWidth * 0.5f - bboxW * 0.5f;
-			m_ApplicationState.camOffsetY = -env.GetBBOX().min.y * m_ApplicationState.camZoomFactor + screenHeight * 0.5f - bboxH * 0.5f;
+		void Application::Update(SDL_Event& event)
+		{
+			m_DeltaTimeSmooth += (m_DeltaTime - m_DeltaTimeSmooth) * 0.01f;
 
+			// UPDATE SIMULATION
+			{
+				//Timer timer("SIMULATION");
+				if (m_ApplicationState.simulationPlaying)
+				{
+					m_ApplicationState.simulator->Update(m_DeltaTime);
+				}
+			}
+
+			// UI update call
+			// TODO: make general UI class that takes care of rendering and tracking UI logic
+			m_AreaPanel.Update(event, *this);
+		}
+
+		void Application::Render()
+		{
+			SDL_RenderClear(m_Renderer.GetSDLRenderer());
+
+			m_Renderer.Render();
+			CreateUI();
+			ImGui::Render();
+
+			ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
+
+			SDL_RenderPresent(m_Renderer.GetSDLRenderer());
+		}
+
+
+		bool Application::InitializeWindow(const char* title, bool fullScreen, int screenWidth, int screenHeight)
+		{
 			//Initialize SDL
 			if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) < 0)
 			{
@@ -147,14 +150,44 @@ namespace ECM
 			else
 			{
 				//Create window
-				SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
+				SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_SHOWN | SDL_WINDOW_ALLOW_HIGHDPI | SDL_WINDOW_RESIZABLE);
 				m_Window = SDL_CreateWindow(title, SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, screenWidth, screenHeight, window_flags);
+
 				if (m_Window == NULL)
 				{
 					printf("Window could not be created! SDL_Error: %s\n", SDL_GetError());
 					return false;
 				}
+
 			}
+
+			if (fullScreen)
+			{
+				if (fullScreen) SDL_MaximizeWindow(m_Window);
+
+				SDL_Surface* surface = SDL_GetWindowSurface(m_Window);
+				screenWidth = surface->w;
+				screenHeight = surface->h;
+			}
+			
+			// setup environment variables
+			const Environment& env = *m_ApplicationState.environment;
+
+			float bboxW = (env.GetBBOX().max.x - env.GetBBOX().min.x);
+			float bboxH = (env.GetBBOX().max.y - env.GetBBOX().min.y);
+			float zoomW = screenWidth / bboxW;
+			float zoomH = screenHeight / bboxH;
+			m_ApplicationState.camZoomFactor = zoomW < zoomH ? zoomW : zoomH;
+			m_ApplicationState.camZoomFactor *= 0.9;
+
+			m_ApplicationState.camZoomFactor = m_ApplicationState.camZoomFactor;
+
+			bboxW *= m_ApplicationState.camZoomFactor;
+			bboxH *= m_ApplicationState.camZoomFactor;
+
+			m_ApplicationState.camOffsetX = -env.GetBBOX().min.x * m_ApplicationState.camZoomFactor + screenWidth * 0.5f - bboxW * 0.5f;
+			m_ApplicationState.camOffsetY = -env.GetBBOX().min.y * m_ApplicationState.camZoomFactor + screenHeight * 0.5f - bboxH * 0.5f;
+
 
 			return true;
 		}
@@ -176,31 +209,6 @@ namespace ECM
 				m_ApplicationState.cellToDraw = m_ApplicationState.ecm->GetECMCell(worldCoords.x, worldCoords.y);
 			}
 
-			// EVENT: CLICK START/GOAL/RESET PATH
-			if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT)
-			{
-				//Point worldCoords = m_Renderer.ScreenToWorldCoordinates(e.button.x, e.button.y);
-				//
-				//printf("(%f, %f)\n", worldCoords.x, worldCoords.y);
-				//
-				//if (!m_ApplicationState.startPointSelected)
-				//{
-				//	m_ApplicationState.startPointSelected = true;
-				//	m_ApplicationState.pathToDraw.clear();
-				//	m_ApplicationState.pathStartPoint = worldCoords;
-				//}
-				//else
-				//{
-				//	m_ApplicationState.pathGoalPoint = worldCoords;
-				//	m_ApplicationState.corridorToDraw = PathPlanning::Corridor();
-				//	m_ApplicationState.portalsToDraw = std::vector<Segment>();
-				//
-				//	m_ApplicationState.pathToDraw = PathPlanning::Path();
-				//	m_Planner->GetPath(*m_ApplicationState.environment, m_ApplicationState.pathStartPoint, m_ApplicationState.pathGoalPoint, 20.0f, 0.0f, m_ApplicationState.corridorToDraw, m_ApplicationState.portalsToDraw, m_ApplicationState.pathToDraw);
-				//
-				//	m_ApplicationState.startPointSelected = false;
-				//}
-			}
 		}
 
 		void Application::HandleKeyEvent(SDL_Event& e)
@@ -226,15 +234,12 @@ namespace ECM
 			}
 		}
 
-		void Application::CreateUI(SDL_Event& event)
+		void Application::CreateUI()
 		{
 			// Start the Dear ImGui frame
 			ImGui_ImplSDLRenderer2_NewFrame();
 			ImGui_ImplSDL2_NewFrame();
 			ImGui::NewFrame();
-
-			//bool j = true;
-			//ImGui::ShowDemoWindow(&j);
 
 			float screenHeight = ImGui::GetIO().DisplaySize.y;
 			float screenWidth = ImGui::GetIO().DisplaySize.x;
@@ -273,14 +278,46 @@ namespace ECM
 				m_ApplicationState.simulationPlaying = false;
 				m_ApplicationState.simulator->Reset();
 			}
-			ImGui::End();
 
+			ImGui::End();
+			ImGui::PopStyleVar(4);
+
+			// DEBUGGING: create FPS panel
+			float fpsPanelHeight = 30.0f;
+			float fpsPanelWidth = 150.0f;
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.f, 5.f));
+			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.f, 5.f));
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
+			ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0.f, 0.f));
+			ImGui::SetNextWindowPos(ImVec2(screenWidth / 2.0f, 0), 0, ImVec2(0.5f, 0.0f));
+			ImGui::SetNextWindowSize(ImVec2(fpsPanelWidth, fpsPanelHeight));
+
+			ImGui::Begin("FPS", nullptr, playbackPanelFlags);
+
+			float windowWidth = ImGui::GetWindowSize().x;
+			float windowHeight = ImGui::GetWindowSize().y;
+			
+			float fps = m_DeltaTimeSmooth == 0.0f ? 0.0f : 1.0f / m_DeltaTimeSmooth;
+			std::string fpsString = "FPS: ";
+			fpsString.append(std::to_string(fps));
+			int numDecimals = fpsString.size() - fpsString.find('.');
+			if (numDecimals > 3)
+			{
+				fpsString.resize(fpsString.size() - numDecimals + 3);
+			}
+
+			float textWidth = ImGui::CalcTextSize(fpsString.c_str()).x;
+			float textHeigh = ImGui::CalcTextSize(fpsString.c_str()).y;
+			ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
+			ImGui::SetCursorPosY((windowHeight - textHeigh) * 0.5f);
+			//std::string s = std::format("{:.2f}", 3.14159265359); // s == "3.14"
+
+			ImGui::Text(fpsString.c_str());
+			ImGui::End();
 			ImGui::PopStyleVar(4);
 
 			// create simulation area panel
 			m_AreaPanel.Render();
-			m_AreaPanel.Update(event, *this);
-
 		}
 
 
