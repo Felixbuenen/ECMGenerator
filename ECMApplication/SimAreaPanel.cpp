@@ -2,6 +2,7 @@
 
 #include "Application.h"
 #include "Area.h"
+#include "ECMRenderer.h"
 
 #include "SDL.h"
 #include "imgui/imgui.h"
@@ -11,6 +12,12 @@
 namespace ECM {
 
 	namespace WindowApplication {
+
+		SimAreaPanel::SimAreaPanel(Application* application)
+			: UIWidget(application)
+		{
+			m_EcmRenderer = application->GetECMRenderer();
+		}
 
 		void SimAreaPanel::Render()
 		{
@@ -72,7 +79,7 @@ namespace ECM {
 			ImGui::End();
 		}
 
-		void SimAreaPanel::Update(SDL_Event& e, Application& app)
+		void SimAreaPanel::Update(SDL_Event& e)
 		{
 			if (m_IsDragging)
 			{
@@ -83,28 +90,28 @@ namespace ECM {
 				if (drop)
 				{
 					// add simulation area
-					auto sim = app.GetSimulator();
+					auto sim = m_Application->GetSimulator();
 					if (m_DragType == SimAreaDrag::SPAWN)
 					{
 						Simulation::SpawnConfiguration defaultConfig;
-						Point worldCoords = app.GetRenderer()->ScreenToWorldCoordinates(mousePos.x, mousePos.y);
+						Point worldCoords = m_EcmRenderer->ScreenToWorldCoordinates(mousePos.x, mousePos.y);
 						sim->AddSpawnArea(worldCoords, Vec2(50.0f, 50.0f), defaultConfig);
 					}
 
 					if (m_DragType == SimAreaDrag::GOAL)
 					{
-						Point worldCoords = app.GetRenderer()->ScreenToWorldCoordinates(mousePos.x, mousePos.y);
+						Point worldCoords = m_EcmRenderer->ScreenToWorldCoordinates(mousePos.x, mousePos.y);
 						sim->AddGoalArea(worldCoords, Vec2(50.0f, 50.0f));
 					}
 
-					app.GetRenderer()->StopRenderDragSimulationArea();
+					m_EcmRenderer->StopRenderDragSimulationArea();
 
 					m_IsDragging = false;
 					m_DragType = SimAreaDrag::NONE;
 				}
 				else
 				{
-					app.GetRenderer()->RenderDragSimulationArea(mousePos.x, mousePos.y, m_DragType);
+					m_EcmRenderer->RenderDragSimulationArea(mousePos.x, mousePos.y, m_DragType);
 				}
 			}
 		}

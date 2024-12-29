@@ -1,6 +1,5 @@
 #pragma once
 
-// note: forward declare of Environment::TestEnvironment (enum) and ECMRenderer::ECMRendererColorSettings (struct) not possible
 #include "Environment.h" 
 #include "ECMRenderer.h"
 #include "ECMPathPlanner.h"
@@ -27,8 +26,6 @@ namespace ECM
 
 	namespace WindowApplication
 	{
-		//enum class SimAreaDrag;
-
 		struct ApplicationState
 		{
 			// simulation
@@ -63,7 +60,8 @@ namespace ECM
 		class Application
 		{
 		public:
-			Application(PathPlanning::ECMPathPlanner* planner, Environment* environment, Simulation::Simulator* simulator) : m_Planner(planner)
+			Application(PathPlanning::ECMPathPlanner* planner, Environment* environment, Simulation::Simulator* simulator) 
+				: m_Planner(planner)
 			{
 				m_ApplicationState.environment = environment;
 				m_ApplicationState.simulator = simulator;
@@ -74,7 +72,8 @@ namespace ECM
 			void Clear();
 
 			ApplicationState* GetApplicationState() { return &m_ApplicationState; }
-			ECMRenderer* GetRenderer() { return &m_Renderer; }
+			SDL_Renderer* GetApplicationRenderer() { return m_Renderer; }
+			ECMRenderer* GetECMRenderer() { return &m_ECMRenderer; }
 			Simulation::Simulator* GetSimulator() { return m_ApplicationState.simulator; }
 			SDL_Window* GetWindow() { return m_Window; }
 
@@ -85,27 +84,24 @@ namespace ECM
 			void HandleMouseEvent(SDL_Event& event);
 			void HandleKeyEvent(SDL_Event& event);
 
-			void CreateUI();
+			//void CreateUI();
 			
 			bool HandleInput(SDL_Event& event);
 			void Update(SDL_Event& event);
 			void Render();
 
-			ApplicationState m_ApplicationState;
-			ECMRenderer m_Renderer;
+			UI m_UI;
+
+			SDL_Renderer* m_Renderer;
 			SDL_Window* m_Window;
+			ECMRenderer m_ECMRenderer;
+			
+			ApplicationState m_ApplicationState;
 			PathPlanning::ECMPathPlanner* m_Planner;
 			bool m_Quit;
 
-			SimAreaPanel m_AreaPanel;
 			
 			float m_DeltaTime;
-			float m_DeltaTimeSmooth;
-
-			// UI state variables
-			// TODO: create separate class for panels (e.g. SimAreaPanel, PlaybackPanel, PropertiesPanel..)
-			bool connectorMode = false;
-			bool buildMode = true;
 		};
 	}
 }

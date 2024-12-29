@@ -22,21 +22,11 @@ namespace ECM
 			m_ApplicationState.ecm = m_ApplicationState.environment->GetECM();
 
 			if (!InitializeWindow(title, fullScreen, screenWidth, screenHeight)) return false;
+			
+			m_Renderer = SDL_CreateRenderer(m_Window, -1, SDL_RENDERER_ACCELERATED);
 			if (!InitializeRenderer()) return false;
 
-			// Setup Dear ImGui context
-			IMGUI_CHECKVERSION();
-			ImGui::CreateContext();
-			ImGuiIO& io = ImGui::GetIO(); (void)io;
-			io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-			io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-			
-			// Setup Dear ImGui style
-			ImGui::StyleColorsDark();
-			
-			// Setup Platform/Renderer backends
-			ImGui_ImplSDL2_InitForSDLRenderer(m_Window, m_Renderer.GetSDLRenderer());
-			ImGui_ImplSDLRenderer2_Init(m_Renderer.GetSDLRenderer());
+			m_UI.Initialize(this);
 
 			return true;
 		}
@@ -46,7 +36,6 @@ namespace ECM
 			Uint64 currentTime = SDL_GetPerformanceCounter();
 			Uint64 lastTime = 0;
 			m_DeltaTime = 0.0;
-			m_DeltaTimeSmooth = 0.0;
 			const double timeScale = 1.0 / SDL_GetPerformanceFrequency();
 
 			// start main loop
@@ -69,18 +58,16 @@ namespace ECM
 				// RENDER APPLICATION
 				Render();
 			}
-
-			// Cleanup
-			ImGui_ImplSDLRenderer2_Shutdown();
-			ImGui_ImplSDL2_Shutdown();
-			ImGui::DestroyContext();
 		}
 
 		void Application::Clear()
 		{
+			m_UI.CleanUp();
+			m_ECMRenderer.Clear();
+
 			//Destroy window
 			SDL_DestroyWindow(m_Window);
-			m_Renderer.Clear();
+			SDL_DestroyRenderer(m_Renderer);
 
 			//Quit SDL subsystems
 			SDL_Quit();
@@ -88,14 +75,15 @@ namespace ECM
 
 		bool Application::InitializeRenderer()
 		{
-			m_Renderer.Initialize(this);
+			m_ECMRenderer.Initialize(this);
+
 			return true;
 		}
 
 		bool Application::HandleInput(SDL_Event& e)
 		{
 			// first input layer: UI
-			ImGui_ImplSDL2_ProcessEvent(&e);
+			m_UI.HandleInput(e);
 
 			// second input layer: Application
 			if (ImGui::GetIO().WantCaptureMouse) return false;
@@ -109,8 +97,6 @@ namespace ECM
 
 		void Application::Update(SDL_Event& event)
 		{
-			m_DeltaTimeSmooth += (m_DeltaTime - m_DeltaTimeSmooth) * 0.01f;
-
 			// UPDATE SIMULATION
 			{
 				//Timer timer("SIMULATION");
@@ -121,21 +107,17 @@ namespace ECM
 			}
 
 			// UI update call
-			// TODO: make general UI class that takes care of rendering and tracking UI logic
-			m_AreaPanel.Update(event, *this);
+			m_UI.Update(event);
 		}
 
 		void Application::Render()
 		{
-			SDL_RenderClear(m_Renderer.GetSDLRenderer());
+			SDL_RenderClear(m_Renderer);
 
-			m_Renderer.Render();
-			CreateUI();
-			ImGui::Render();
-
-			ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());
-
-			SDL_RenderPresent(m_Renderer.GetSDLRenderer());
+			m_ECMRenderer.Render();
+			m_UI.Render();
+			
+			SDL_RenderPresent(m_Renderer);
 		}
 
 
@@ -204,7 +186,7 @@ namespace ECM
 			// EVENT: CLICK CELL
 			if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_RIGHT)
 			{
-				Point worldCoords = m_Renderer.ScreenToWorldCoordinates(e.button.x, e.button.y);
+				Point worldCoords = m_ECMRenderer.ScreenToWorldCoordinates(e.button.x, e.button.y);
 
 				m_ApplicationState.cellToDraw = m_ApplicationState.ecm->GetECMCell(worldCoords.x, worldCoords.y);
 			}
@@ -234,91 +216,51 @@ namespace ECM
 			}
 		}
 
-		void Application::CreateUI()
-		{
-			// Start the Dear ImGui frame
-			ImGui_ImplSDLRenderer2_NewFrame();
-			ImGui_ImplSDL2_NewFrame();
-			ImGui::NewFrame();
-
-			float screenHeight = ImGui::GetIO().DisplaySize.y;
-			float screenWidth = ImGui::GetIO().DisplaySize.x;
-
-			// create playback panel
-			float playbackPanelHeight = 30.0f;
-			float playbackPanelWidth = 150.0f;
-			ImGuiWindowFlags playbackPanelFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
-				| ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings
-				| ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar
-				| ImGuiWindowFlags_NoScrollWithMouse;
-
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0.f, 0.f));
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0.f, 0.f));
-
-			ImGui::SetNextWindowPos(ImVec2(screenWidth/2.0f, screenHeight), 0, ImVec2(0.5f, 1.0f));
-			ImGui::SetNextWindowSize(ImVec2(playbackPanelWidth, playbackPanelHeight));
-			ImGui::Begin("Playback", nullptr, playbackPanelFlags);
-			if (ImGui::Button("Play", ImVec2(playbackPanelWidth / 3.0f, playbackPanelHeight)))
-			{
-				m_ApplicationState.simulationPlaying = true;
-				m_ApplicationState.simulationPaused = false;
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Pause", ImVec2(playbackPanelWidth / 3.0f, playbackPanelHeight)))
-			{
-				m_ApplicationState.simulationPaused = true;
-				m_ApplicationState.simulationPlaying = false;
-			}
-			ImGui::SameLine();
-			if (ImGui::Button("Stop", ImVec2(playbackPanelWidth / 3.0f, playbackPanelHeight)))
-			{
-				m_ApplicationState.simulationPaused = true;
-				m_ApplicationState.simulationPlaying = false;
-				m_ApplicationState.simulator->Reset();
-			}
-
-			ImGui::End();
-			ImGui::PopStyleVar(4);
-
-			// DEBUGGING: create FPS panel
-			float fpsPanelHeight = 30.0f;
-			float fpsPanelWidth = 150.0f;
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.f, 5.f));
-			ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.f, 5.f));
-			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
-			ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0.f, 0.f));
-			ImGui::SetNextWindowPos(ImVec2(screenWidth / 2.0f, 0), 0, ImVec2(0.5f, 0.0f));
-			ImGui::SetNextWindowSize(ImVec2(fpsPanelWidth, fpsPanelHeight));
-
-			ImGui::Begin("FPS", nullptr, playbackPanelFlags);
-
-			float windowWidth = ImGui::GetWindowSize().x;
-			float windowHeight = ImGui::GetWindowSize().y;
-			
-			float fps = m_DeltaTimeSmooth == 0.0f ? 0.0f : 1.0f / m_DeltaTimeSmooth;
-			std::string fpsString = "FPS: ";
-			fpsString.append(std::to_string(fps));
-			int numDecimals = fpsString.size() - fpsString.find('.');
-			if (numDecimals > 3)
-			{
-				fpsString.resize(fpsString.size() - numDecimals + 3);
-			}
-
-			float textWidth = ImGui::CalcTextSize(fpsString.c_str()).x;
-			float textHeigh = ImGui::CalcTextSize(fpsString.c_str()).y;
-			ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
-			ImGui::SetCursorPosY((windowHeight - textHeigh) * 0.5f);
-			//std::string s = std::format("{:.2f}", 3.14159265359); // s == "3.14"
-
-			ImGui::Text(fpsString.c_str());
-			ImGui::End();
-			ImGui::PopStyleVar(4);
-
-			// create simulation area panel
-			m_AreaPanel.Render();
-		}
+		//void Application::CreateUI()
+		//{
+		//	// DEBUGGING: create FPS panel
+		//	float screenWidth = ImGui::GetIO().DisplaySize.x;
+		//	ImGuiWindowFlags playbackPanelFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
+		//		| ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings
+		//		| ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar
+		//		| ImGuiWindowFlags_NoScrollWithMouse;
+		//
+		//	float fpsPanelHeight = 30.0f;
+		//	float fpsPanelWidth = 150.0f;
+		//	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.f, 5.f));
+		//	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.f, 5.f));
+		//	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
+		//	ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0.f, 0.f));
+		//	ImGui::SetNextWindowPos(ImVec2(screenWidth / 2.0f, 0), 0, ImVec2(0.5f, 0.0f));
+		//	ImGui::SetNextWindowSize(ImVec2(fpsPanelWidth, fpsPanelHeight));
+		//
+		//	ImGui::Begin("FPS", nullptr, playbackPanelFlags);
+		//
+		//	float windowWidth = ImGui::GetWindowSize().x;
+		//	float windowHeight = ImGui::GetWindowSize().y;
+		//	
+		//	float fps = m_DeltaTimeSmooth == 0.0f ? 0.0f : 1.0f / m_DeltaTimeSmooth;
+		//	std::string fpsString = "FPS: ";
+		//	fpsString.append(std::to_string(fps));
+		//	int numDecimals = fpsString.size() - fpsString.find('.');
+		//	if (numDecimals > 3)
+		//	{
+		//		fpsString.resize(fpsString.size() - numDecimals + 3);
+		//	}
+		//
+		//	float textWidth = ImGui::CalcTextSize(fpsString.c_str()).x;
+		//	float textHeigh = ImGui::CalcTextSize(fpsString.c_str()).y;
+		//	ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
+		//	ImGui::SetCursorPosY((windowHeight - textHeigh) * 0.5f);
+		//	//std::string s = std::format("{:.2f}", 3.14159265359); // s == "3.14"
+		//
+		//	ImGui::Text(fpsString.c_str());
+		//	ImGui::End();
+		//	ImGui::PopStyleVar(4);
+		//
+		//	// create simulation area panel
+		//	//m_AreaPanel.Render();
+		//}
 
 
 	} // Visualisation

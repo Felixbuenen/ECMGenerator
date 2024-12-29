@@ -46,11 +46,7 @@ namespace ECM {
 			void RenderDragSimulationArea(float x, float y, SimAreaDrag areaType);
 			void StopRenderDragSimulationArea();
 
-			inline SDL_Renderer* GetSDLRenderer() { return m_Renderer; }
-
 		private:
-			void InitializeRenderContext(int width, int height, const char* title);
-
 			void UpdateRenderState();
 
 			// different draw calls
@@ -94,11 +90,8 @@ namespace ECM {
 			int m_CamOffsetX, m_CamOffsetY;
 
 			ApplicationState* m_AppState;
-
-			// SDL member variables
-		private:
 			SDL_Renderer* m_Renderer;
-			SDL_Surface* m_ScreenSurface;
+
 		};
 
 

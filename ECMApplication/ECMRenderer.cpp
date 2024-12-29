@@ -21,13 +21,12 @@ namespace ECM {
 
 		void ECMRenderer::Initialize(Application* app)
 		{
-			m_Renderer = SDL_CreateRenderer(app->GetWindow(), -1, SDL_RENDERER_ACCELERATED);
+			m_Renderer = app->GetApplicationRenderer();
 			m_AppState = app->GetApplicationState();
 		}
 
 		void ECMRenderer::Clear()
 		{
-			SDL_DestroyRenderer(m_Renderer);
 		}
 
 		void ECMRenderer::Render()
