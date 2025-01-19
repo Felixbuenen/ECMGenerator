@@ -2,6 +2,7 @@
 
 #include "ECMDataTypes.h"
 #include "UI.h"
+#include "Area.h"
 
 typedef union SDL_Event;
 
@@ -23,15 +24,18 @@ namespace ECM {
 		class CMD_AddSimulationArea : public ICommand
 		{
 		public:
-			CMD_AddSimulationArea(const Simulation::Area& area, Application* application);
+			CMD_AddSimulationArea(Simulation::SimAreaType areaType, Point screenPos, Vec2 halfSize, Application* application) 
+				: m_AreaType(areaType), m_Application(application), m_ScreenPos(screenPos), m_HalfSize(halfSize) { }
 
 			void Execute() override;
 			void Undo() override;
 
 		private:
-			//void AddArea(const Simulation::Area& area);
-
 			Application* m_Application;
+			Point m_ScreenPos;
+			Vec2 m_HalfSize;
+			Simulation::SimAreaType m_AreaType;
+			int m_ID;
 		};
 
 		class CMD_RemoveSimulationArea : public ICommand

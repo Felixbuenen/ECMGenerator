@@ -81,9 +81,11 @@ namespace ECM {
 				m_Positions[entity].y = y;
 			}
 
-			void AddSpawnArea(const Point& position, const Vec2& halfSize, const SpawnConfiguration& config); // TODO: expand with agent profile
-			void AddGoalArea(const Point& position, const Vec2& halfSize);
+			int AddSpawnArea(const Point& position, const Vec2& halfSize, const SpawnConfiguration& config); // TODO: expand with agent profile
+			int AddGoalArea(const Point& position, const Vec2& halfSize);
+			void RemoveArea(Simulation::SimAreaType areaType, int ID);
 			void ConnectSpawnGoalAreas(int spawnID, int goalID, float spawnRate = 0.0f);
+			
 			const std::vector<SpawnArea>& GetSpawnAreas() const { return m_SpawnAreas; }
 			const std::vector<GoalArea>& GetGoalAreas() const { return m_GoalAreas; }
 

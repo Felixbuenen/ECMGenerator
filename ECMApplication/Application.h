@@ -79,6 +79,7 @@ namespace ECM
 			ECMRenderer* GetECMRenderer() { return &m_ECMRenderer; }
 			EnvironmentEditor* GetEnvironmentEditor() { return &m_EnvEditor; }
 			Simulation::Simulator* GetSimulator() { return m_ApplicationState.simulator; }
+			UndoRedoManager* GetUndoRedoManager() { return &m_UndoRedoManager; }
 			SDL_Window* GetWindow() { return m_Window; }
 
 

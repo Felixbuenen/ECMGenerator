@@ -214,6 +214,16 @@ namespace ECM
 				{
 					m_ApplicationState.camOffsetY -= 10.0f;
 				}
+
+				// UNDO REDO
+				if ((SDL_GetModState() & KMOD_CTRL) && e.key.keysym.sym == SDLK_z)
+				{
+					m_UndoRedoManager.Undo();
+				}
+				if ((SDL_GetModState() & KMOD_CTRL) && e.key.keysym.sym == SDLK_y)
+				{
+					m_UndoRedoManager.Redo();
+				}
 			}
 		}
 

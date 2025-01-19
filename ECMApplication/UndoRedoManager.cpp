@@ -20,7 +20,7 @@ namespace ECM {
 			}
 		}
 
-		void UndoRedoManager::Execute(ICommand* cmd)
+		void UndoRedoManager::Invoke(ICommand* cmd)
 		{
 			cmd->Execute();
 
@@ -60,7 +60,8 @@ namespace ECM {
 
 		void UndoRedoManager::Redo()
 		{
-			if (m_CurrentIdx < m_CommandStack.size() - 1)
+			int size = (m_CommandStack.size() - 1);
+			if (m_CurrentIdx < size)
 			{
 				if (m_CommandStack[m_CurrentIdx + 1] != nullptr)
 				{

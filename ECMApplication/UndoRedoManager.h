@@ -17,7 +17,7 @@ namespace ECM {
 			UndoRedoManager(int stackSize);
 			~UndoRedoManager(); // clears the stack
 
-			void Execute(ICommand* cmd);
+			void Invoke(ICommand* cmd);
 			void Undo();
 			void Redo();
 
