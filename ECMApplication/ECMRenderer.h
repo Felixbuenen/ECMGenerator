@@ -4,6 +4,8 @@
 #include <vector>
 #include <stdint.h>
 
+#include "ECMDataTypes.h"
+
 class SDL_Window;
 class SDL_Renderer;
 class SDL_Surface;
@@ -15,6 +17,11 @@ namespace ECM {
 	struct Segment;
 	struct ECMCell;
 	struct Point;
+
+	namespace Simulation
+	{
+		enum SimAreaType;
+	}
 
 	namespace WindowApplication {
 
@@ -39,12 +46,11 @@ namespace ECM {
 			void Render();
 			void Clear();
 
+			void RenderDragArea(Simulation::SimAreaType type, const Point& screenCoordinates, const Vec2& halfSize);
+
 			// TODO: these methods are not used everywhere. Refactor.
 			Point ScreenToWorldCoordinates(float x, float y);
 			Point WorldToScreenCoordinates(float x, float y);
-
-			void RenderDragSimulationArea(float x, float y, SimAreaDrag areaType);
-			void StopRenderDragSimulationArea();
 
 		private:
 			void UpdateRenderState();

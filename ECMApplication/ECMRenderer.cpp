@@ -59,7 +59,27 @@ namespace ECM {
 			DrawAgents();
 			//DrawPaths();
 
-			InternalDrawDragSimulationArea();
+			//InternalDrawDragSimulationArea();
+		}
+
+		void ECMRenderer::RenderDragArea(Simulation::SimAreaType type, const Point& screenCoordinates, const Vec2& halfSize)
+		{
+			SDL_Rect spawnRect;
+
+			Point pos = ScreenToWorldCoordinates(screenCoordinates.x, screenCoordinates.y);
+			pos.x = pos.x - halfSize.x;
+			pos.y = pos.y + halfSize.y;
+
+			Point screenPos = WorldToScreenCoordinates(pos.x, pos.y);
+
+			spawnRect.x = screenPos.x;
+			spawnRect.y = screenPos.y;
+			spawnRect.w = halfSize.x * 2 * m_CamZoomFactor;
+			spawnRect.h = halfSize.y * 2 * m_CamZoomFactor;
+			SDL_SetRenderDrawBlendMode(m_Renderer, SDL_BLENDMODE_BLEND);
+			if (type == Simulation::SimAreaType::SPAWN) SDL_SetRenderDrawColor(m_Renderer, 120.0f, 200.0f, 120.0f, 150);
+			if (type == Simulation::SimAreaType::GOAL) SDL_SetRenderDrawColor(m_Renderer, 200.0, 120.0f, 120.0f, 150);
+			SDL_RenderFillRect(m_Renderer, &spawnRect);
 		}
 
 		Point ECMRenderer::ScreenToWorldCoordinates(float x, float y)
@@ -78,43 +98,32 @@ namespace ECM {
 			return Point(screenX, screenY);
 		}
 
-		void ECMRenderer::RenderDragSimulationArea(float x, float y, SimAreaDrag areaType)
-		{
-			m_AppState->dragAreaPosition.x = x;
-			m_AppState->dragAreaPosition.y = y;
-			m_AppState->dragAreaType = areaType;
-		}
-
-		void ECMRenderer::StopRenderDragSimulationArea()
-		{
-			m_AppState->dragAreaType = SimAreaDrag::NONE;
-		}
-
 		void ECMRenderer::InternalDrawDragSimulationArea()
 		{
-			if (m_AppState->dragAreaType == SimAreaDrag::NONE) return;
-
-			// TODO: place in variables
-			float halfWidth = 50;
-			float halfHeight = 50;
-			float spawnX = m_AppState->dragAreaPosition.x;
-			float spawnY = m_AppState->dragAreaPosition.y;
-			SDL_Rect spawnRect;
-
-			Point pos = ScreenToWorldCoordinates(spawnX, spawnY);
-			pos.x = pos.x - halfWidth;
-			pos.y = pos.y + halfHeight;
-			
-			Point screenPos = WorldToScreenCoordinates(pos.x, pos.y);
-			
-			spawnRect.x = screenPos.x;
-			spawnRect.y = screenPos.y;
-			spawnRect.w = halfWidth * 2 * m_CamZoomFactor;
-			spawnRect.h = halfHeight * 2 * m_CamZoomFactor;
-			SDL_SetRenderDrawBlendMode(m_Renderer, SDL_BLENDMODE_BLEND);
-			if (m_AppState->dragAreaType == SimAreaDrag::SPAWN) SDL_SetRenderDrawColor(m_Renderer, 120.0f, 200.0f, 120.0f, 150);
-			if(m_AppState->dragAreaType == SimAreaDrag::GOAL) SDL_SetRenderDrawColor(m_Renderer, 200.0, 120.0f, 120.0f, 150);
-			SDL_RenderFillRect(m_Renderer, &spawnRect);
+			//if (m_AppState->dragAreaType == SimAreaDrag::NONE) return;
+			//
+			//// TODO: place in variables
+			//float halfWidth = 50;
+			//float halfHeight = 50;
+			//
+			//float spawnX = m_AppState->mousePosition.x;
+			//float spawnY = m_AppState->mousePosition.y;
+			//SDL_Rect spawnRect;
+			//
+			//Point pos = ScreenToWorldCoordinates(spawnX, spawnY);
+			//pos.x = pos.x - halfWidth;
+			//pos.y = pos.y + halfHeight;
+			//
+			//Point screenPos = WorldToScreenCoordinates(pos.x, pos.y);
+			//
+			//spawnRect.x = screenPos.x;
+			//spawnRect.y = screenPos.y;
+			//spawnRect.w = halfWidth * 2 * m_CamZoomFactor;
+			//spawnRect.h = halfHeight * 2 * m_CamZoomFactor;
+			//SDL_SetRenderDrawBlendMode(m_Renderer, SDL_BLENDMODE_BLEND);
+			//if (m_AppState->dragAreaType == SimAreaDrag::SPAWN) SDL_SetRenderDrawColor(m_Renderer, 120.0f, 200.0f, 120.0f, 150);
+			//if(m_AppState->dragAreaType == SimAreaDrag::GOAL) SDL_SetRenderDrawColor(m_Renderer, 200.0, 120.0f, 120.0f, 150);
+			//SDL_RenderFillRect(m_Renderer, &spawnRect);
 		}
 
 		void ECMRenderer::DebugDrawKNearestNeighbors(int idx)

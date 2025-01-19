@@ -8,6 +8,14 @@ namespace ECM {
 
 	namespace Simulation {
 
+		enum SimAreaType
+		{
+			NONE,
+			WALKABLE,
+			SPAWN,
+			GOAL
+		};
+
 		struct Area
 		{
 			int ID;

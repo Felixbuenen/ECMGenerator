@@ -42,6 +42,7 @@ namespace ECM {
 			void InitializeWidgets(Application* application);
 
 			std::vector<UIWidget*> m_Widgets;
+			Application* m_Application;
 		};
 
 	}

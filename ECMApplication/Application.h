@@ -6,6 +6,8 @@
 #include "Simulator.h"
 #include "AStar.h"
 #include "SimAreaPanel.h"
+#include "UndoRedoManager.h"
+#include "EnvironmentEditor.h"
 
 class SDL_Window;
 typedef union SDL_Event;
@@ -26,6 +28,8 @@ namespace ECM
 
 	namespace WindowApplication
 	{
+		class EnvironmentEditor;
+
 		struct ApplicationState
 		{
 			// simulation
@@ -44,9 +48,8 @@ namespace ECM
 
 			// misc
 			const ECMCell* cellToDraw;
-
-			Point dragAreaPosition;
 			SimAreaDrag dragAreaType;
+			Point mousePosition;
 
 			// path
 			Point pathStartPoint;
@@ -60,8 +63,8 @@ namespace ECM
 		class Application
 		{
 		public:
-			Application(PathPlanning::ECMPathPlanner* planner, Environment* environment, Simulation::Simulator* simulator) 
-				: m_Planner(planner)
+			Application(PathPlanning::ECMPathPlanner* planner, Environment* environment, Simulation::Simulator* simulator, int undoRedoStack=10) 
+				: m_Planner(planner), m_UndoRedoManager(undoRedoStack), m_EnvEditor(this)
 			{
 				m_ApplicationState.environment = environment;
 				m_ApplicationState.simulator = simulator;
@@ -74,6 +77,7 @@ namespace ECM
 			ApplicationState* GetApplicationState() { return &m_ApplicationState; }
 			SDL_Renderer* GetApplicationRenderer() { return m_Renderer; }
 			ECMRenderer* GetECMRenderer() { return &m_ECMRenderer; }
+			EnvironmentEditor* GetEnvironmentEditor() { return &m_EnvEditor; }
 			Simulation::Simulator* GetSimulator() { return m_ApplicationState.simulator; }
 			SDL_Window* GetWindow() { return m_Window; }
 
@@ -84,7 +88,7 @@ namespace ECM
 			void HandleMouseEvent(SDL_Event& event);
 			void HandleKeyEvent(SDL_Event& event);
 
-			//void CreateUI();
+			void HandlePlaceSimArea();
 			
 			bool HandleInput(SDL_Event& event);
 			void Update(SDL_Event& event);
@@ -95,6 +99,8 @@ namespace ECM
 			SDL_Renderer* m_Renderer;
 			SDL_Window* m_Window;
 			ECMRenderer m_ECMRenderer;
+			UndoRedoManager m_UndoRedoManager;
+			EnvironmentEditor m_EnvEditor;
 			
 			ApplicationState m_ApplicationState;
 			PathPlanning::ECMPathPlanner* m_Planner;

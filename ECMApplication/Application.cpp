@@ -84,6 +84,7 @@ namespace ECM
 		{
 			// first input layer: UI
 			m_UI.HandleInput(e);
+			m_EnvEditor.HandleInput(e);
 
 			// second input layer: Application
 			if (ImGui::GetIO().WantCaptureMouse) return false;
@@ -105,8 +106,7 @@ namespace ECM
 					m_ApplicationState.simulator->Update(m_DeltaTime);
 				}
 			}
-
-			// UI update call
+			m_EnvEditor.Update();
 			m_UI.Update(event);
 		}
 
@@ -115,6 +115,7 @@ namespace ECM
 			SDL_RenderClear(m_Renderer);
 
 			m_ECMRenderer.Render();
+			m_EnvEditor.Render();
 			m_UI.Render();
 			
 			SDL_RenderPresent(m_Renderer);
@@ -216,51 +217,6 @@ namespace ECM
 			}
 		}
 
-		//void Application::CreateUI()
-		//{
-		//	// DEBUGGING: create FPS panel
-		//	float screenWidth = ImGui::GetIO().DisplaySize.x;
-		//	ImGuiWindowFlags playbackPanelFlags = ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
-		//		| ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings
-		//		| ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoScrollbar
-		//		| ImGuiWindowFlags_NoScrollWithMouse;
-		//
-		//	float fpsPanelHeight = 30.0f;
-		//	float fpsPanelWidth = 150.0f;
-		//	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.f, 5.f));
-		//	ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(5.f, 5.f));
-		//	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.f, 0.f));
-		//	ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0.f, 0.f));
-		//	ImGui::SetNextWindowPos(ImVec2(screenWidth / 2.0f, 0), 0, ImVec2(0.5f, 0.0f));
-		//	ImGui::SetNextWindowSize(ImVec2(fpsPanelWidth, fpsPanelHeight));
-		//
-		//	ImGui::Begin("FPS", nullptr, playbackPanelFlags);
-		//
-		//	float windowWidth = ImGui::GetWindowSize().x;
-		//	float windowHeight = ImGui::GetWindowSize().y;
-		//	
-		//	float fps = m_DeltaTimeSmooth == 0.0f ? 0.0f : 1.0f / m_DeltaTimeSmooth;
-		//	std::string fpsString = "FPS: ";
-		//	fpsString.append(std::to_string(fps));
-		//	int numDecimals = fpsString.size() - fpsString.find('.');
-		//	if (numDecimals > 3)
-		//	{
-		//		fpsString.resize(fpsString.size() - numDecimals + 3);
-		//	}
-		//
-		//	float textWidth = ImGui::CalcTextSize(fpsString.c_str()).x;
-		//	float textHeigh = ImGui::CalcTextSize(fpsString.c_str()).y;
-		//	ImGui::SetCursorPosX((windowWidth - textWidth) * 0.5f);
-		//	ImGui::SetCursorPosY((windowHeight - textHeigh) * 0.5f);
-		//	//std::string s = std::format("{:.2f}", 3.14159265359); // s == "3.14"
-		//
-		//	ImGui::Text(fpsString.c_str());
-		//	ImGui::End();
-		//	ImGui::PopStyleVar(4);
-		//
-		//	// create simulation area panel
-		//	//m_AreaPanel.Render();
-		//}
 
 
 	} // Visualisation

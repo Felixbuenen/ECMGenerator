@@ -3,6 +3,7 @@
 #include "Application.h"
 #include "SimAreaPanel.h"
 #include "PlaybackPanel.h"
+#include "MainMenu.h"
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl2.h"
@@ -26,7 +27,6 @@ namespace ECM {
 			ImGui::CreateContext();
 			ImGuiIO& io = ImGui::GetIO(); (void)io;
 			io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-			io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
 			// Setup Dear ImGui style
 			ImGui::StyleColorsDark();
@@ -36,6 +36,8 @@ namespace ECM {
 			ImGui_ImplSDLRenderer2_Init(application->GetApplicationRenderer());
 
 			InitializeWidgets(application);
+
+			m_Application = application;
 		}
 
 		void UI::CleanUp()
@@ -48,11 +50,16 @@ namespace ECM {
 		void UI::InitializeWidgets(Application* application)
 		{
 			m_Widgets.push_back(new PlaybackPanel(application));
-			m_Widgets.push_back(new SimAreaPanel(application));
+			m_Widgets.push_back(new MainMenu(application));
 		}
 
 		void UI::HandleInput(SDL_Event& e)
 		{
+			// set mouse position in application state
+			ImGuiIO& io = ImGui::GetIO();
+			ImVec2 mousePos = io.MousePos;
+			m_Application->GetApplicationState()->mousePosition = Point(io.MousePos.x, io.MousePos.y);
+
 			ImGui_ImplSDL2_ProcessEvent(&e);
 		}
 
