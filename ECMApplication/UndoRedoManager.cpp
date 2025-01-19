@@ -54,6 +54,8 @@ namespace ECM {
 
 		void UndoRedoManager::Undo()
 		{
+			if (m_CurrentIdx < 0) return;
+
 			m_CommandStack[m_CurrentIdx]->Undo();
 			m_CurrentIdx--;
 		}
