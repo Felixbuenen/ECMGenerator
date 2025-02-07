@@ -29,6 +29,7 @@ namespace ECM {
 			//m_Goals = new PositionComponent[m_MaxNumEntities];
 			m_Velocities = new VelocityComponent[m_MaxNumEntities];
 			m_PreferredVelocities = new VelocityComponent[m_MaxNumEntities];
+			m_PreferredSpeed = new SpeedComponent[m_MaxNumEntities];
 			m_Forces = new VelocityComponent[m_MaxNumEntities];
 			m_Clearances = new ClearanceComponent[m_MaxNumEntities];
 			m_Paths = new PathComponent[m_MaxNumEntities];
@@ -52,8 +53,6 @@ namespace ECM {
 			m_PathFollower = new IRMPathFollower();
 
 			printf("SIMULATOR: Data for %d agents was created.\n", m_MaxNumEntities);
-
-			m_CurrentStepDuration = m_SimStepTime;
 		}
 
 		void Simulator::ClearSimulator()
@@ -78,6 +77,7 @@ namespace ECM {
 			delete[] m_AttractionPoints;
 			delete[] m_Velocities;
 			delete[] m_PreferredVelocities;
+			delete[] m_PreferredSpeed;
 			delete[] m_Forces;
 			delete[] m_Paths;
 			delete[] m_ActiveAgents;
@@ -90,6 +90,35 @@ namespace ECM {
 
 			printf("SIMULATOR: Data was destroyed.\n");
 		}
+
+		void Simulator::UpdatePath(const Entity& e, const Point& location, const Point& goal)
+		{
+			// remove any existing path data
+			if (m_Paths[e].numPoints > 0)
+			{
+				delete[] m_Paths[e].x;
+				delete[] m_Paths[e].y;
+				m_Paths[e].currentIndex = 0;
+				m_Paths[e].numPoints = 0;
+			}
+
+			const float preferredAddClearance = 0.0f; // DEBUG
+			PathPlanning::Corridor dummy;
+			std::vector<Segment> portal;
+			PathPlanning::Path path;
+			m_Planner->FindPath(*m_Environment, location, goal, m_Clearances[e].clearance, preferredAddClearance, dummy, portal, path);
+			PathComponent& pComponent = m_Paths[e];
+			pComponent.x = new float[(int)path.size()];
+			pComponent.y = new float[(int)path.size()];
+			pComponent.numPoints = path.size();
+			pComponent.currentIndex = 0;
+			for (int j = 0; j < path.size(); j++)
+			{
+				pComponent.x[j] = path[j].x;
+				pComponent.y[j] = path[j].y;
+			}
+		}
+
 
 		int Simulator::SpawnAgent(const Point& start, const Point& goal, float clearance, float preferredSpeed)
 		{
@@ -108,30 +137,13 @@ namespace ECM {
 			m_Positions[idx].x = start.x;
 			m_Positions[idx].y = start.y;
 			m_Clearances[idx].clearance = clearance;
+			m_PreferredSpeed[idx].speed = preferredSpeed;
 
 			m_ActiveAgents[idx] = true;
 
 			// plan path
-			const float preferredAddClearance = 0.0f; // DEBUG
-			PathPlanning::Corridor dummy;
-			std::vector<Segment> portal;
-			PathPlanning::Path path;
-			m_Planner->FindPath(*m_Environment, start, goal, clearance, preferredAddClearance, dummy, portal, path);
-			PathComponent& pComponent = m_Paths[idx];
-			pComponent.x = new float[(int)path.size()];
-			pComponent.y = new float[(int)path.size()];
-			pComponent.numPoints = path.size();
-			pComponent.currentIndex = 0;
-			for (int j = 0; j < path.size(); j++)
-			{
-				pComponent.x[j] = path[j].x;
-				pComponent.y[j] = path[j].y;
-			}
-
-			// calculate initial velocity (in the direction of the next path vertex
-			//Vec2 dir = Point(pComponent.x[1], pComponent.y[1]) - Point(pComponent.x[0], pComponent.y[0]);
-			//dir.Normalize();
-			
+			UpdatePath(idx, start, goal);
+	
 			m_PreferredVelocities[idx].dx = 0.0f;
 			m_PreferredVelocities[idx].dy = 0.0f;
 			m_Velocities[idx].dx = 0.0f;
@@ -229,28 +241,14 @@ namespace ECM {
 			return true;
 		}
 
-		// TODO: https://gafferongames.com/post/fix_your_timestep/
+		// TODO: we either use dt or m_SimStepUpdate, not both... 
 		void Simulator::Update(float dt)
 		{
-			dt *= m_SpeedScale;
-
-			// convert to ms
-			m_CurrentStepDuration += dt;
-
 			UpdateMaxAgentIndex();
-			UpdateSpawnAreas(dt);
-
-			// we update the simulation every fixed time interval (commonly every 100ms)
-			// we divide the simstep time by the speedscale in order to maintain the same simulation accuracy for different playback speeds
-			//if (m_CurrentStepDuration >= (m_SimStepTime / m_SpeedScale))
-			//{
-			//	UpdateForceSystem(dt);
-			//	m_CurrentStepDuration -= m_SimStepTime;
-			//}
-
-			UpdateForceSystem(dt);
-			UpdateVelocitySystem(dt);
-			UpdatePositionSystem(dt);
+			UpdateSpawnAreas();
+			UpdateForceSystem();
+			UpdateVelocitySystem();
+			UpdatePositionSystem();
 		}
 
 		void Simulator::Reset()
@@ -291,7 +289,7 @@ namespace ECM {
 			ga.HalfWidth = halfSize.x;
 
 			// TODO: don't automatically add spawn connection, use UI to do this
-			ConnectSpawnGoalAreas(0, ga.ID, 4.0f);
+			ConnectSpawnGoalAreas(0, ga.ID, 0.5f);
 
 			m_GoalAreas.push_back(ga);
 
@@ -349,13 +347,13 @@ namespace ECM {
 			m_LastEntityIdx = m_LastEntityIdx - emptyCounter;
 		}
 
-		void Simulator::UpdateSpawnAreas(float dt)
+		void Simulator::UpdateSpawnAreas()
 		{
 			for (SpawnArea& area : m_SpawnAreas)
 			{
-				for (int ga = 0 ; ga < area.connectedGoalAreas.size(); ga++)
+				for (int ga = 0; ga < area.connectedGoalAreas.size(); ga++)
 				{
-					area.timeSinceLastSpawn[ga] += dt;
+					area.timeSinceLastSpawn[ga] += m_SimStepTime;
 
 					int agentsToSpawn = area.timeSinceLastSpawn[ga] * area.spawnRate[ga];
 					const int maxSpawnAttempts = 10;
@@ -394,6 +392,7 @@ namespace ECM {
 
 		void Simulator::UpdateAttractionPointSystem()
 		{
+			// TODO: make global
 			const bool deleteAgent = true;
 			const float deleteDistanceSq = 2.0f * 2.0f;
 			const float arrivalRadiusSq = 20.0f * 20.0f;
@@ -401,9 +400,9 @@ namespace ECM {
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
 				if (!m_ActiveAgents[i]) continue;
-				
+
 				const Entity& e = m_Entities[i];
-				
+
 				PathComponent& path = m_Paths[e];
 				const PositionComponent& pos = m_Positions[e];
 
@@ -423,14 +422,29 @@ namespace ECM {
 				}
 				else
 				{
-					Point attractionPoint = m_PathFollower->FindAttractionPoint(*m_Ecm, m_Ecm->GetECMGraph(), currentPosition, path);
-					m_AttractionPoints[e].x = attractionPoint.x;
-					m_AttractionPoints[e].y = attractionPoint.y;
+					Point attractionPoint;
+					bool success = m_PathFollower->FindAttractionPoint(*m_Ecm, m_Ecm->GetECMGraph(), currentPosition, path, attractionPoint);
+
+					if (success)
+					{
+						m_AttractionPoints[e].x = attractionPoint.x;
+						m_AttractionPoints[e].y = attractionPoint.y;
+					}
+
+					// couldn't find an IRM attraction point, which means the agent was pushed away too far from its global path. We need to recalculate
+					// the path.
+					else
+					{
+						// temp
+						std::cout << "Recalculate path..." << std::endl;
+						Point goal(path.x[path.numPoints - 1], path.y[path.numPoints - 1]);
+						UpdatePath(e, currentPosition, goal);
+					}
 				}
 			}
 		}
 
-		void Simulator::UpdatePositionSystem(float dt)
+		void Simulator::UpdatePositionSystem()
 		{
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
@@ -441,9 +455,6 @@ namespace ECM {
 				const VelocityComponent& vel = m_Velocities[e];
 				PositionComponent& pos = m_Positions[e];
 
-				// DEBUG
-				//pos.x += vel.dx * dt;
-				//pos.y += vel.dy * dt;
 				pos.x += (vel.dx * m_SimStepTime);
 				pos.y += (vel.dy * m_SimStepTime);
 			}
@@ -452,14 +463,14 @@ namespace ECM {
 		// TODO: currently all forces are calculated for each agent.
 		// It is likely more efficient to calculate each force invidividually in batches for all agents.
 		// Now, the loop must maintain all the local variables which will clutter the cache.
-		void Simulator::UpdateForceSystem(float dt)
+		void Simulator::UpdateForceSystem()
 		{
 			UpdateAttractionPointSystem();
 			ApplySteeringForce();
-			ApplyObstacleAvoidanceForce(dt);
+			ApplyObstacleAvoidanceForce();
 		}
 
-		void Simulator::UpdateVelocitySystem(float dt)
+		void Simulator::UpdateVelocitySystem()
 		{
 			// TODO: make global
 			const float mass = 0.8f;
@@ -480,9 +491,6 @@ namespace ECM {
 
 		void Simulator::ApplySteeringForce()
 		{
-			// TODO: make global or agent specific..
-			const float speed = 10.0f;
-
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
 				if (!m_ActiveAgents[i]) continue;
@@ -490,6 +498,8 @@ namespace ECM {
 				const Entity& e = m_Entities[i];
 				Point currentPosition(m_Positions[e].x, m_Positions[e].y);
 				Point attractionPoint(m_AttractionPoints[e].x, m_AttractionPoints[e].y);
+				float speed = m_PreferredSpeed[e].speed;
+
 
 				Vec2 desiredVelocity = (attractionPoint - currentPosition);
 				desiredVelocity.Normalize();
@@ -500,17 +510,17 @@ namespace ECM {
 			}			
 		}
 
-		void Simulator::ApplyObstacleAvoidanceForce(float dt)
+		void Simulator::ApplyObstacleAvoidanceForce()
 		{
 			// todo: make global
-			const float speed = 10.0f;
-			const int numRVONeighbors = 20;
+			const int numRVONeighbors = 5;
 
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
 				if (!m_ActiveAgents[i]) continue;
 
 				const Entity e = m_Entities[i];
+				float speed = m_PreferredSpeed[i].speed;
 
 				Vec2 outVel;
 				m_ORCA->GetVelocity(this, e, m_SimStepTime, speed, numRVONeighbors, outVel);

@@ -42,6 +42,11 @@ namespace ECM {
 			float clearance;
 		};
 
+		struct SpeedComponent
+		{
+			float speed;
+		};
+
 		struct PathComponent
 		{
 			int currentIndex;
@@ -70,8 +75,6 @@ namespace ECM {
 			int SpawnAgent(const Point& start, const Point& goal, float clearance, float preferredSpeed);
 			void DestroyAgent(int idx);
 
-			void SetSpeed(float speed) { m_SpeedScale = speed; }
-
 			void Initialize();
 			void Update(float dt);
 			void Reset();
@@ -93,6 +96,8 @@ namespace ECM {
 			void FindNearestObstacles(const Entity& agent, float rangeSquared, std::vector<const Obstacle*>& outObstacles) const;
 			bool ValidSpawnLocation(const Point& location, float clearance) const;
 
+			void UpdatePath(const Entity& e, const Point& location, const Point& goal);
+
 			// GETTERS
 			inline int GetNumAgents() const { return m_NumEntities; }
 			inline int GetLastIndex() const { return m_LastEntityIdx; }
@@ -105,6 +110,7 @@ namespace ECM {
 			inline bool* GetActiveFlags() const { return m_ActiveAgents; }
 			inline KDTree* GetKDTree() const { return m_KDTree; }
 			inline Environment* GetEnvironment() const { return m_Environment; }
+			inline float GetSimulationStepTime() const { return m_SimStepTime; }
 
 		private:
 			void ClearSimulator();
@@ -113,16 +119,16 @@ namespace ECM {
 			// keeping track of this allows the simulator to only look at agents up until
 			// this ID in the agent pool.
 			void UpdateMaxAgentIndex();
-			void UpdateSpawnAreas(float dt);
+			void UpdateSpawnAreas();
 
 			// SYSTEMS
 			void UpdateAttractionPointSystem();
-			void UpdatePositionSystem(float dt);
-			void UpdateForceSystem(float dt);
-			void UpdateVelocitySystem(float dt);
+			void UpdatePositionSystem();
+			void UpdateForceSystem();
+			void UpdateVelocitySystem();
 
 			void ApplySteeringForce();
-			void ApplyObstacleAvoidanceForce(float dt);
+			void ApplyObstacleAvoidanceForce();
 
 		private:
 			ECM* m_Ecm;
@@ -139,9 +145,7 @@ namespace ECM {
 			bool* m_ActiveAgents;
 			int m_LastEntityIdx;
 
-			float m_SpeedScale = 1.0f;
 			float m_SimStepTime;
-			float m_CurrentStepDuration = 0.0f;
 
 			std::vector<SpawnArea> m_SpawnAreas;
 			std::vector<GoalArea> m_GoalAreas;
@@ -153,6 +157,7 @@ namespace ECM {
 			VelocityComponent* m_Forces;
 			VelocityComponent* m_Velocities;
 			ClearanceComponent* m_Clearances;
+			SpeedComponent* m_PreferredSpeed;
 			PathComponent* m_Paths;
 		};
 

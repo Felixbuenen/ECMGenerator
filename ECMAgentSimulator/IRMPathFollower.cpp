@@ -11,7 +11,9 @@ namespace ECM {
 	namespace Simulation {
 
         // TODO: ecm/ecmGraph should probably be a member of this class
-		Point IRMPathFollower::FindAttractionPoint(const ECM& ecm, const ECMGraph& ecmGraph, const Point& position, const PathComponent& path)
+        // BUG: when ORCA pushes agent away too far from path, the IRM path follower cannot find an attraction point anymore and returns
+        //      the origin as attraction point.
+		bool IRMPathFollower::FindAttractionPoint(const ECM& ecm, const ECMGraph& ecmGraph, const Point& position, const PathComponent& path, Point& outPoint)
 		{
 			// retract point on the medial axis
 			Point retractedLoc;
@@ -19,7 +21,7 @@ namespace ECM {
 			if (!ecm.RetractPoint(position, retractedLoc, edge))
 			{
 				std::cout << "couldn't find attraction point.. aborting path following" << std::endl;
-				return Point();
+                return false;
 			}
 
 			// calculate clearance at retracted point location
@@ -37,16 +39,17 @@ namespace ECM {
 			// now we have a disk centered at the retraction point with the max clearance as its radius.
 			// we check where this disk intersects with the indicative path: these become our candiate attraction points
 
-			Point result;
             int resultIndex = -1;
 
             // first check if goal position lies in clearance disk. if so, set attraction point to be the goal point
             Vec2 posToGoal = (Point(path.x[path.numPoints - 1], path.y[path.numPoints - 1]) - retractedLoc);
             if (posToGoal.LengthSquared() < retrLocClearanceSqr)
             {
-                return Point(path.x[path.numPoints - 1], path.y[path.numPoints - 1]);
+                outPoint = Point(path.x[path.numPoints - 1], path.y[path.numPoints - 1]);
+                return true;
             }
 
+            bool success = false;
 			// calculate candidate attraction points
             for (int i = 0; i < path.numPoints - 1; i++) {
                 // Edge points relative to clearance circle
@@ -61,6 +64,8 @@ namespace ECM {
 
                 // Skip this line segment if its line does not intersect with clearance circle
                 if (discriminant < Utility::EPSILON) continue;
+
+                success = true;
 
                 int dySign = edgeDir.y < 0.0f ? -1 : 1;
 
@@ -90,7 +95,7 @@ namespace ECM {
                 // choose the furthest intersection point down the path edge
                 if(t1 >= 0.0f && t1 <= 1.0f)
                 {
-                    result = globalIntersect1;
+                    outPoint = globalIntersect1;
                     maxT = t1;
                     resultIndex = i;
                 }
@@ -98,13 +103,13 @@ namespace ECM {
                 {
                     if (t2 > maxT)
                     {
-                        result = globalIntersect2;
+                        outPoint = globalIntersect2;
                         resultIndex = i;
                     }
                 }
             }
 
-			return result;
+			return success;
 		}
 
 
