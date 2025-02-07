@@ -214,13 +214,10 @@ namespace ECM {
 			}
 			else
 			{
-				float areaSum = 0;
-
-				areaSum += obstacle.prevObstacle->p.x * (obstacle.nextObstacle->p.y - obstacle.p.y);
-				areaSum += obstacle.p.x * (obstacle.prevObstacle->p.y - obstacle.nextObstacle->p.y);
-				areaSum += obstacle.nextObstacle->p.x * (obstacle.p.y - obstacle.prevObstacle->p.y);
-
-				obstacle.isConvex = areaSum < 0.0f;
+				//Vec2 base = obstacle.p - obstacle.prevObstacle->p;
+				//Vec2 toCheck = obstacle.nextObstacle->p - obstacle.prevObstacle->p;
+				//obstacle.isConvex = Utility::MathUtility::IsLeftOfVector(base, toCheck);
+				obstacle.isConvex = Utility::MathUtility::Determinant(obstacle.prevObstacle->p - obstacle.nextObstacle->p, obstacle.p - obstacle.prevObstacle->p) >= 0.0f;
 			}
 		}
 

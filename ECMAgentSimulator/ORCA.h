@@ -79,8 +79,6 @@ namespace ECM {
 			bool m_isVertical;
 		};
 
-		// TODO:
-		// - change class name/script name to ORCA
 		class ORCA 
 		{
 		public:
