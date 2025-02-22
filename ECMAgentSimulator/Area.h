@@ -38,6 +38,17 @@ namespace ECM {
 
 				return Point(randX, randY);
 			}
+
+			void Scale(Vec2 delta)
+			{
+				HalfHeight += delta.y;
+				HalfWidth += delta.x;
+			}
+
+			void Translate(Vec2 delta)
+			{
+				Position = Position + delta;
+			}
 		};
 
 		struct GoalArea : public Area
@@ -46,8 +57,8 @@ namespace ECM {
 
 		struct SpawnConfiguration
 		{
-			float preferredSpeedMin = 20.0f;
-			float preferredSpeedMax = 80.0f;
+			float preferredSpeedMin = 5.0f;
+			float preferredSpeedMax = 10.0f;
 			float clearanceMin = 10.0f;
 			float clearanceMax = 20.0f;
 		};

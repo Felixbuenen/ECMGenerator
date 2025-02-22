@@ -9,6 +9,7 @@
 class SDL_Window;
 class SDL_Renderer;
 class SDL_Surface;
+class SDL_Texture;
 
 namespace ECM {
 
@@ -26,6 +27,7 @@ namespace ECM {
 	namespace WindowApplication {
 
 		class Application;
+		class Gizmo;
 		struct ApplicationState;
 
 		enum SimAreaDrag;
@@ -47,8 +49,13 @@ namespace ECM {
 			void Clear();
 
 			void RenderDragArea(Simulation::SimAreaType type, const Point& screenCoordinates, const Vec2& halfSize);
+			void RenderGizmo(Gizmo* gizmo);
+			void DrawCircle(SDL_Renderer* renderer, int32_t centreX, int32_t centreY, int32_t radius);
 
-			// TODO: these methods are not used everywhere. Refactor.
+			void GetTextureFromBMP(const char* pathToBMP, SDL_Texture** outTexture) const;
+
+			float GetCamZoomFactor() const { return m_CamZoomFactor; }
+
 			Point ScreenToWorldCoordinates(float x, float y);
 			Point WorldToScreenCoordinates(float x, float y);
 
@@ -63,7 +70,7 @@ namespace ECM {
 			void DrawMedialAxis();
 			void DrawECMVertices();
 			void HighlightECMVertex(int idx);
-			void DrawPath(); // bij deze even kijken hoe ik dat ga doen, want het pad is in principe geen onderdeel van ECM, wellicht met ref van pad
+			void DrawPath();
 			void DrawRandomTestPath();
 			void DrawInsideVerts();
 			void DrawClosestObstaclePoints();
@@ -71,16 +78,15 @@ namespace ECM {
 			void DrawPortals();
 			void DrawHalfEdge(int idx);
 			void DrawAttractionPoints();
+			void DrawSelectionBounds();
 
 			void DebugDrawECMCell();
 			void DebugDrawSecondaryLines();
 			void DebugDrawCellValues();
 			void DebugDrawBoostVoronoiDiagram();
 			void DrawSimulationAreas();
-			void InternalDrawDragSimulationArea();
 			void DebugDrawKNearestNeighbors(int idx);
 
-			void DrawCircle(SDL_Renderer* renderer, int32_t centreX, int32_t centreY, int32_t radius);
 
 			// SIMULATION
 			void DrawAgents();

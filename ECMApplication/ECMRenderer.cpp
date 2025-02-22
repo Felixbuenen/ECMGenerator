@@ -8,6 +8,7 @@
 #include "SimAreaPanel.h"
 #include "Area.h"
 #include "KDTree.h"
+#include "Gizmo.h"
 
 #include "SDL.h"
 #include "boost/polygon/voronoi.hpp"
@@ -43,9 +44,10 @@ namespace ECM {
 			//DrawCorridor();
 			//DrawPortals();
 			//DrawAttractionPoints();
+			DrawSelectionBounds();
 			
 			//DrawHalfEdge(22);
-
+			
 			// TEST
 			//DrawRandomTestPath();
 			//DrawInsideVerts();
@@ -53,13 +55,16 @@ namespace ECM {
 			//DebugDrawSecondaryLines();
 			//DebugDrawCellValues();
 			//DebugDrawBoostVoronoiDiagram();
-
-			//DrawPaths();
-
+			
 			DrawAgents();
-			//DrawPaths();
 
-			//InternalDrawDragSimulationArea();
+			if (m_AppState->activeGizmo)
+			{
+				if (m_AppState->activeGizmo->GetArea())
+				{
+					m_AppState->activeGizmo->Render(m_Renderer, this);
+				}
+			}
 		}
 
 		void ECMRenderer::RenderDragArea(Simulation::SimAreaType type, const Point& screenCoordinates, const Vec2& halfSize)
@@ -77,9 +82,59 @@ namespace ECM {
 			spawnRect.w = halfSize.x * 2 * m_CamZoomFactor;
 			spawnRect.h = halfSize.y * 2 * m_CamZoomFactor;
 			SDL_SetRenderDrawBlendMode(m_Renderer, SDL_BLENDMODE_BLEND);
-			if (type == Simulation::SimAreaType::SPAWN) SDL_SetRenderDrawColor(m_Renderer, 120.0f, 200.0f, 120.0f, 150);
-			if (type == Simulation::SimAreaType::GOAL) SDL_SetRenderDrawColor(m_Renderer, 200.0, 120.0f, 120.0f, 150);
+			if (type == Simulation::SimAreaType::SPAWN) SDL_SetRenderDrawColor(m_Renderer, 120, 200, 120, 150);
+			if (type == Simulation::SimAreaType::GOAL) SDL_SetRenderDrawColor(m_Renderer, 200, 120, 120, 150);
 			SDL_RenderFillRect(m_Renderer, &spawnRect);
+		}
+
+		void ECMRenderer::RenderGizmo(Gizmo* gizmo)
+		{
+			m_AppState->activeGizmo = gizmo;
+		}
+
+		void ECMRenderer::DrawSelectionBounds()
+		{
+			// when we have an active gizmo in the scene, we have selected an area
+			if (m_AppState->activeGizmo)
+			{
+				const Simulation::Area* area = m_AppState->activeGizmo->GetArea();
+
+				Vec2 size(area->HalfWidth * 2, area->HalfHeight * 2);
+				Point posWorld = area->Position;
+				Point pos = WorldToScreenCoordinates(posWorld.x - area->HalfWidth, posWorld.y + area->HalfHeight);
+
+				SDL_Rect spawnRect;
+				spawnRect.x = pos.x;
+				spawnRect.y = pos.y;
+				spawnRect.w = size.x * GetCamZoomFactor();
+				spawnRect.h = size.y * GetCamZoomFactor();
+				SDL_SetRenderDrawColor(m_Renderer, 255.0, 215.0f, 0.0f, 255.0f);
+
+				// draw selection border around area
+				const float thickness = 2.0f;
+				SDL_Rect uBorder, dBorder, lBorder, rBorder;
+				uBorder.x = pos.x;
+				uBorder.y = pos.y;
+				uBorder.w = spawnRect.w + thickness;
+				uBorder.h = thickness;
+				dBorder.x = pos.x;
+				dBorder.y = pos.y + spawnRect.h;
+				dBorder.w = spawnRect.w + thickness;
+				dBorder.h = thickness;
+				lBorder.x = pos.x;
+				lBorder.y = pos.y;
+				lBorder.w = thickness;
+				lBorder.h = spawnRect.h + thickness;
+				rBorder.x = pos.x + spawnRect.w;
+				rBorder.y = pos.y;
+				rBorder.w = thickness;
+				rBorder.h = spawnRect.h + thickness;
+
+				SDL_RenderFillRect(m_Renderer, &uBorder);
+				SDL_RenderFillRect(m_Renderer, &dBorder);
+				SDL_RenderFillRect(m_Renderer, &lBorder);
+				SDL_RenderFillRect(m_Renderer, &rBorder);
+			}
 		}
 
 		Point ECMRenderer::ScreenToWorldCoordinates(float x, float y)
@@ -96,34 +151,6 @@ namespace ECM {
 			float screenY = y * m_CamZoomFactor * m_YRotation + m_CamOffsetY;
 
 			return Point(screenX, screenY);
-		}
-
-		void ECMRenderer::InternalDrawDragSimulationArea()
-		{
-			//if (m_AppState->dragAreaType == SimAreaDrag::NONE) return;
-			//
-			//// TODO: place in variables
-			//float halfWidth = 50;
-			//float halfHeight = 50;
-			//
-			//float spawnX = m_AppState->mousePosition.x;
-			//float spawnY = m_AppState->mousePosition.y;
-			//SDL_Rect spawnRect;
-			//
-			//Point pos = ScreenToWorldCoordinates(spawnX, spawnY);
-			//pos.x = pos.x - halfWidth;
-			//pos.y = pos.y + halfHeight;
-			//
-			//Point screenPos = WorldToScreenCoordinates(pos.x, pos.y);
-			//
-			//spawnRect.x = screenPos.x;
-			//spawnRect.y = screenPos.y;
-			//spawnRect.w = halfWidth * 2 * m_CamZoomFactor;
-			//spawnRect.h = halfHeight * 2 * m_CamZoomFactor;
-			//SDL_SetRenderDrawBlendMode(m_Renderer, SDL_BLENDMODE_BLEND);
-			//if (m_AppState->dragAreaType == SimAreaDrag::SPAWN) SDL_SetRenderDrawColor(m_Renderer, 120.0f, 200.0f, 120.0f, 150);
-			//if(m_AppState->dragAreaType == SimAreaDrag::GOAL) SDL_SetRenderDrawColor(m_Renderer, 200.0, 120.0f, 120.0f, 150);
-			//SDL_RenderFillRect(m_Renderer, &spawnRect);
 		}
 
 		void ECMRenderer::DebugDrawKNearestNeighbors(int idx)
@@ -849,6 +876,28 @@ namespace ECM {
 					error += (tx - diameter);
 				}
 			}
+		}
+
+		void ECMRenderer::GetTextureFromBMP(const char* pathToBMP, SDL_Texture** outTexture) const
+		{
+			SDL_Surface* tempSurface = SDL_LoadBMP(pathToBMP);
+			if (!tempSurface)
+			{
+				std::cout << "Could not load texture: Incorrect filepath" << std::endl;
+				
+				*outTexture = nullptr;
+
+				return;
+			}
+
+			*outTexture = SDL_CreateTextureFromSurface(m_Renderer, tempSurface);
+			if (!outTexture)
+			{
+				std::cout << "ERROR:" << std::endl;
+				std::cout << SDL_GetError() << std::endl;
+			}
+
+			SDL_FreeSurface(tempSurface);
 		}
 	}
 

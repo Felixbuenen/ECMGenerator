@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Area.h"
+#include "Gizmo.h"
 
 //#include "Application.h"
 
@@ -19,14 +20,26 @@ typedef union SDL_Event;
 
 namespace ECM {
 
+	namespace Simulation {
+		struct Area;
+	}
+
 	namespace WindowApplication {
+
+		enum TransformMode
+		{
+			TRANSLATE,
+			SCALE
+		};
 
 		class Application;
 
 		class EnvironmentEditor {
 
 		public:
-			EnvironmentEditor(Application* application);
+			EnvironmentEditor() { }
+
+			void Initialize(Application* application);
 
 			void HandleInput(SDL_Event& e);
 			void Update();
@@ -35,12 +48,25 @@ namespace ECM {
 			void StartDragArea(Simulation::SimAreaType areaType);
 			void StopDragArea();
 
+			void SelectArea(Simulation::Area* area);
+
 		private:
-			Simulation::SimAreaType m_CurrentDragArea;
 			Application* m_App;
 
-			void DragAreaInternal();
+			// state
+			Simulation::SimAreaType m_CurrentDragArea;
+			Simulation::Area* m_SelectedArea;
+			TransformMode m_TransformMode;
+			Gizmo* m_ActiveGizmo;
+			TranslateGizmo m_TranslateGizmo;
+			ScaleGizmo m_ScaleGizmo;
+			
+			// UI event handlers
+			void HandleLeftClickGeneral(const Point& screenPos);
 			void HandleDropArea(const Point& screenPos);
+
+			// methods
+			void DragAreaInternal();
 		};
 
 	}

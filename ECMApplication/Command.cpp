@@ -1,10 +1,21 @@
 #include "Command.h"
 #include "Simulator.h"
 #include "Application.h"
+#include "EnvironmentEditor.h"
 
 namespace ECM {
 
 	namespace WindowApplication {
+
+		void CMD_SelectArea::Execute()
+		{
+			m_EnvEditor->SelectArea(m_Area);
+		}
+
+		void CMD_SelectArea::Undo()
+		{
+			m_EnvEditor->SelectArea(m_PrevArea);
+		}
 
 		void CMD_AddSimulationArea::Execute()
 		{
@@ -28,6 +39,18 @@ namespace ECM {
 		{
 			Simulation::Simulator* sim = m_Application->GetSimulator();
 			sim->RemoveArea(m_AreaType, m_ID);
+		}
+
+		void CMD_TransformSimulationArea::Execute()
+		{
+			m_Area->Translate(m_TranslationDelta);
+			m_Area->Scale(m_ScaleDelta);
+		}
+
+		void CMD_TransformSimulationArea::Undo()
+		{
+			m_Area->Translate(m_TranslationDelta * -1.0f);
+			m_Area->Scale(m_ScaleDelta * -1.0f);
 		}
 	}
 

@@ -89,8 +89,8 @@ namespace ECM {
 			void RemoveArea(Simulation::SimAreaType areaType, int ID);
 			void ConnectSpawnGoalAreas(int spawnID, int goalID, float spawnRate = 0.0f);
 			
-			const std::vector<SpawnArea>& GetSpawnAreas() const { return m_SpawnAreas; }
-			const std::vector<GoalArea>& GetGoalAreas() const { return m_GoalAreas; }
+			std::vector<SpawnArea>& GetSpawnAreas() { return m_SpawnAreas; }
+			std::vector<GoalArea>& GetGoalAreas() { return m_GoalAreas; }
 
 			void FindNNearestNeighbors(const Entity& agent, int n, std::vector<Entity>& outNeighbors) const;
 			void FindNearestObstacles(const Entity& agent, float rangeSquared, std::vector<const Obstacle*>& outObstacles) const;

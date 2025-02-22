@@ -49,6 +49,7 @@ namespace ECM
 			// misc
 			const ECMCell* cellToDraw;
 			SimAreaDrag dragAreaType;
+			Gizmo* activeGizmo;
 			Point mousePosition;
 
 			// path
@@ -64,7 +65,7 @@ namespace ECM
 		{
 		public:
 			Application(PathPlanning::ECMPathPlanner* planner, Environment* environment, Simulation::Simulator* simulator, int undoRedoStack=10) 
-				: m_Planner(planner), m_UndoRedoManager(undoRedoStack), m_EnvEditor(this)
+				: m_Planner(planner), m_UndoRedoManager(undoRedoStack)
 			{
 				m_ApplicationState.environment = environment;
 				m_ApplicationState.simulator = simulator;
@@ -108,7 +109,7 @@ namespace ECM
 			bool m_Quit;
 
 			
-			float m_DeltaTime;
+			float m_DeltaTime, m_Accumulator;
 		};
 	}
 }

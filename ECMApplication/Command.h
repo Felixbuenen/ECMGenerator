@@ -8,17 +8,30 @@ typedef union SDL_Event;
 
 namespace ECM {
 
-	namespace Simulation {
-		struct Area;
-	}
-
 	namespace WindowApplication {
+
+		class EnvironmentEditor;
 
 		class ICommand
 		{
 		public:
 			virtual void Execute() = 0;
 			virtual void Undo() = 0;
+		};
+
+		class CMD_SelectArea : public ICommand
+		{
+		public:
+			CMD_SelectArea(EnvironmentEditor* editor, Simulation::Area* prevArea, Simulation::Area* area)
+				: m_EnvEditor(editor), m_Area(area), m_PrevArea(prevArea) { }
+
+			virtual void Execute() override;
+			virtual void Undo() override;
+
+		private:
+			EnvironmentEditor* m_EnvEditor;
+			Simulation::Area* m_Area;
+			Simulation::Area* m_PrevArea;
 		};
 
 		class CMD_AddSimulationArea : public ICommand
@@ -55,7 +68,8 @@ namespace ECM {
 		class CMD_TransformSimulationArea : public ICommand
 		{
 		public:
-			CMD_TransformSimulationArea(Simulation::Area& area, Vec2 translation, Vec2 scale, Application* application);
+			CMD_TransformSimulationArea(Simulation::Area* area, Vec2 translationDelta, Vec2 scaleDelta)
+				: m_Area(area), m_TranslationDelta(translationDelta), m_ScaleDelta(scaleDelta) { }
 
 			void Execute() override;
 			void Undo() override;
@@ -63,9 +77,9 @@ namespace ECM {
 		private:
 			//void TransformArea(Simulation::Area& area, Vec2 translation, Vec2 scale);
 
-			Application* m_Application;
-			Vec2 m_Translation;
-			Vec2 m_Scale;
+			Simulation::Area* m_Area;
+			Vec2 m_TranslationDelta;
+			Vec2 m_ScaleDelta;
 		};
 	}
 }

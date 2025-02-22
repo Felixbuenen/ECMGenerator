@@ -20,9 +20,12 @@ namespace ECM {
 			}
 		}
 
-		void UndoRedoManager::Invoke(ICommand* cmd)
+		void UndoRedoManager::Invoke(ICommand* cmd, bool alreadyExecuted)
 		{
-			cmd->Execute();
+			if (!alreadyExecuted)
+			{
+				cmd->Execute();
+			}
 
 			// update stack with new command
 			if (m_CurrentIdx == m_CommandStack.size() - 1)
@@ -48,6 +51,7 @@ namespace ECM {
 				if (m_CommandStack[i] != nullptr)
 				{
 					delete m_CommandStack[i];
+					m_CommandStack[i] = nullptr;
 				}
 			}
 		}

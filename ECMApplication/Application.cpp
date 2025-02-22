@@ -27,6 +27,7 @@ namespace ECM
 			if (!InitializeRenderer()) return false;
 
 			m_UI.Initialize(this);
+			m_EnvEditor.Initialize(this);
 
 			return true;
 		}
@@ -35,7 +36,8 @@ namespace ECM
 		{
 			Uint64 currentTime = SDL_GetPerformanceCounter();
 			Uint64 lastTime = 0;
-			m_DeltaTime = 0.0;
+			m_DeltaTime = 0.0f;
+			m_Accumulator = 0.0f;
 			const double timeScale = 1.0 / SDL_GetPerformanceFrequency();
 
 			// start main loop
@@ -103,7 +105,20 @@ namespace ECM
 				//Timer timer("SIMULATION");
 				if (m_ApplicationState.simulationPlaying)
 				{
-					m_ApplicationState.simulator->Update(m_DeltaTime);
+					m_Accumulator += m_DeltaTime;
+					float simSteptime = GetSimulator()->GetSimulationStepTime();
+
+					// Decouple simulation integration from render updates
+					// Source: https://gafferongames.com/post/fix_your_timestep/ 
+					//while (m_Accumulator >= simSteptime)
+					{
+						m_ApplicationState.simulator->Update(simSteptime);
+						m_Accumulator -= simSteptime;
+					}
+
+					// TODO: interpolate between previous and new positions for rendering
+					// e.g. simulator->GetInterpolatedPositions(alpha) returns alpha interpolation between prev and current positions
+					// which is used by the rendering system
 				}
 			}
 			m_EnvEditor.Update();
