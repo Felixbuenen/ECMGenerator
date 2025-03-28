@@ -32,11 +32,19 @@ namespace ECM
 	{
 		class EnvironmentEditor;
 
+		enum ApplicationMode
+		{
+			SIMULATE,	// simulation is playing
+			BUILD,		// user is constructing environment / simulation
+			CONNECT		// user is connecting simulation areas
+		};
+
 		struct ApplicationState
 		{
 			// simulation
 			bool simulationPlaying = false;
 			bool simulationPaused = true;
+			ApplicationMode mode = ApplicationMode::BUILD; // start app in build mode
 			
 			// window state
 			float camZoomFactor;
