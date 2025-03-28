@@ -17,7 +17,7 @@ namespace ECM {
 			simulator->FindNNearestNeighbors(entity, nNeighbors, agentNeighbors);
 
 			// static obstacle neighbors
-			std::vector<const Obstacle*> obstNeighbors;
+			std::vector<const ObstacleVertex*> obstNeighbors;
 			float range = m_lookAheadObstacle * maxSpeed + simulator->GetClearanceData()[entity].clearance;
 			simulator->FindNearestObstacles(entity, range * range, obstNeighbors);
 
@@ -38,7 +38,7 @@ namespace ECM {
 		}
 
 		// generates the ORCA constraints
-		void ORCA::GenerateConstraints(Simulator* simulator, const Entity& entity, const std::vector<Entity>& agentNeighbors, const std::vector<const Obstacle*>& obstNeighbors, float stepSize, int& outNObstacleConstraints, std::vector<Constraint>& outConstraints)
+		void ORCA::GenerateConstraints(Simulator* simulator, const Entity& entity, const std::vector<Entity>& agentNeighbors, const std::vector<const ObstacleVertex*>& obstNeighbors, float stepSize, int& outNObstacleConstraints, std::vector<Constraint>& outConstraints)
 		{
 			const PositionComponent& positionComp = simulator->GetPositionData()[entity];
 			const ClearanceComponent& clearance = simulator->GetClearanceData()[entity];
@@ -50,8 +50,8 @@ namespace ECM {
 			// Calculate obstacle constraints
 			for (int i = 0; i < obstNeighbors.size(); i++)
 			{
-				const Obstacle* obstNeighborL = obstNeighbors[i];
-				const Obstacle* obstNeighborR = obstNeighbors[i]->nextObstacle; 
+				const ObstacleVertex* obstNeighborL = obstNeighbors[i];
+				const ObstacleVertex* obstNeighborR = obstNeighbors[i]->nextObstacle; 
 
 				Vec2 relativePosition1 = obstNeighborL->p - position;
 				Vec2 relativePosition2 = obstNeighborR->p - position;
@@ -196,7 +196,7 @@ namespace ECM {
 				// However, our current left and right leg directions may point into the left resp. right (convex) neighbors
 				// Let's adjust for these cases...
 
-				const Obstacle* leftNeighbor = obstNeighborL->prevObstacle;
+				const ObstacleVertex* leftNeighbor = obstNeighborL->prevObstacle;
 
 				bool isLeftLegForeign = false;
 				bool isRightLegForeign = false;

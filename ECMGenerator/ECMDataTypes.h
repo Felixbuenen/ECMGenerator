@@ -6,6 +6,10 @@
 
 namespace ECM {
 
+	namespace Utility {
+		class MathUtility;
+	}
+
 	struct Vec2 {
 		Vec2() { }
 		Vec2(float _x, float _y)
@@ -68,10 +72,7 @@ namespace ECM {
 		Point() { x = 0; y = 0; }
 		Point(const Vec2& v) : x(v.x), y(v.y) {}
 
-		bool Approximate(const Point& a) const
-		{
-			return x < (a.x + Utility::EPSILON) && x >(a.x - Utility::EPSILON) && y < (a.y + Utility::EPSILON) && y >(a.y - Utility::EPSILON);
-		}
+		bool Approximate(const Point& a) const;
 
 		operator Vec2() const { return Vec2(x, y); }
 
@@ -156,12 +157,24 @@ namespace ECM {
 		Segment(Point point0, Point point1) : p0(point0), p1(point1) {}
 	};
 
-	struct Obstacle {
+	struct ObstacleVertex {
 		Point p;
-		Obstacle* prevObstacle;
-		Obstacle* nextObstacle;
+		ObstacleVertex* prevObstacle;
+		ObstacleVertex* nextObstacle;
 
 		bool isConvex;
+	};
+
+	struct Obstacle
+	{
+		Obstacle() { }
+		Obstacle(const Obstacle& c);
+		~Obstacle();
+
+		void Initialize(const std::vector<Point>& vertexPositions);
+		void Initialize(const std::vector<ObstacleVertex*>& vertices);
+
+		std::vector<ObstacleVertex*> verts;
 	};
 
 	struct BBOX {

@@ -107,6 +107,7 @@ namespace ECM {
 			std::vector<Segment> portal;
 			PathPlanning::Path path;
 			m_Planner->FindPath(*m_Environment, location, goal, m_Clearances[e].clearance, preferredAddClearance, dummy, portal, path);
+			
 			PathComponent& pComponent = m_Paths[e];
 			pComponent.x = new float[(int)path.size()];
 			pComponent.y = new float[(int)path.size()];
@@ -190,36 +191,40 @@ namespace ECM {
 			}
 		}
 
-		void Simulator::FindNearestObstacles(const Entity& agent, float rangeSquared, std::vector<const Obstacle*>& outObstacles) const
+		void Simulator::FindNearestObstacles(const Entity& agent, float rangeSquared, std::vector<const ObstacleVertex*>& outObstacles) const
 		{
 			// TODO: use KD tree
 			// for now do a brute force method
-
 			std::vector<std::tuple<float, int>> distances;
 			Point agentPos(m_Positions[agent].x, m_Positions[agent].y);
 
 			const std::vector<Obstacle>& obstacles = GetEnvironment()->GetObstacles();
 
-			for (int i = 0; i < obstacles.size(); i++)
+			for (const Obstacle& o : obstacles)
 			{
-				const Obstacle* obst = &obstacles[i];
-				const Obstacle* obstNext = obstacles[i].nextObstacle
-					;
-				float signedLeftDist = Utility::MathUtility::LineLeftDistance(obst->p, obstNext->p, agentPos);
-				float sqDist = std::powf(signedLeftDist, 2.0f) / Utility::MathUtility::SquareDistance(obst->p, obstNext->p);
+				const auto& obstVerts = o.verts;
+				for (int i = 0; i < obstVerts.size(); i++)
+				{
+					const ObstacleVertex* obst = obstVerts[i];
+					const ObstacleVertex* obstNext = obst->nextObstacle
+						;
+					float signedLeftDist = Utility::MathUtility::LineLeftDistance(obst->p, obstNext->p, agentPos);
+					float sqDist = std::powf(signedLeftDist, 2.0f) / Utility::MathUtility::SquareDistance(obst->p, obstNext->p);
 
-				if (sqDist < rangeSquared) {
-					// if signedLeftDist < 0.0f, then the agent is right of the obstacle segment and therefor "in front of" the obstacle.
-					// only test against these lines.
-					if (signedLeftDist < 0.0f) {
-						Point p = Utility::MathUtility::GetClosestPointOnSegment(agentPos, obst->p, obstNext->p);
-						if (Utility::MathUtility::SquareDistance(p, agentPos) < rangeSquared)
-						{
-							outObstacles.push_back(obst);
+					if (sqDist < rangeSquared) {
+						// if signedLeftDist < 0.0f, then the agent is right of the obstacle segment and therefor "in front of" the obstacle.
+						// only test against these lines.
+						if (signedLeftDist < 0.0f) {
+							Point p = Utility::MathUtility::GetClosestPointOnSegment(agentPos, obst->p, obstNext->p);
+							if (Utility::MathUtility::SquareDistance(p, agentPos) < rangeSquared)
+							{
+								outObstacles.push_back(obst);
+							}
 						}
 					}
 				}
 			}
+
 		}
 
 
@@ -294,6 +299,37 @@ namespace ECM {
 			m_GoalAreas.push_back(ga);
 
 			return ga.ID;
+		}
+
+		int Simulator::AddObstacleArea(const Point& position, const Vec2& halfSize, bool updateECM)
+		{
+			// TODO:
+			// ONDERSTAANDE IS EEN AANNAME, MEER TESTEN IS NODIG!
+			// Nu is zeer waarschijnlijk het probleem dat we obstacles met floating point precisie aan Boost geven.
+			// Echter Boost werkt (naar wat ik weet) met fixed point coordinates. Oftewel integers.
+			// Als je floating point precisie geeft, komen er onbetrouwbare resultaten uit boost.
+			// Dit genereert incosistente voronoi diagrams, en dat lijdt tot gaten in de 
+			// Ik moet dus het volgende doen:
+			// > definieer hoeveel precisie je wilt. Centimeters? Hoe sla je deze coordinaten op? uints? dan kun je heel veel
+			//   coordinaten nog opslaan.
+			// > deze uints geven we aan boost. Hier moeten we ook een vertaalslag maken naar world coordinates. bijv, als we 
+			//   een obstacle object toevoegen, weten we de screen coordinates (in floats). Deze moet vertaald worden naar
+			//   world coordinates (ook in floats). Deze moet ook vertaald worden zodat boost het kan lezen (naar ints).
+
+			ObstacleArea oa;
+			oa.ID = m_ObstacleAreas.size() == 0 ? 0 : m_ObstacleAreas[m_ObstacleAreas.size() - 1].ID + 1;
+			oa.Position = position;
+			oa.HalfHeight = halfSize.y;
+			oa.HalfWidth = halfSize.x;
+
+			oa.obstacleVerts.push_back(Point(position.x + halfSize.x, position.y + halfSize.y));
+			oa.obstacleVerts.push_back(Point(position.x - halfSize.x, position.y + halfSize.y));
+			oa.obstacleVerts.push_back(Point(position.x - halfSize.x, position.y - halfSize.y));
+			oa.obstacleVerts.push_back(Point(position.x + halfSize.x, position.y - halfSize.y));
+
+			m_Environment->AddObstacle(oa.obstacleVerts, updateECM);
+
+			return oa.ID;
 		}
 
 		void Simulator::RemoveArea(Simulation::SimAreaType areaType, int ID)

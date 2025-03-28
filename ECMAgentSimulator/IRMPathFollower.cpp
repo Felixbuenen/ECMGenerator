@@ -11,8 +11,6 @@ namespace ECM {
 	namespace Simulation {
 
         // TODO: ecm/ecmGraph should probably be a member of this class
-        // BUG: when ORCA pushes agent away too far from path, the IRM path follower cannot find an attraction point anymore and returns
-        //      the origin as attraction point.
 		bool IRMPathFollower::FindAttractionPoint(const ECM& ecm, const ECMGraph& ecmGraph, const Point& position, const PathComponent& path, Point& outPoint)
 		{
 			// retract point on the medial axis
@@ -25,16 +23,17 @@ namespace ECM {
 			}
 
 			// calculate clearance at retracted point location
-			// this is simply a linear interpolation between the two vertex clearances
+            // this is not always a simple linear interpolation, so we calculate the distance to the closest obstacle.
 			const ECMVertex& vertA = *ecmGraph.GetVertex(edge.half_edges[0].v_target_idx);
 			const ECMVertex& vertB = *ecmGraph.GetVertex(edge.half_edges[1].v_target_idx);
 
-			float sqLengthTotal = Utility::MathUtility::SquareDistance(vertA.position, vertB.position);
-			float sqLengthSeg = Utility::MathUtility::SquareDistance(vertA.position, retractedLoc);
-			float t = sqLengthSeg / sqLengthTotal;
+            // calculate distance to nearest obstacle
+            Point obstA = edge.half_edges[0].closest_left;
+            Point obstB = edge.half_edges[1].closest_right;
 
-			float retrLocClearance = vertA.clearance + (vertB.clearance - vertA.clearance) * t;
-            float retrLocClearanceSqr = retrLocClearance * retrLocClearance;
+            Point closestObst = Utility::MathUtility::GetClosestPointOnSegment(retractedLoc, obstA, obstB);
+            float clearance = ((Vec2)(retractedLoc - closestObst)).Length();
+            float retrLocClearanceSqr = clearance * clearance;
 
 			// now we have a disk centered at the retraction point with the max clearance as its radius.
 			// we check where this disk intersects with the indicative path: these become our candiate attraction points
@@ -50,6 +49,7 @@ namespace ECM {
             }
 
             bool success = false;
+
 			// calculate candidate attraction points
             for (int i = 0; i < path.numPoints - 1; i++) {
                 // Edge points relative to clearance circle
@@ -57,13 +57,15 @@ namespace ECM {
                 Point p2 = Point(path.x[i + 1], path.y[i + 1]) - retractedLoc;
 
                 Vec2 edgeDir = p2 - p1;
-                float edgeLengthSqr = edgeDir.x * edgeDir.x + edgeDir.y * edgeDir.y;
+                float edgeLengthSqr = edgeDir.LengthSquared();
+                
                 float determinant = Utility::MathUtility::Determinant(p1, p2);
 
                 float discriminant = retrLocClearanceSqr * edgeLengthSqr - determinant * determinant;
 
                 // Skip this line segment if its line does not intersect with clearance circle
-                if (discriminant < Utility::EPSILON) continue;
+                if (discriminant < Utility::EPSILON)
+                    continue;
 
                 success = true;
 
@@ -92,7 +94,7 @@ namespace ECM {
                 float t2 = Utility::MathUtility::Dot((globalIntersect2 - globalP1), edge) / edgeLengthSqr;
 
                 float maxT = -1.0f;
-                // choose the furthest intersection point down the path edge
+                // choose the furthest intersection point down the path
                 if(t1 >= 0.0f && t1 <= 1.0f)
                 {
                     outPoint = globalIntersect1;

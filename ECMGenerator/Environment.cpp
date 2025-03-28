@@ -1,12 +1,25 @@
 #include "Environment.h"
+
 #include "UtilityFunctions.h"
 #include "ECMDataTypes.h"
 #include "ECM.h"
 #include "ECMGenerator.h"
+#include "../ECMApplication/Application.h"
 
 #include <iostream>
 
 namespace ECM {
+
+	Environment::~Environment()
+	{
+		for (ECM* ecm : m_Ecms)
+		{
+			delete ecm;
+		}
+
+		m_Ecms.clear();
+	}
+
 
 	void Environment::Initialize(TestEnvironment type)
 	{
@@ -140,12 +153,38 @@ namespace ECM {
 			walkableArea.push_back(Segment(-500, 500, 500, 500));
 			walkableArea.push_back(Segment(-500, 500, -500, -500));
 
+			AddWalkableArea(walkableArea);
+		}
+
+		if (type == Environment::TestEnvironment::DEBUG1)
+		{
+			std::vector<Segment> walkableArea;
+			walkableArea.push_back(Segment(-500, -500, 500, -500));
+			walkableArea.push_back(Segment(500, -500, 500, 500));
+			walkableArea.push_back(Segment(-500, 500, 500, 500));
+			walkableArea.push_back(Segment(-500, 500, -500, -500));
+
+			std::vector<Point> obstacle{
+				Point(-50, 50),
+					Point(-150, 50),
+					Point(-150, -50),
+					Point(-50, -50)
+			};
+			std::vector<Point> obstacle2{
+				Point(150, 50),
+					Point(50, 50),
+					Point(50, -50),
+					Point(150, -50)
+			};
 
 			AddWalkableArea(walkableArea);
+			AddObstacle(obstacle);
+			AddObstacle(obstacle2);
 		}
 
 		// generate ECM from environment
 		ComputeECM();
+
 	}
 
 
@@ -160,7 +199,7 @@ namespace ECM {
 
 	// adds a static obstacle to the scene, defined by its vertices.
 	// NOTE: it's important that the vertices are passed in anti-clockwise order!
-	void Environment::AddObstacle(std::vector<Point> obstacleVerts)
+	void Environment::AddObstacle(const std::vector<Point>& obstacleVerts, bool updateECM)
 	{
 		// we don't allow edge obstacles in our simulation
 		if (obstacleVerts.size() < 2)
@@ -168,6 +207,7 @@ namespace ECM {
 			std::cout << "ERROR: obstacles must have size of at least 3" << std::endl;
 			return;
 		}
+
 
 		int obstacleSize = obstacleVerts.size();
 		int obstacleIdx = m_Obstacles.size();
@@ -181,56 +221,39 @@ namespace ECM {
 			m_EnvironmentObstacleUnion.push_back(s);
 		}
 
-		int obstacleOffset = m_Obstacles.size();
-
-		// add obstacle data
-		for (int i = 0; i < obstacleSize; i++)
-		{
-			Obstacle o;
-			o.p = obstacleVerts[i];
-			m_Obstacles.push_back(o);
-		}
-
-		// add neighbor information
-		for (int i = 0; i < obstacleSize; i++)
-		{
-			Obstacle& obstacle = m_Obstacles[obstacleOffset + i];
-
-			if (i == 0)
-			{
-				obstacle.prevObstacle = &m_Obstacles[obstacleOffset + obstacleSize - 1];
-				obstacle.nextObstacle = &m_Obstacles[obstacleOffset + 1];
-			}
-			else
-			{
-				obstacle.prevObstacle = &m_Obstacles[obstacleOffset + i - 1];
-				obstacle.nextObstacle = &m_Obstacles[obstacleOffset + ((i + 1) % obstacleSize)];
-			}
-
-			// calculate if convex
-			if (obstacleSize == 2)
-			{
-				obstacle.isConvex = true;
-			}
-			else
-			{
-				//Vec2 base = obstacle.p - obstacle.prevObstacle->p;
-				//Vec2 toCheck = obstacle.nextObstacle->p - obstacle.prevObstacle->p;
-				//obstacle.isConvex = Utility::MathUtility::IsLeftOfVector(base, toCheck);
-				obstacle.isConvex = Utility::MathUtility::Determinant(obstacle.prevObstacle->p - obstacle.nextObstacle->p, obstacle.p - obstacle.prevObstacle->p) >= 0.0f;
-			}
-		}
+		Obstacle o;
+		m_Obstacles.emplace_back(o);
+		m_Obstacles[obstacleIdx].Initialize(obstacleVerts);
 
 		m_ObstacleIndices.push_back(obstacleIdx);
 
 		UpdateBbox(m_EnvironmentObstacleUnion);
+		m_Dirty = updateECM;
 	}
 
 
 	void Environment::ComputeECM()
 	{		
 		// for now just support generation of 1 ecm. However, an environment may contain various ECM graphs.
-		m_EcmList.push_back(ECMGenerator::GenerateECM(*this));
+		if (m_Ecms.size() == 0)
+		{
+			m_Ecms.push_back(ECMGenerator::GenerateECM(*this));
+		}
+	}
+
+	void Environment::UpdateECM()
+	{
+		// for now just support generation of 1 ecm. However, an environment may contain various ECM graphs.
+		for (ECM* ecm : m_Ecms)
+		{
+			ecm->Clear();
+			ECMGenerator::GenerateECM(*this, ecm);
+		}
+
+		//m_Ecms.clear();
+		//m_Ecms.push_back(ECMGenerator::GenerateECM(*this));
+
+
 	}
 
 	void Environment::UpdateBbox(const std::vector<Segment>& newEdges)
@@ -254,18 +277,19 @@ namespace ECM {
 	// TODO: change to new m_Obstacle structure
 	bool Environment::InsideObstacle(const Point& p) const
 	{
-		for (int i = 0; i < m_ObstacleIndices.size(); i++)
+		for (const Obstacle& o : m_Obstacles)
 		{
-			int obstIdx = m_ObstacleIndices[i];
-			if (Utility::MathUtility::Contains(p, &m_Obstacles[obstIdx])) return true;
+			if (Utility::MathUtility::Contains(p, o)) return true;
 		}
 
 		return false;
 	}
 
 	// for now just return the only ECM we have. However, this method can be expanded to be used with multiple ECM graphs.
-	std::shared_ptr<ECM> Environment::QueryECM(Point position) const
+	ECM* Environment::QueryECM(Point position) const
 	{
-		return m_EcmList[0];
+		if (m_Ecms.size() == 0) return nullptr;
+
+		return m_Ecms[0];
 	}
 }

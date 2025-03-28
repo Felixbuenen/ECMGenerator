@@ -171,11 +171,11 @@ int main()
 
 	Environment env;
 	env.Initialize(Environment::TestEnvironment::CLASSIC);
-	ECMPathPlanner planner(env.GetECM()->GetECMGraph());
-	Simulator sim(env.GetECM().get(), &planner, &env, 500, 0.1f);
+	ECMPathPlanner planner(&env.GetECM()->GetECMGraph());
+	Simulator sim(env.GetECM(), &planner, &env, 400, 0.1f);
 	sim.Initialize();
 
-	Application app(&planner, &env, &sim);
+	Application app(env.GetECM(), & planner, &env, &sim);
 	if (!app.InitializeApplication("Crowd Simulator", true))
 	{
 		printf("ERROR: could not initialize ECM applciation.\n");

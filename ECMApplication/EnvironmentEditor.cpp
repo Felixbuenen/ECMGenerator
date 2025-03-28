@@ -2,6 +2,8 @@
 
 #include "Application.h"
 #include "Command.h"
+#include "Simulator.h"
+#include "Area.h"
 
 #include "SDL.h"
 
@@ -25,10 +27,7 @@ namespace ECM {
 		{
 			if (m_ActiveGizmo)
 			{
-				if (m_ActiveGizmo->HandleInput(e, m_App->GetECMRenderer()))
-				{
-					return;
-				}
+				if (m_ActiveGizmo->HandleInput(e, m_App->GetECMRenderer())) return;
 			}
 
 			if (m_ActiveGizmo && e.type == SDL_KEYDOWN)
@@ -55,8 +54,6 @@ namespace ECM {
 				HandleDropArea(Point(e.button.x, e.button.y));
 				return;
 			}
-
-			// TODO: click drag gizmos handling...
 
 			if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT && m_CurrentDragArea == Simulation::SimAreaType::NONE)
 			{
@@ -172,15 +169,12 @@ namespace ECM {
 
 					foundIntersection = true;
 					m_App->GetUndoRedoManager()->Invoke(new CMD_SelectArea(this, m_SelectedArea, &a));
-
-					//SelectArea(&a);
 				}
 			}
 
 			if (!foundIntersection && m_SelectedArea)
 			{
 				m_App->GetUndoRedoManager()->Invoke(new CMD_SelectArea(this, m_SelectedArea, nullptr));
-				//SelectArea(nullptr);
 			}
 		}
 

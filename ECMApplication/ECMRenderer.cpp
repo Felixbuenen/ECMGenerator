@@ -9,6 +9,7 @@
 #include "Area.h"
 #include "KDTree.h"
 #include "Gizmo.h"
+#include "ECMCellCollection.h"
 
 #include "SDL.h"
 #include "boost/polygon/voronoi.hpp"
@@ -24,6 +25,7 @@ namespace ECM {
 		{
 			m_Renderer = app->GetApplicationRenderer();
 			m_AppState = app->GetApplicationState();
+			m_Ecm = m_AppState->environment->GetECM();
 		}
 
 		void ECMRenderer::Clear()
@@ -44,18 +46,24 @@ namespace ECM {
 			//DrawCorridor();
 			//DrawPortals();
 			//DrawAttractionPoints();
-			DrawSelectionBounds();
+			//DrawSelectionBounds();
+			//DrawPaths();
+
+			// TEMP
+			//DrawPathClearance();
 			
 			//DrawHalfEdge(22);
 			
 			// TEST
 			//DrawRandomTestPath();
 			//DrawInsideVerts();
-			DebugDrawECMCell();
+			//DebugDrawECMCell();
 			//DebugDrawSecondaryLines();
 			//DebugDrawCellValues();
 			//DebugDrawBoostVoronoiDiagram();
-			
+			//DebugDrawAllECMCells();
+			//DebugDrawVertices();
+
 			DrawAgents();
 
 			if (m_AppState->activeGizmo)
@@ -84,6 +92,7 @@ namespace ECM {
 			SDL_SetRenderDrawBlendMode(m_Renderer, SDL_BLENDMODE_BLEND);
 			if (type == Simulation::SimAreaType::SPAWN) SDL_SetRenderDrawColor(m_Renderer, 120, 200, 120, 150);
 			if (type == Simulation::SimAreaType::GOAL) SDL_SetRenderDrawColor(m_Renderer, 200, 120, 120, 150);
+			if (type == Simulation::SimAreaType::OBSTACLE) SDL_SetRenderDrawColor(m_Renderer, 25.0f, 25.0f, 25.0f, 150);
 			SDL_RenderFillRect(m_Renderer, &spawnRect);
 		}
 
@@ -161,7 +170,6 @@ namespace ECM {
 			
 			std::vector<int> agents;
 			agents.resize(k);
-			//m_AppState->simulator->GetKDTree()->KNearestAgents(idx, k, agents);
 
 			agents.push_back(idx);
 
@@ -194,7 +202,19 @@ namespace ECM {
 			}
 		}
 
+		void ECMRenderer::DebugDrawVertices()
+		{
+			SDL_SetRenderDrawColor(m_Renderer, 0x00, 0x00, 0x00, 0xff);
+			auto verts = m_Ecm->GetECMGraph().GetVertices();
+			for (int i = 0; i < verts.size(); i++)
+			{
+				auto vertex = verts[i];
+				Point screenPos = WorldToScreenCoordinates(vertex.position.x, vertex.position.y);
+				float screenSize = vertex.clearance * m_CamZoomFactor;
 
+				DrawCircle(m_Renderer, screenPos.x, screenPos.y, screenSize);
+			}
+		}
 
 		// Cache render-state variables, easier to reference the app state everywhere
 		void ECMRenderer::UpdateRenderState()
@@ -205,7 +225,7 @@ namespace ECM {
 			m_YRotation = -1.0f;
 
 			m_Env = m_AppState->environment;
-			m_Ecm = m_AppState->ecm;
+			m_Ecm = m_Env->GetECM();
 		}
 
 
@@ -245,24 +265,28 @@ namespace ECM {
 
 			const std::vector<Obstacle>& obstacles = m_Env->GetObstacles();
 			for (const Obstacle& obstacle : obstacles) {
-				Point leftP = obstacle.p;
-				Point rightP = obstacle.nextObstacle->p;
-				Point normalP = leftP + (rightP - leftP) * 0.5f;
-				Vec2 normal = Utility::MathUtility::Left((rightP - leftP));
-				normal.Normalize();
 
-				int x1 = leftP.x * m_CamZoomFactor + m_CamOffsetX;
-				int y1 = leftP.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
-				int x2 = rightP.x * m_CamZoomFactor + m_CamOffsetX;
-				int y2 = rightP.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+				for (const ObstacleVertex* vert : obstacle.verts)
+				{
+					Point leftP = vert->p;
+					Point rightP = vert->nextObstacle->p;
+					Point normalP = leftP + (rightP - leftP) * 0.5f;
+					Vec2 normal = Utility::MathUtility::Left((rightP - leftP));
+					normal.Normalize();
 
-				int nx1 = normalP.x * m_CamZoomFactor + m_CamOffsetX;
-				int ny1 = normalP.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
-				int nx2 = (normalP.x + normal.x * 10.0f) * m_CamZoomFactor + m_CamOffsetX;
-				int ny2 = (normalP.y + normal.y * 10.0f) * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+					int x1 = leftP.x * m_CamZoomFactor + m_CamOffsetX;
+					int y1 = leftP.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+					int x2 = rightP.x * m_CamZoomFactor + m_CamOffsetX;
+					int y2 = rightP.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 
-				SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
-				SDL_RenderDrawLine(m_Renderer, nx1, ny1, nx2, ny2);
+					int nx1 = normalP.x * m_CamZoomFactor + m_CamOffsetX;
+					int ny1 = normalP.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+					int nx2 = (normalP.x + normal.x * 10.0f) * m_CamZoomFactor + m_CamOffsetX;
+					int ny2 = (normalP.y + normal.y * 10.0f) * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+
+					SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
+					SDL_RenderDrawLine(m_Renderer, nx1, ny1, nx2, ny2);
+				}
 			}
 
 			// _ecm->GetObstacles();
@@ -274,7 +298,7 @@ namespace ECM {
 			ECMGraph& graph = m_Ecm->GetECMGraph();
 
 			// TODO: add colour to properties
-			SDL_SetRenderDrawColor(m_Renderer, 0x00, 0x00, 0x00, 0xff);
+			SDL_SetRenderDrawColor(m_Renderer, 0xcc, 0xcc, 0xcc, 0xff);
 
 			const std::vector<ECMEdge>& edges = graph.GetEdges();
 			const std::vector<ECMVertex>& verts = graph.GetVertices();
@@ -476,6 +500,7 @@ namespace ECM {
 		void ECMRenderer::DrawCorridor()
 		{
 			const PathPlanning::Corridor& c = m_AppState->corridorToDraw;
+
 			//SDL_SetRenderDrawColor(m_Renderer, 215, 152, 0x00, 0xff);
 			SDL_SetRenderDrawColor(m_Renderer, 215, 0x00, 0x00, 0xff);
 
@@ -593,10 +618,10 @@ namespace ECM {
 			// TODO: wrap in function
 			const ECMCell* cell = m_AppState->cellToDraw;
 			const Segment& obstacle = cell->boundary;
-			Point p1 = m_AppState->ecm->GetECMGraph().GetVertex(cell->edge->half_edges[1].v_target_idx)->position;
+			Point p1 = m_Ecm->GetECMGraph().GetVertex(cell->edge->half_edges[1].v_target_idx)->position;
 			Point p2 = obstacle.p0;
 			Point p3 = obstacle.p1;
-			Point p4 = m_AppState->ecm->GetECMGraph().GetVertex(cell->edge->half_edges[0].v_target_idx)->position;
+			Point p4 = m_Ecm->GetECMGraph().GetVertex(cell->edge->half_edges[0].v_target_idx)->position;
 
 			p1.x = p1.x * m_CamZoomFactor + m_CamOffsetX;
 			p2.x = p2.x * m_CamZoomFactor + m_CamOffsetX;
@@ -667,7 +692,7 @@ namespace ECM {
 
 		void ECMRenderer::DebugDrawBoostVoronoiDiagram()
 		{
-			const auto& boostVD = m_AppState->ecm->GetMedialAxis()->VD;
+			const auto& boostVD = m_Ecm->GetMedialAxis()->VD;
 
 			SDL_SetRenderDrawColor(m_Renderer, 0x55, 0x55, 0xff, 0xff);
 
@@ -678,10 +703,6 @@ namespace ECM {
 
 				if (it->is_finite() && it->is_primary())
 				{
-					//int segmentIndex = it->cell()->source_index();
-
-					//const Segment& s = m_Env->GetEnvironmentObstacleUnion()[segmentIndex];
-
 					Point p1(it->vertex0()->x(), it->vertex0()->y());
 					Point p2(it->vertex1()->x(), it->vertex1()->y());
 
@@ -707,8 +728,7 @@ namespace ECM {
 				float halfHeight = sa.HalfHeight;
 
 				Point pos = WorldToScreenCoordinates(sa.Position.x - halfWidth, sa.Position.y + halfHeight);
-				//float spawnX = m_CamOffsetX - halfWidth * m_CamZoomFactor;
-				//float spawnY = (-375.0f + halfHeight) * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+
 				SDL_Rect spawnRect;
 				spawnRect.x = pos.x;
 				spawnRect.y = pos.y;
@@ -727,8 +747,6 @@ namespace ECM {
 				float halfHeight = ga.HalfHeight;
 
 				Point pos = WorldToScreenCoordinates(ga.Position.x - halfWidth, ga.Position.y + halfHeight);
-				//float spawnX = m_CamOffsetX - halfWidth * m_CamZoomFactor;
-				//float spawnY = (-375.0f + halfHeight) * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 				SDL_Rect goalRect;
 				goalRect.x = pos.x;
 				goalRect.y = pos.y;
@@ -780,21 +798,21 @@ namespace ECM {
 					float x2 = p2.x * m_CamZoomFactor + m_CamOffsetX;
 					float y2 = p2.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 
+					SDL_SetRenderDrawColor(m_Renderer, 0x00, 0x00, 0xaa, 0xff);
 					SDL_RenderDrawLineF(m_Renderer, x1, y1, x2, y2);
+
+					Point v1 = WorldToScreenCoordinates(p1.x, p1.y);
+					Point v2 = WorldToScreenCoordinates(p2.x, p2.y);
+
+					SDL_SetRenderDrawColor(m_Renderer, 0x00, 0x00, 0x00, 0xff);
+					DrawCircle(m_Renderer, v1.x, v1.y, 5.0f);
+					DrawCircle(m_Renderer, v2.x, v2.y, 5.0f);
 				}
 			}
 		}
 
 		void ECMRenderer::DrawAgents()
 		{
-			//SDL_Rect rect;
-			//rect.x = -5;
-			//rect.y = -5;
-			//rect.w = 5;
-			//rect.h = 5;
-			//SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 255);
-			//SDL_RenderFillRect(m_Renderer, &rect);
-
 			int lastIdx = m_AppState->simulator->GetLastIndex();
 			const auto positions = m_AppState->simulator->GetPositionData();
 			const auto velocities = m_AppState->simulator->GetVelocityData();
@@ -813,29 +831,8 @@ namespace ECM {
 				
 				float x = pos.x * m_CamZoomFactor + m_CamOffsetX;
 				float y = pos.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
-				//
-				//float vx = (pos.x + vel.dx) * m_CamZoomFactor + m_CamOffsetX;
-				//float vy = (pos.y + vel.dy) * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
-				//
-				//float size = (clearance.clearance / recip) * m_CamZoomFactor;
-				////float size = clearance.clearance * 2;
-				//
-				////SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 255);
-				////DrawCircle(m_Renderer, x, y, clearance.clearance);
-				//
-				//SDL_Rect rect;
-				//rect.x = x - size;
-				//rect.y = y - size;
-				//rect.w = size * 2;
-				//rect.h = size * 2;
-				//
-				//SDL_SetRenderDrawColor(m_Renderer, 0, 0, 0, 255);
-				//SDL_RenderFillRect(m_Renderer, &rect);
 
 				DrawCircle(m_Renderer, x, y, clearance.clearance * m_CamZoomFactor);
-
-				//SDL_SetRenderDrawColor(m_Renderer, 255, 0, 0, 255);
-				//SDL_RenderDrawLineF(m_Renderer, x, y, vx, vy);
 			}
 		}
 

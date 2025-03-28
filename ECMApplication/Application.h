@@ -3,7 +3,6 @@
 #include "Environment.h" 
 #include "ECMRenderer.h"
 #include "ECMPathPlanner.h"
-#include "Simulator.h"
 #include "AStar.h"
 #include "SimAreaPanel.h"
 #include "UndoRedoManager.h"
@@ -21,8 +20,11 @@ namespace ECM
 
 	struct Segment;
 
-	namespace PathPlanning
-	{
+	namespace Simulation {
+		class Simulator;
+	}
+
+	namespace PathPlanning {
 		typedef std::vector<Point> Path;
 	}
 
@@ -44,7 +46,6 @@ namespace ECM
 			// ECM state
 			Environment* environment;
 			Simulation::Simulator* simulator;
-			std::shared_ptr<ECM> ecm;
 
 			// misc
 			const ECMCell* cellToDraw;
@@ -64,8 +65,8 @@ namespace ECM
 		class Application
 		{
 		public:
-			Application(PathPlanning::ECMPathPlanner* planner, Environment* environment, Simulation::Simulator* simulator, int undoRedoStack=10) 
-				: m_Planner(planner), m_UndoRedoManager(undoRedoStack)
+			Application(ECM* ecm, PathPlanning::ECMPathPlanner* planner, Environment* environment, Simulation::Simulator* simulator, int undoRedoStack=10) 
+				: m_Ecm(ecm), m_Planner(planner), m_UndoRedoManager(undoRedoStack)
 			{
 				m_ApplicationState.environment = environment;
 				m_ApplicationState.simulator = simulator;
@@ -83,14 +84,13 @@ namespace ECM
 			UndoRedoManager* GetUndoRedoManager() { return &m_UndoRedoManager; }
 			SDL_Window* GetWindow() { return m_Window; }
 
+			void HandleECMUpdate();
 
 		private:
 			bool InitializeWindow(const char* title, bool fullScreen, int screenWidth, int screenHeight);
 			bool InitializeRenderer();
 			void HandleMouseEvent(SDL_Event& event);
 			void HandleKeyEvent(SDL_Event& event);
-
-			void HandlePlaceSimArea();
 			
 			bool HandleInput(SDL_Event& event);
 			void Update(SDL_Event& event);
@@ -103,11 +103,11 @@ namespace ECM
 			ECMRenderer m_ECMRenderer;
 			UndoRedoManager m_UndoRedoManager;
 			EnvironmentEditor m_EnvEditor;
+			ECM* m_Ecm;
 			
 			ApplicationState m_ApplicationState;
 			PathPlanning::ECMPathPlanner* m_Planner;
 			bool m_Quit;
-
 			
 			float m_DeltaTime, m_Accumulator;
 		};

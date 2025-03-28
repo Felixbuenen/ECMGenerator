@@ -6,6 +6,7 @@
 #include "ECM.h"
 #include "ECMPathPlanner.h"
 #include "Timer.h"
+#include "Simulator.h"
 
 #include "SDL.h"
 
@@ -19,8 +20,6 @@ namespace ECM
 	{
 		bool Application::InitializeApplication(const char* title, bool fullScreen, int screenWidth, int screenHeight)
 		{
-			m_ApplicationState.ecm = m_ApplicationState.environment->GetECM();
-
 			if (!InitializeWindow(title, fullScreen, screenWidth, screenHeight)) return false;
 			
 			m_Renderer = SDL_CreateRenderer(m_Window, -1, SDL_RENDERER_ACCELERATED);
@@ -100,6 +99,12 @@ namespace ECM
 
 		void Application::Update(SDL_Event& event)
 		{
+			// poll if enviroment needs updating
+			if (m_ApplicationState.environment->GetIsEnvironmentDirty())
+			{
+				HandleECMUpdate();
+			}
+
 			// UPDATE SIMULATION
 			{
 				//Timer timer("SIMULATION");
@@ -204,7 +209,8 @@ namespace ECM
 			{
 				Point worldCoords = m_ECMRenderer.ScreenToWorldCoordinates(e.button.x, e.button.y);
 
-				m_ApplicationState.cellToDraw = m_ApplicationState.ecm->GetECMCell(worldCoords.x, worldCoords.y);
+				ECM* ecm = m_ApplicationState.environment->GetECM();
+				m_ApplicationState.cellToDraw = ecm->GetECMCell(worldCoords.x, worldCoords.y);
 			}
 
 		}
@@ -242,7 +248,22 @@ namespace ECM
 			}
 		}
 
+		void Application::HandleECMUpdate()
+		{
+			m_ApplicationState.environment->UpdateECM();
+			//m_Ecm = m_ApplicationState.environment->GetECM();
+			
+			// reset simulation
+			m_ApplicationState.simulationPaused = true;
+			m_ApplicationState.simulationPlaying = false;
+			m_ApplicationState.simulator->Reset();
 
+			// update 
+			m_Planner->HandleECMUpdate();
+
+
+			m_ApplicationState.environment->SetDirty(false);
+		}
 
 	} // Visualisation
 } // ExplicitCorridorMap

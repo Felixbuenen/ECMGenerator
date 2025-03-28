@@ -10,7 +10,7 @@
 namespace ECM {
 	namespace PathPlanning {
 
-		ECMPathPlanner::ECMPathPlanner(ECMGraph& graph) : m_AStar(AStar(graph)) 
+		ECMPathPlanner::ECMPathPlanner(ECMGraph* graph) : m_AStar(AStar(graph)) 
 		{
 			m_AStar.Initialize();
 		}
@@ -143,7 +143,7 @@ namespace ECM {
 		}
 
 
-		void ECMPathPlanner::CreateCorridor(const std::vector<const ECMHalfEdge*>& maPath, Corridor& outCorridor, std::shared_ptr<ECM> ecm)
+		void ECMPathPlanner::CreateCorridor(const std::vector<const ECMHalfEdge*>& maPath, Corridor& outCorridor, ECM* ecm)
 		{
 			//Timer timer("ECMPathPlanner::CreateCorridor");
 			auto& graph = ecm->GetECMGraph();

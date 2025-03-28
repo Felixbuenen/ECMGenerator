@@ -11,17 +11,22 @@
 
 namespace ECM {
 
-	ECM::ECM()
+	void ECM::Clear()
 	{
-		m_MedialAxis = std::make_shared<MedialAxis>();
+		m_MedialAxis.VD.clear();
+		m_EcmGraph.Clear();
 	}
 
 	bool ECM::RetractPoint(Point location, Point& outRetractedLocation, ECMEdge& outEdge) const
 	{
 		//Timer timer("ECM::RetractPoint");
-		const ECMCell& cell = *GetECMCell(location.x, location.y);
+		const ECMCell* cell = GetECMCell(location.x, location.y);
+		if (cell == nullptr)
+		{
+			return false;
+		}
 
-		outEdge = *cell.edge;
+		outEdge = *cell->edge;
 		const ECMVertex* p1 = m_EcmGraph.GetVertex(outEdge.half_edges[1].v_target_idx);
 		const ECMVertex* p2 = m_EcmGraph.GetVertex(outEdge.half_edges[0].v_target_idx);
 
@@ -97,6 +102,17 @@ namespace ECM {
 		m_Cells = std::make_unique<ECMCellCollection>();
 	}
 
+	void ECMGraph::Clear()
+	{
+		m_Vertices.clear();
+		m_Edges.clear();
+		m_Cells->Clear();
+
+		m_NextVertexIndex = 0;
+		m_NextEdgeIndex = 0;
+	}
+
+
 	ECMVertex* ECMGraph::AddVertex(Point position)
 	{
 		int index = m_NextVertexIndex;
@@ -145,6 +161,11 @@ namespace ECM {
 		m_Cells->Construct(*this, ECMCellCollectionType::LINEAR);
 	}
 
+	ECMCellCollection* ECMGraph::GetCells()
+	{
+		return m_Cells.get();
+	}
+
 	// TODO: make KD-tree query (?)
 	int ECMGraph::FindVertex(float x, float y) const
 	{
@@ -185,7 +206,6 @@ namespace ECM {
 		return (leftBoundIsPoint || rightBoundIsPoint) && (leftBoundIsPoint != rightBoundIsPoint);
 	}
 
-	// TESTY TESTY
 	std::vector<Segment> ECM::GetRandomTestPath() const
 	{
 		return std::vector<Segment>();
@@ -201,6 +221,5 @@ namespace ECM {
 	{
 		return m_EcmGraph.FindCell(x, y);
 	}
-
 
 }

@@ -52,13 +52,19 @@ namespace ECM {
 	class ECMGraph
 	{
 		friend class ECMGenerator;
+		friend class ECM;
 
 	public:
 
 		ECMGraph();
 
+		void Clear();
+
 		// getters
-		inline const ECMVertex* GetVertex(int idx) const { return &(m_Vertices[idx]); }
+		inline const ECMVertex* GetVertex(int idx) const 
+		{
+			return &(m_Vertices[idx]); 
+		}
 		inline ECMEdge* GetEdge(int idx) { return &(m_Edges[idx]); } // TODO: make const
 		inline const ECMHalfEdge* GetHalfEdge(int idx) const { return &(m_Edges[idx >> 1].half_edges[idx & 1]); };
 
@@ -79,6 +85,10 @@ namespace ECM {
 
 		inline std::vector<ECMVertex>& GetVertices() { return m_Vertices; }
 		inline std::vector<ECMEdge>& GetEdges() { return m_Edges; }
+
+		// DEBUG
+		ECMCellCollection* GetCells();
+		// DEBUG
 
 		// queries
 		int FindVertex(float x, float y) const;
@@ -110,20 +120,20 @@ namespace ECM {
 		// contains ECM (generation) logic and ECM model
 
 	public:
-		ECM();
+		void Clear();
 
 		// querying
 		const ECMCell* GetECMCell(float x, float y) const;
 		bool RetractPoint(Point location, Point& outRetractedLocation, ECMEdge& outEdge) const;
 
-		inline std::shared_ptr<MedialAxis> GetMedialAxis() { return m_MedialAxis; }
+		inline MedialAxis* GetMedialAxis() { return &m_MedialAxis; }
 		inline ECMGraph& GetECMGraph() { return m_EcmGraph; }
 
 		// ------- TESTING -----------
 		std::vector<Segment> GetRandomTestPath() const;
 
 	private:
-		std::shared_ptr<MedialAxis> m_MedialAxis; // TODO: waarom is dit een shared ptr en niet gewoon een obj?
+		MedialAxis m_MedialAxis;
 		ECMGraph m_EcmGraph;
 	};
 

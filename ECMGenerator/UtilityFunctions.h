@@ -10,6 +10,7 @@ namespace ECM {
 	struct Point;
 	struct Segment;
 	struct Vec2;
+	struct Obstacle;
 
 	namespace Utility {
 		class MathUtility
@@ -21,7 +22,7 @@ namespace ECM {
 			static float SquareDistance(float x0, float y0, float x1, float y1);
 			static float LineLeftDistance(const Point& v1, const Point& v2, const Point& p1);
 			static bool Contains(const Point& p, const std::vector<Segment>& polygon);
-			static bool Contains(const Point& p, const Obstacle* obstacle);
+			static bool Contains(const Point& p, const Obstacle& obstacle);
 			static bool IsPointInQuadrilateral(const Point& point, const Point& A, const Point& B, const Point& C, const Point& D);
 			static bool IsPointOnSegment(const Point& start, const Point& end, const Point& p);
 			static float Dot(const Vec2& v1, const Vec2& v2);

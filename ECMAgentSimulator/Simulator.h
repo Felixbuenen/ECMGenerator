@@ -86,14 +86,16 @@ namespace ECM {
 
 			int AddSpawnArea(const Point& position, const Vec2& halfSize, const SpawnConfiguration& config); // TODO: expand with agent profile
 			int AddGoalArea(const Point& position, const Vec2& halfSize);
+			int AddObstacleArea(const Point& position, const Vec2& halfSize, bool updateECM = false);
 			void RemoveArea(Simulation::SimAreaType areaType, int ID);
 			void ConnectSpawnGoalAreas(int spawnID, int goalID, float spawnRate = 0.0f);
 			
 			std::vector<SpawnArea>& GetSpawnAreas() { return m_SpawnAreas; }
 			std::vector<GoalArea>& GetGoalAreas() { return m_GoalAreas; }
+			std::vector<ObstacleArea>& GetObstacleAreas() { return m_ObstacleAreas; }
 
 			void FindNNearestNeighbors(const Entity& agent, int n, std::vector<Entity>& outNeighbors) const;
-			void FindNearestObstacles(const Entity& agent, float rangeSquared, std::vector<const Obstacle*>& outObstacles) const;
+			void FindNearestObstacles(const Entity& agent, float rangeSquared, std::vector<const ObstacleVertex*>& outObstacles) const;
 			bool ValidSpawnLocation(const Point& location, float clearance) const;
 
 			void UpdatePath(const Entity& e, const Point& location, const Point& goal);
@@ -107,6 +109,7 @@ namespace ECM {
 			inline PathComponent* GetPathData() const { return m_Paths; }
 			inline ClearanceComponent* GetClearanceData() const { return m_Clearances; }
 			inline PositionComponent* GetAttractionPointData() const { return m_AttractionPoints; }
+			inline PathPlanning::ECMPathPlanner* GetECMPathPlanner() { return m_Planner; }
 			inline bool* GetActiveFlags() const { return m_ActiveAgents; }
 			inline KDTree* GetKDTree() const { return m_KDTree; }
 			inline Environment* GetEnvironment() const { return m_Environment; }
@@ -149,6 +152,7 @@ namespace ECM {
 
 			std::vector<SpawnArea> m_SpawnAreas;
 			std::vector<GoalArea> m_GoalAreas;
+			std::vector<ObstacleArea> m_ObstacleAreas;
 
 			// COMPONENTS
 			PositionComponent* m_Positions;

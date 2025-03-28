@@ -9,7 +9,7 @@ namespace ECM {
 	bool AStar::Initialize()
 	{
 		// initialize astar node array
-		const auto& ecmVerts = m_Graph.GetVertices();
+		const auto& ecmVerts = m_Graph->GetVertices();
 		int numVerts = ecmVerts.size();
 		m_Nodes.resize(numVerts);
 		m_Visited.resize(numVerts);
@@ -31,6 +31,16 @@ namespace ECM {
 		return true;
 	}
 
+	void AStar::HandleECMUpdate()
+	{
+		m_Nodes.clear();
+		m_Visited.clear();
+		m_NodeClearance.clear();
+
+		Initialize();
+	}
+
+
 	bool AStar::FindPath(const Point& startLocation, const Point& goalLocation, const ECMEdge* startEdge, const ECMEdge* goalEdge, float clearance, std::vector<int>& outPath)
 	{
 		//Timer timer("AStar::FindPath");
@@ -39,8 +49,8 @@ namespace ECM {
 		std::priority_queue<AStarNode*, std::vector<AStarNode*>, AStarCompare> openList;
 		
 		// init first nodes
-		const ECMVertex* startVertA = m_Graph.GetVertex(startEdge->half_edges[0].v_target_idx);
-		const ECMVertex* startVertB = m_Graph.GetVertex(startEdge->half_edges[1].v_target_idx);
+		const ECMVertex* startVertA = m_Graph->GetVertex(startEdge->half_edges[0].v_target_idx);
+		const ECMVertex* startVertB = m_Graph->GetVertex(startEdge->half_edges[1].v_target_idx);
 
 		int start_idx_a = startVertA->idx;
 		int start_idx_b = startVertB->idx;
@@ -95,8 +105,8 @@ namespace ECM {
 			}
 
 
-			int halfEdgeIdx = m_Graph.GetVertex(current.index)->half_edge_idx;
-			const ECMHalfEdge* incidentEdge = m_Graph.GetHalfEdge(halfEdgeIdx);
+			int halfEdgeIdx = m_Graph->GetVertex(current.index)->half_edge_idx;
+			const ECMHalfEdge* incidentEdge = m_Graph->GetHalfEdge(halfEdgeIdx);
 			int startNeighborV = incidentEdge->v_target_idx;
 			int nextNeighborV = startNeighborV;
 
@@ -106,7 +116,7 @@ namespace ECM {
 				neighbors.push_back(nextNeighborV);
 				
 				int nextEdgeIdx = incidentEdge->next_idx;
-				incidentEdge = m_Graph.GetHalfEdge(nextEdgeIdx);
+				incidentEdge = m_Graph->GetHalfEdge(nextEdgeIdx);
 				nextNeighborV = incidentEdge->v_target_idx;
 
 			} while (startNeighborV != nextNeighborV);
@@ -114,15 +124,15 @@ namespace ECM {
 
 			do {
 				if (IsVisited(nextNeighborV)) {
-					incidentEdge = m_Graph.GetHalfEdge(incidentEdge->next_idx);
+					incidentEdge = m_Graph->GetHalfEdge(incidentEdge->next_idx);
 					nextNeighborV = incidentEdge->v_target_idx;
 					continue;
 				}
 
 				openList.push(&m_Nodes[nextNeighborV]);
 
-				Point currentPosition = m_Graph.GetVertex(current.index)->position;
-				Point position = m_Graph.GetVertex(nextNeighborV)->position;
+				Point currentPosition = m_Graph->GetVertex(current.index)->position;
+				Point position = m_Graph->GetVertex(nextNeighborV)->position;
 
 				// update G cost (actual cost to this node) and F cost (G cost + heuristic)
 				//float newG = current.gCost + nEdge->Cost();
@@ -137,7 +147,7 @@ namespace ECM {
 					m_Nodes[nextNeighborV].gCost = newG;
 				}
 
-				incidentEdge = m_Graph.GetHalfEdge(incidentEdge->next_idx);
+				incidentEdge = m_Graph->GetHalfEdge(incidentEdge->next_idx);
 				nextNeighborV = incidentEdge->v_target_idx;
 			} while (nextNeighborV != startNeighborV);
 

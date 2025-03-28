@@ -30,12 +30,15 @@ namespace ECM {
 	// > right now this is a very simple implementation, make it into a trapezoidal decomposition.
 	class ECMCellCollection
 	{
+
 	public:
 		void Construct(ECMGraph& graph, ECMCellCollectionType type);
+		void Clear();
+
 		const ECMCell* PointLocationQueryLinear(const ECMGraph& graph, const Point& location) const;
 
 	private:
-		std::vector<ECMCell> m_ECMCells; // todo: trapezoidal decomp
+		std::vector<ECMCell> m_ECMCells;
 		TrapezoidalDecomposition* m_ECMCellDecomp;
 	};
 

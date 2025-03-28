@@ -89,7 +89,7 @@ namespace ECM {
 			int RandomizedLP(const std::vector<Constraint>& constraints, const Vec2& optVelocity, const float maxSpeed, bool useDirOpt, Vec2& outVelocity) const; // given a set of half planes and the preferredVelocity, solve the LP
 
 		private:
-			void GenerateConstraints(Simulator* simulator, const Entity& entity, const std::vector<Entity>& agentNeighbors, const std::vector<const Obstacle*>& obstNeighbors, float stepSize, int& outNObstacleConstraints, std::vector<Constraint>& outConstraints);
+			void GenerateConstraints(Simulator* simulator, const Entity& entity, const std::vector<Entity>& agentNeighbors, const std::vector<const ObstacleVertex*>& obstNeighbors, float stepSize, int& outNObstacleConstraints, std::vector<Constraint>& outConstraints);
 
 		private:
 			float m_lookAheadAgent = 10.0f;

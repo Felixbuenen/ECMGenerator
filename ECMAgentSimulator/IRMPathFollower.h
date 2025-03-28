@@ -7,6 +7,7 @@ namespace ECM {
 
 	class ECM;
 	class ECMGraph;
+	class ECMVertex;
 
 	namespace Simulation {
 

@@ -86,6 +86,8 @@ namespace ECM {
 			void DebugDrawBoostVoronoiDiagram();
 			void DrawSimulationAreas();
 			void DebugDrawKNearestNeighbors(int idx);
+			void DebugDrawVertices();
+			void DebugDrawRetractionPoint();
 
 
 			// SIMULATION
@@ -93,8 +95,8 @@ namespace ECM {
 			void DrawPaths();
 
 		private:
-			std::shared_ptr<ECM> m_Ecm;
 			Environment* m_Env;
+			ECM* m_Ecm;
 			ECMRendererColorSettings m_ColorSettings;
 
 			float m_CamZoomFactor;

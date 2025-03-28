@@ -33,6 +33,18 @@ namespace ECM {
 				Point worldCoords = m_Application->GetECMRenderer()->ScreenToWorldCoordinates(m_ScreenPos.x, m_ScreenPos.y);
 				m_ID = sim->AddGoalArea(worldCoords, Vec2(50.0f, 50.0f));
 			}
+
+			if (m_AreaType == Simulation::SimAreaType::OBSTACLE)
+			{
+				Point worldCoords = m_Application->GetECMRenderer()->ScreenToWorldCoordinates(m_ScreenPos.x, m_ScreenPos.y);
+
+				// TEMP FIX
+				worldCoords.x = (int)worldCoords.x;
+				worldCoords.y = (int)worldCoords.y;
+				// TEMP FIX
+
+				m_ID = sim->AddObstacleArea(worldCoords, Vec2(50.0f, 50.0f), true);
+			}
 		}
 
 		void CMD_AddSimulationArea::Undo()

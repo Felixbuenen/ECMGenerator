@@ -85,19 +85,20 @@ namespace ECM {
 			return inside;
 		}
 
-		bool MathUtility::Contains(const Point& p, const Obstacle* obstacle)
+		bool MathUtility::Contains(const Point& p, const Obstacle& obstacle)
 		{
 			// ray cast algorithm
 
 			bool inside = false;
 
-			const Obstacle* currentObstacle = obstacle;
+			const auto& verts = obstacle.verts;
 
-			do {
-				const Point& p0 = currentObstacle->p;
-				if (currentObstacle->nextObstacle == nullptr) return false;
+			for (const ObstacleVertex* v : verts)
+			{
+				const Point& p0 = v->p;
+				if (v->nextObstacle == nullptr) return false;
 
-				const Point& p1 = currentObstacle->nextObstacle->p;
+				const Point& p1 = v->nextObstacle->p;
 
 				// check if point equal to segment endpoint (in which case we don't want it to be considered "contained"
 				// this check is enough for the purpose of this demo: we don't have a case where we need to check if a point
@@ -120,9 +121,7 @@ namespace ECM {
 						}
 					}
 				}
-
-				currentObstacle = currentObstacle->nextObstacle;
-			} while (currentObstacle != obstacle);
+			}
 
 			return inside;
 		}

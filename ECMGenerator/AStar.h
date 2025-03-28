@@ -37,10 +37,11 @@ namespace ECM {
 	class AStar {
 
 	public:
-		AStar(ECMGraph& graph) : m_Graph(graph) { }
+		AStar(ECMGraph* graph) : m_Graph(graph) { }
 
 		bool Initialize(); // set ECM and other variables
 		bool FindPath(const Point& startLocation, const Point& goalLocation, const ECMEdge* startEdge, const ECMEdge* goalEdge, float clearance, std::vector<int>& outPath); // params: startEdge, goalEdge, clearance, vec<ECMEdge>& outPath
+		void HandleECMUpdate();
 
 		void SetHeuristic();
 		float Heuristic(Point start, Point goal) const;
@@ -52,7 +53,7 @@ namespace ECM {
 		inline bool IsVisited(int index) const;
 		inline void SetVisited(int index);
 
-		ECMGraph& m_Graph;
+		ECMGraph* m_Graph;
 		std::vector<AStarNode> m_Nodes;
 		std::vector<float> m_NodeClearance;
 		std::vector<bool> m_Visited;

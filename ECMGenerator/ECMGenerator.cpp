@@ -232,10 +232,15 @@ namespace ECM {
 	}
 
 
-	std::shared_ptr<ECM> ECMGenerator::GenerateECM(const Environment& environment)
+	ECM* ECMGenerator::GenerateECM(const Environment& environment, ECM* ecm)
 	{
 		Timer timer("ECMGenerator::GenerateECM");
-		std::shared_ptr<ECM> ecm = std::make_shared<ECM>();
+		//std::shared_ptr<ECM> ecm = std::make_shared<ECM>();
+
+		if (ecm == nullptr)
+		{
+			ecm = new ECM();
+		}
 
 		//printf("Construct voronoi diagram (Boost)... ");
 		boost::polygon::construct_voronoi(environment.GetEnvironmentObstacleUnion().begin(), environment.GetEnvironmentObstacleUnion().end(), &ecm->GetMedialAxis()->VD);

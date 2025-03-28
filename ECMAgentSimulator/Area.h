@@ -13,7 +13,8 @@ namespace ECM {
 			NONE,
 			WALKABLE,
 			SPAWN,
-			GOAL
+			GOAL,
+			OBSTACLE
 		};
 
 		struct Area
@@ -70,6 +71,11 @@ namespace ECM {
 			std::vector<int> connectedGoalAreas;
 			std::vector<float> spawnRate; // number of agents per second, per connected goal area
 			std::vector<float> timeSinceLastSpawn;
+		};
+
+		struct ObstacleArea : public Area
+		{
+			std::vector<Point> obstacleVerts;
 		};
 	}
 

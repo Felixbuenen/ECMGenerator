@@ -44,11 +44,18 @@ namespace ECM {
 			m_ECMCells.push_back(cellLeft);
 			m_ECMCells.push_back(cellRight);
 		}
+
+		int done = 0;
 	}
+
+	void ECMCellCollection::Clear()
+	{
+		m_ECMCells.clear();
+	}
+
 
 	const ECMCell* ECMCellCollection::PointLocationQueryLinear(const ECMGraph& graph, const Point& location) const
 	{
-		//std::printf("%d\n", m_ECMCells.size());
 		std::vector<Segment> polygon;
 		polygon.resize(4);
 

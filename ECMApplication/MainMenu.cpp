@@ -133,6 +133,11 @@ namespace ECM {
                         m_Application->GetEnvironmentEditor()->StartDragArea(Simulation::SimAreaType::GOAL);
                         //m_ApplicationState->dragAreaType = SimAreaDrag::GOAL;
                     }
+                    if (ImGui::MenuItem("Add Obstacle Area"))
+                    {
+                        m_Application->GetEnvironmentEditor()->StartDragArea(Simulation::SimAreaType::OBSTACLE);
+                        //m_ApplicationState->dragAreaType = SimAreaDrag::GOAL;
+                    }
                     ImGui::Separator();
                     if (ImGui::MenuItem("Settings")) {}
                     ImGui::EndMenu();

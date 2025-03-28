@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Area.h"
+//#include "Area.h"
 #include "Gizmo.h"
 
 //#include "Application.h"
@@ -22,6 +22,7 @@ namespace ECM {
 
 	namespace Simulation {
 		struct Area;
+		enum SimAreaType;
 	}
 
 	namespace WindowApplication {
