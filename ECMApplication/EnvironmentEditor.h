@@ -5,12 +5,6 @@
 
 //#include "Application.h"
 
-// TODO: een API die alle logic managet omtrent het modeleren van een environment.
-// - add simulation areas
-// - scale / reposition areas
-// - set area connections
-// - ...
-
 // TODO: voeg een AddSpawn/GoalArea functie toe aan de Environment class. 
 // verschil met EnvEditor class is dat de EnvEditor alles omtrent de editor doet, dus bijv. area dragging, de interactie
 //  waarmee je twee areas kan connecten, etc... Dit wordt dus een Interface voor de UI om bewerkingen aan de omgeving te maken.
@@ -22,6 +16,7 @@ namespace ECM {
 
 	namespace Simulation {
 		struct Area;
+		struct AreaConnection;
 		enum SimAreaType;
 	}
 
@@ -39,6 +34,7 @@ namespace ECM {
 
 		public:
 			EnvironmentEditor() { }
+			~EnvironmentEditor();
 
 			void Initialize(Application* application);
 
@@ -46,10 +42,14 @@ namespace ECM {
 			void Update();
 			void Render();
 
+			void SwitchEditorState();
+
 			void StartDragArea(Simulation::SimAreaType areaType);
 			void StopDragArea();
+			void SetDragAreaConnection(bool drag = true);
 
 			void SelectArea(Simulation::Area* area);
+			void SelectAreaConnection(Simulation::AreaConnection areaConnection);
 
 		private:
 			Application* m_App;
@@ -57,17 +57,27 @@ namespace ECM {
 			// state
 			Simulation::SimAreaType m_CurrentDragArea;
 			Simulation::Area* m_SelectedArea;
+			Simulation::AreaConnection* m_SelectedAreaConnection; // TODO (?): make a 'Selectable' object
 			TransformMode m_TransformMode;
 			Gizmo* m_ActiveGizmo;
 			TranslateGizmo m_TranslateGizmo;
 			ScaleGizmo m_ScaleGizmo;
+
+			// area connection dragging state
+			bool m_IsDraggingAreaConnection;
+			Simulation::Area* m_ConnectionDragSourceArea;
+			Simulation::Area* m_ConnectionDragHoverArea;
 			
 			// UI event handlers
-			void HandleLeftClickGeneral(const Point& screenPos);
+			void HandleLeftButtonDownGeneral(const Point& screenPos);
+			void HandleLeftButtonUpGeneral(const Point& screenPos);
 			void HandleDropArea(const Point& screenPos);
 
+			void SelectAreaAtPosition(const Point& screenPos);
+
 			// methods
-			void DragAreaInternal();
+			void RenderDragArea();
+			void RenderDragAreaConnection();
 		};
 
 	}

@@ -17,12 +17,24 @@ namespace ECM {
 			OBSTACLE
 		};
 
+		struct AreaConnection
+		{
+			AreaConnection(int _spawnID, int _goalID)
+				: spawnID(_spawnID), goalID(_goalID) { }
+
+			AreaConnection() { }
+
+			int spawnID = -1;
+			int goalID = -1;
+		};
+
 		struct Area
 		{
 			int ID;
 			Point Position;
 			float HalfHeight;
 			float HalfWidth;
+			SimAreaType Type;
 
 			Point GetRandomPositionInArea()
 			{
@@ -50,10 +62,21 @@ namespace ECM {
 			{
 				Position = Position + delta;
 			}
+
+			bool Intersects(const Point position) const
+			{
+				bool result = position.x <= (Position.x + HalfWidth);
+				result &= position.x >= (Position.x - HalfWidth);
+				result &= position.y <= (Position.y + HalfHeight);
+				result &= position.y >= (Position.y - HalfHeight);
+
+				return result;
+			}
 		};
 
 		struct GoalArea : public Area
 		{
+			GoalArea() { Type = GOAL; }
 		};
 
 		struct SpawnConfiguration
@@ -66,6 +89,8 @@ namespace ECM {
 
 		struct SpawnArea : public Area
 		{
+			SpawnArea() { Type = SPAWN; }
+
 			SpawnConfiguration spawnConfiguration;
 
 			std::vector<int> connectedGoalAreas;
@@ -75,6 +100,7 @@ namespace ECM {
 
 		struct ObstacleArea : public Area
 		{
+			ObstacleArea() { Type = OBSTACLE; }
 			std::vector<Point> obstacleVerts;
 		};
 	}

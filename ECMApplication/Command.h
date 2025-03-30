@@ -34,6 +34,21 @@ namespace ECM {
 			Simulation::Area* m_PrevArea;
 		};
 
+		class CMD_SelectAreaConnection : public ICommand
+		{
+		public:
+			CMD_SelectAreaConnection(EnvironmentEditor* editor, Simulation::AreaConnection prevAreaConnection, Simulation::AreaConnection areaConnection)
+				: m_EnvEditor(editor), m_AreaConnection(areaConnection), m_PrevAreaConnection(prevAreaConnection) { }
+
+			virtual void Execute() override;
+			virtual void Undo() override;
+
+		private:
+			EnvironmentEditor* m_EnvEditor;
+			Simulation::AreaConnection m_AreaConnection;
+			Simulation::AreaConnection m_PrevAreaConnection;
+		};
+
 		class CMD_AddSimulationArea : public ICommand
 		{
 		public:

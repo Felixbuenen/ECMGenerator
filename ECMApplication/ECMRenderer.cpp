@@ -46,7 +46,11 @@ namespace ECM {
 			//DrawCorridor();
 			//DrawPortals();
 			//DrawAttractionPoints();
-			//DrawSelectionBounds();
+
+			if (m_AppState->mode == BUILD)
+			{
+				DrawAreaSelectionBounds();
+			}
 			//DrawPaths();
 
 			// TEMP
@@ -66,7 +70,12 @@ namespace ECM {
 
 			DrawAgents();
 
-			if (m_AppState->activeGizmo)
+			if (m_AppState->mode == CONNECT)
+			{
+				DrawSimulationAreaConnections();
+			}
+
+			if (m_AppState->activeGizmo && m_AppState->mode == BUILD)
 			{
 				if (m_AppState->activeGizmo->GetArea())
 				{
@@ -96,12 +105,31 @@ namespace ECM {
 			SDL_RenderFillRect(m_Renderer, &spawnRect);
 		}
 
+		void ECMRenderer::RenderDragConnection(const Point& sourceAreaWorldPosition, const Simulation::Area* hoverArea)
+		{
+			Point sourceScreenPos = WorldToScreenCoordinates(sourceAreaWorldPosition.x, sourceAreaWorldPosition.y);
+
+			Point connectEndScreenPos;
+			if (hoverArea)
+			{
+				connectEndScreenPos = WorldToScreenCoordinates(hoverArea->Position.x, hoverArea->Position.y);
+			}
+			else
+			{
+				connectEndScreenPos = m_AppState->mousePosition;
+			}
+
+			SDL_SetRenderDrawColor(m_Renderer, 0.0f, 0.0f, 255.0f, 255.0f);
+
+			SDL_RenderDrawLine(m_Renderer, sourceScreenPos.x, sourceScreenPos.y, connectEndScreenPos.x, connectEndScreenPos.y);
+		}
+
 		void ECMRenderer::RenderGizmo(Gizmo* gizmo)
 		{
 			m_AppState->activeGizmo = gizmo;
 		}
 
-		void ECMRenderer::DrawSelectionBounds()
+		void ECMRenderer::DrawAreaSelectionBounds()
 		{
 			// when we have an active gizmo in the scene, we have selected an area
 			if (m_AppState->activeGizmo)
@@ -146,7 +174,39 @@ namespace ECM {
 			}
 		}
 
-		Point ECMRenderer::ScreenToWorldCoordinates(float x, float y)
+		void ECMRenderer::DrawSimulationAreaConnections()
+		{
+			const auto& spawnAreas = m_AppState->simulator->GetSpawnAreas();
+			const auto& goalAreas = m_AppState->simulator->GetGoalAreas();
+
+			for (const auto& sa : spawnAreas)
+			{
+				const auto& gaConnected = sa.connectedGoalAreas;
+				for (const auto& gaID : gaConnected)
+				{
+					const Simulation::GoalArea& ga = goalAreas[gaID];
+
+					// check if connection selected
+					if (m_AppState->selectedAreaConnection->spawnID == sa.ID 
+						&& m_AppState->selectedAreaConnection->goalID == gaID)
+					{
+						SDL_SetRenderDrawColor(m_Renderer, 255.0, 215.0f, 0.0f, 255.0f);
+					}
+					else
+					{
+						SDL_SetRenderDrawColor(m_Renderer, 0.0f, 0.0f, 255.0f, 180.0f);
+					}
+					
+					Point startScreen = WorldToScreenCoordinates(sa.Position.x, sa.Position.y);
+					Point endScreen = WorldToScreenCoordinates(ga.Position.x, ga.Position.y);
+
+					SDL_RenderDrawLine(m_Renderer, startScreen.x, startScreen.y, endScreen.x, endScreen.y);
+				}
+			}
+		}
+
+
+		Point ECMRenderer::ScreenToWorldCoordinates(float x, float y) const
 		{
 			float worldX = (x - m_AppState->camOffsetX) / m_AppState->camZoomFactor;
 			float worldY = (y - m_AppState->camOffsetY) / m_AppState->camZoomFactor * -1; // -1.0 because inversed y-axis
@@ -154,7 +214,7 @@ namespace ECM {
 			return Point(worldX, worldY);
 		}
 
-		Point ECMRenderer::WorldToScreenCoordinates(float x, float y)
+		Point ECMRenderer::WorldToScreenCoordinates(float x, float y) const
 		{
 			float screenX = x * m_CamZoomFactor + m_CamOffsetX;
 			float screenY = y * m_CamZoomFactor * m_YRotation + m_CamOffsetY;
@@ -716,7 +776,6 @@ namespace ECM {
 			}
 		}
 
-		// TODO: dynamically add 
 		void ECMRenderer::DrawSimulationAreas()
 		{
 			// spawn

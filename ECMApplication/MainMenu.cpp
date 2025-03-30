@@ -126,17 +126,22 @@ namespace ECM {
                     if (ImGui::MenuItem("Add Spawn Area")) 
                     {
                         m_Application->GetEnvironmentEditor()->StartDragArea(Simulation::SimAreaType::SPAWN);
-                        //m_ApplicationState->dragAreaType = SimAreaDrag::SPAWN;
+                        m_Application->GetApplicationState()->mode = ApplicationMode::BUILD;
                     }
                     if (ImGui::MenuItem("Add Goal Area"))
                     {
                         m_Application->GetEnvironmentEditor()->StartDragArea(Simulation::SimAreaType::GOAL);
-                        //m_ApplicationState->dragAreaType = SimAreaDrag::GOAL;
+                        m_Application->GetApplicationState()->mode = ApplicationMode::BUILD;
                     }
                     if (ImGui::MenuItem("Add Obstacle Area"))
                     {
                         m_Application->GetEnvironmentEditor()->StartDragArea(Simulation::SimAreaType::OBSTACLE);
-                        //m_ApplicationState->dragAreaType = SimAreaDrag::GOAL;
+                        m_Application->GetApplicationState()->mode = ApplicationMode::BUILD;
+                    }
+                    ImGui::Separator();
+                    if (ImGui::MenuItem("Connect areas"))
+                    {
+                        m_Application->GetApplicationState()->mode = ApplicationMode::CONNECT;
                     }
                     ImGui::Separator();
                     if (ImGui::MenuItem("Settings")) {}

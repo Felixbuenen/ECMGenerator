@@ -4,6 +4,7 @@
 #include "SimAreaPanel.h"
 #include "PlaybackPanel.h"
 #include "MainMenu.h"
+#include "EditorModePanel.h"
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_impl_sdl2.h"
@@ -50,6 +51,7 @@ namespace ECM {
 		void UI::InitializeWidgets(Application* application)
 		{
 			m_Widgets.push_back(new PlaybackPanel(application));
+			m_Widgets.push_back(new EditorModePanel(application));
 			m_Widgets.push_back(new MainMenu(application));
 		}
 
@@ -73,10 +75,16 @@ namespace ECM {
 
 		void UI::Render()
 		{
+			ImGui_ImplSDLRenderer2_NewFrame();
+			ImGui_ImplSDL2_NewFrame();
+			ImGui::NewFrame();
+
 			for (UIWidget* w : m_Widgets)
 			{
 				w->Render();
 			}
+
+			ImGui::EndFrame();
 
 			ImGui::Render();
 			ImGui_ImplSDLRenderer2_RenderDrawData(ImGui::GetDrawData());

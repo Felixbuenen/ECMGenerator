@@ -22,6 +22,7 @@ namespace ECM {
 	namespace Simulation
 	{
 		enum SimAreaType;
+		struct Area;
 	}
 
 	namespace WindowApplication {
@@ -49,6 +50,7 @@ namespace ECM {
 			void Clear();
 
 			void RenderDragArea(Simulation::SimAreaType type, const Point& screenCoordinates, const Vec2& halfSize);
+			void RenderDragConnection(const Point& sourceAreaWorldPosition, const Simulation::Area* hoverArea);
 			void RenderGizmo(Gizmo* gizmo);
 			void DrawCircle(SDL_Renderer* renderer, int32_t centreX, int32_t centreY, int32_t radius);
 
@@ -56,8 +58,8 @@ namespace ECM {
 
 			float GetCamZoomFactor() const { return m_CamZoomFactor; }
 
-			Point ScreenToWorldCoordinates(float x, float y);
-			Point WorldToScreenCoordinates(float x, float y);
+			Point ScreenToWorldCoordinates(float x, float y) const;
+			Point WorldToScreenCoordinates(float x, float y) const;
 
 		private:
 			void UpdateRenderState();
@@ -78,17 +80,18 @@ namespace ECM {
 			void DrawPortals();
 			void DrawHalfEdge(int idx);
 			void DrawAttractionPoints();
-			void DrawSelectionBounds();
+			void DrawAreaSelectionBounds();
+			void DrawSimulationAreaConnections();
 
 			void DebugDrawECMCell();
 			void DebugDrawSecondaryLines();
 			void DebugDrawCellValues();
 			void DebugDrawBoostVoronoiDiagram();
-			void DrawSimulationAreas();
 			void DebugDrawKNearestNeighbors(int idx);
 			void DebugDrawVertices();
 			void DebugDrawRetractionPoint();
 
+			void DrawSimulationAreas();
 
 			// SIMULATION
 			void DrawAgents();

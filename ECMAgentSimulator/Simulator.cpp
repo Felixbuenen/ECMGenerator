@@ -272,7 +272,7 @@ namespace ECM {
 			SpawnArea sa;
 			sa.HalfWidth = halfSize.x;
 			sa.HalfHeight = halfSize.y;
-			sa.ID = m_SpawnAreas.size() == 0 ? 0 : m_SpawnAreas[m_SpawnAreas.size() - 1].ID + 1;
+			sa.ID = m_SpawnAreas.size();
 			sa.Position = position;
 			//sa.spawnRate = config.spawnRate;
 			sa.spawnConfiguration.clearanceMin = config.clearanceMin;
@@ -288,13 +288,10 @@ namespace ECM {
 		int Simulator::AddGoalArea(const Point& position, const Vec2& halfSize)
 		{
 			GoalArea ga;
-			ga.ID = m_GoalAreas.size() == 0 ? 0 : m_GoalAreas[m_GoalAreas.size() - 1].ID + 1;
+			ga.ID = m_GoalAreas.size();
 			ga.Position = position;
 			ga.HalfHeight = halfSize.y;
 			ga.HalfWidth = halfSize.x;
-
-			// TODO: don't automatically add spawn connection, use UI to do this
-			ConnectSpawnGoalAreas(0, ga.ID, 0.5f);
 
 			m_GoalAreas.push_back(ga);
 

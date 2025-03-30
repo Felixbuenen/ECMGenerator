@@ -17,6 +17,16 @@ namespace ECM {
 			m_EnvEditor->SelectArea(m_PrevArea);
 		}
 
+		void CMD_SelectAreaConnection::Execute()
+		{
+			m_EnvEditor->SelectAreaConnection(m_AreaConnection);
+		}
+
+		void CMD_SelectAreaConnection::Undo()
+		{
+			m_EnvEditor->SelectAreaConnection(m_PrevAreaConnection);
+		}
+
 		void CMD_AddSimulationArea::Execute()
 		{
 			Simulation::Simulator* sim = m_Application->GetSimulator();

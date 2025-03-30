@@ -131,7 +131,7 @@ namespace ECM {
 		{
 			bool eventHandled = false;
 
-			if (e.type == SDL_MOUSEBUTTONUP && e.button.button == SDL_BUTTON_LEFT)
+			if (e.type == SDL_MOUSEBUTTONUP && e.button.button == SDL_BUTTON_LEFT && m_IsDragging)
 			{
 				Vec2 delta = m_ActiveArea->Position - m_OldWorldPosition;
 				HandleStopDragging(TRANSLATE, delta);

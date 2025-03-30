@@ -59,7 +59,11 @@ namespace ECM
 			const ECMCell* cellToDraw;
 			SimAreaDrag dragAreaType;
 			Gizmo* activeGizmo;
+			Simulation::AreaConnection* selectedAreaConnection;
 			Point mousePosition;
+			Point mouseClickPosition;
+			bool leftMouseClicked;
+			bool leftMouseDragging;
 
 			// path
 			Point pathStartPoint;

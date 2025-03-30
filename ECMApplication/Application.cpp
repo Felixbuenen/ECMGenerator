@@ -7,6 +7,7 @@
 #include "ECMPathPlanner.h"
 #include "Timer.h"
 #include "Simulator.h"
+#include "UtilityFunctions.h"
 
 #include "SDL.h"
 
@@ -83,6 +84,27 @@ namespace ECM
 
 		bool Application::HandleInput(SDL_Event& e)
 		{
+			// set mouse button state
+			if (e.type == SDL_MOUSEBUTTONDOWN && e.button.button == SDL_BUTTON_LEFT)
+			{
+				m_ApplicationState.mouseClickPosition = Point(e.button.x, e.button.y);
+				m_ApplicationState.leftMouseClicked = true;
+			}
+			if (e.type == SDL_MOUSEBUTTONUP && e.button.button == SDL_BUTTON_LEFT)
+			{
+				m_ApplicationState.leftMouseDragging = false;
+				m_ApplicationState.leftMouseClicked = false;
+			}
+
+			// check if mouse dragging
+			m_ApplicationState.mousePosition = Point(e.button.x, e.button.y);
+			const int DRAG_DIST_SQ = 5 * 5;
+			if (m_ApplicationState.leftMouseClicked && !m_ApplicationState.leftMouseDragging
+				&& Utility::MathUtility::SquareDistance(m_ApplicationState.mousePosition, m_ApplicationState.mouseClickPosition) > DRAG_DIST_SQ)
+			{
+				m_ApplicationState.leftMouseDragging = true;
+			}
+
 			// first input layer: UI
 			m_UI.HandleInput(e);
 			m_EnvEditor.HandleInput(e);
