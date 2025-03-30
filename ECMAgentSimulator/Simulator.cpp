@@ -367,6 +367,26 @@ namespace ECM {
 			sa.spawnRate.push_back(spawnRate);
 		}
 
+		void Simulator::DeconnectSpawnGoalAreas(int spawnID, int goalID)
+		{
+			if (spawnID < 0 || spawnID >= m_SpawnAreas.size()) return;
+
+			int indexToRemove = -1;
+			for (int i = 0; i < m_SpawnAreas[spawnID].connectedGoalAreas.size(); i++)
+			{
+				if (m_SpawnAreas[spawnID].connectedGoalAreas[i] == goalID)
+				{
+					indexToRemove = i;
+					break;
+				}
+			}
+
+			if (indexToRemove == -1) return;
+
+			m_SpawnAreas[spawnID].connectedGoalAreas.erase(m_SpawnAreas[spawnID].connectedGoalAreas.begin() + indexToRemove);
+		}
+
+
 		void Simulator::UpdateMaxAgentIndex()
 		{
 			int emptyCounter = 0;

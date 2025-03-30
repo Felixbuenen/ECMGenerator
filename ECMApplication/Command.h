@@ -66,6 +66,22 @@ namespace ECM {
 			int m_ID;
 		};
 
+		class CMD_AddSimulationAreaConnection : public ICommand
+		{
+		public:
+			CMD_AddSimulationAreaConnection(Application* application, int spawnID, int goalID, float spawnRate)
+				: m_Application(application), m_SpawnID(spawnID), m_GoalID(goalID), m_SpawnRate(spawnRate) { }
+
+			void Execute() override;
+			void Undo() override;
+
+		private:
+			Application* m_Application;
+			int m_SpawnID;
+			int m_GoalID;
+			float m_SpawnRate;
+		};
+
 		class CMD_RemoveSimulationArea : public ICommand
 		{
 		public:

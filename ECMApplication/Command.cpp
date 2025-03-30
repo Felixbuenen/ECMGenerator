@@ -63,6 +63,16 @@ namespace ECM {
 			sim->RemoveArea(m_AreaType, m_ID);
 		}
 
+		void CMD_AddSimulationAreaConnection::Execute()
+		{
+			m_Application->GetSimulator()->ConnectSpawnGoalAreas(m_SpawnID, m_GoalID, m_SpawnRate);
+		}
+
+		void CMD_AddSimulationAreaConnection::Undo()
+		{
+			m_Application->GetSimulator()->DeconnectSpawnGoalAreas(m_SpawnID, m_GoalID);
+		}
+
 		void CMD_TransformSimulationArea::Execute()
 		{
 			m_Area->Translate(m_TranslationDelta);

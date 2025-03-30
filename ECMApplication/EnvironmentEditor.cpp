@@ -239,11 +239,12 @@ namespace ECM {
 				{
 					if (m_SelectedArea->Type == Simulation::SimAreaType::SPAWN)
 					{
-						m_App->GetSimulator()->ConnectSpawnGoalAreas(m_SelectedArea->ID, m_ConnectionDragHoverArea->ID, 0.5f);
+						// TODO: COMMAND
+						m_App->GetUndoRedoManager()->Invoke(new CMD_AddSimulationAreaConnection(m_App, m_SelectedArea->ID, m_ConnectionDragHoverArea->ID, 0.5f));
 					}
 					else
 					{
-						m_App->GetSimulator()->ConnectSpawnGoalAreas(m_ConnectionDragHoverArea->ID, m_SelectedArea->ID, 0.5f);
+						m_App->GetUndoRedoManager()->Invoke(new CMD_AddSimulationAreaConnection(m_App, m_ConnectionDragHoverArea->ID, m_SelectedArea->ID, 0.5f));
 					}
 				}
 

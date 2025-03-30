@@ -89,6 +89,7 @@ namespace ECM {
 			int AddObstacleArea(const Point& position, const Vec2& halfSize, bool updateECM = false);
 			void RemoveArea(Simulation::SimAreaType areaType, int ID);
 			void ConnectSpawnGoalAreas(int spawnID, int goalID, float spawnRate = 0.0f);
+			void DeconnectSpawnGoalAreas(int spawnID, int goalID);
 			
 			std::vector<SpawnArea>& GetSpawnAreas() { return m_SpawnAreas; }
 			std::vector<GoalArea>& GetGoalAreas() { return m_GoalAreas; }
