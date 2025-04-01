@@ -120,6 +120,47 @@ namespace ECM {
 			}
 		}
 
+		std::vector<int> Simulator::GetConnectedAreas(int sourceID, SimAreaType type)
+		{
+			if (type == SPAWN)
+			{
+				SpawnArea* sa = GetSpawnArea(sourceID);
+				if (sa != nullptr)
+				{
+					return sa->connectedGoalAreas;
+				}
+				
+				return std::vector<int>();
+			}
+
+			if (type == GOAL)
+			{
+				GoalArea* ga = GetGoalArea(sourceID);
+				std::vector<int> result;
+
+				if(ga != nullptr)
+				{
+					for (auto iter = m_SpawnAreas.begin(); iter != m_SpawnAreas.end(); iter++)
+					{
+						const std::vector<int>& goalIDs = iter->second.connectedGoalAreas;
+
+						for (int j = 0; j < goalIDs.size(); j++)
+						{
+							if (m_GoalAreas[j].ID == sourceID)
+							{
+								result.push_back(iter->first);
+								break;
+							}
+						}
+
+					}
+				}
+
+				return result;
+			}
+
+			return std::vector<int>();
+		}
 
 		int Simulator::SpawnAgent(const Point& start, const Point& goal, float clearance, float preferredSpeed)
 		{
@@ -267,12 +308,20 @@ namespace ECM {
 		}
 
 
-		int Simulator::AddSpawnArea(const Point& position, const Vec2& halfSize, const SpawnConfiguration& config)
+		int Simulator::AddSpawnArea(const Point& position, const Vec2& halfSize, const SpawnConfiguration& config, int ID)
 		{
 			SpawnArea sa;
 			sa.HalfWidth = halfSize.x;
 			sa.HalfHeight = halfSize.y;
-			sa.ID = m_SpawnAreas.size();
+			if (ID == -1)
+			{
+				sa.ID = m_NextSpawnID;
+				m_NextSpawnID++;
+			}
+			else
+			{
+				sa.ID = ID;
+			}
 			sa.Position = position;
 			//sa.spawnRate = config.spawnRate;
 			sa.spawnConfiguration.clearanceMin = config.clearanceMin;
@@ -280,20 +329,28 @@ namespace ECM {
 			sa.spawnConfiguration.preferredSpeedMin = config.preferredSpeedMin;
 			sa.spawnConfiguration.preferredSpeedMax = config.preferredSpeedMax;
 
-			m_SpawnAreas.push_back(sa);
+			m_SpawnAreas.emplace(sa.ID, sa);
 
 			return sa.ID;
 		}
 
-		int Simulator::AddGoalArea(const Point& position, const Vec2& halfSize)
+		int Simulator::AddGoalArea(const Point& position, const Vec2& halfSize, int ID)
 		{
 			GoalArea ga;
-			ga.ID = m_GoalAreas.size();
+			if(ID == -1)
+			{
+				ga.ID = m_NextGoalID;
+				m_NextGoalID++;
+			}
+			else
+			{
+				ga.ID = ID;
+			}
 			ga.Position = position;
 			ga.HalfHeight = halfSize.y;
 			ga.HalfWidth = halfSize.x;
 
-			m_GoalAreas.push_back(ga);
+			m_GoalAreas.emplace(ga.ID, ga);
 
 			return ga.ID;
 		}
@@ -333,23 +390,11 @@ namespace ECM {
 		{
 			if (areaType == SimAreaType::SPAWN)
 			{
-				for (int i = 0; i < m_SpawnAreas.size(); i++)
-				{
-					if (m_SpawnAreas[i].ID == ID)
-					{
-						m_SpawnAreas.erase(m_SpawnAreas.begin() + i);
-					}
-				}
+				m_SpawnAreas.erase(ID);
 			}
 			if (areaType == SimAreaType::GOAL)
 			{
-				for (int i = 0; i < m_GoalAreas.size(); i++)
-				{
-					if (m_GoalAreas[i].ID == ID)
-					{
-						m_GoalAreas.erase(m_GoalAreas.begin() + i);
-					}
-				}
+				m_GoalAreas.erase(ID);
 			}
 		}
 
@@ -386,6 +431,27 @@ namespace ECM {
 			m_SpawnAreas[spawnID].connectedGoalAreas.erase(m_SpawnAreas[spawnID].connectedGoalAreas.begin() + indexToRemove);
 		}
 
+		SpawnArea* Simulator::GetSpawnArea(int ID)
+		{
+			auto iter = m_SpawnAreas.find(ID);
+			if (iter != m_SpawnAreas.end())
+			{
+				return &(iter->second);
+			}
+
+			return nullptr;
+		}
+
+		GoalArea* Simulator::GetGoalArea(int ID)
+		{
+			auto iter = m_GoalAreas.find(ID);
+			if (iter != m_GoalAreas.end())
+			{
+				return &(iter->second);
+			}
+
+			return nullptr;
+		}
 
 		void Simulator::UpdateMaxAgentIndex()
 		{
@@ -402,8 +468,9 @@ namespace ECM {
 
 		void Simulator::UpdateSpawnAreas()
 		{
-			for (SpawnArea& area : m_SpawnAreas)
+			for (auto iter = m_SpawnAreas.begin(); iter != m_SpawnAreas.end(); iter++)
 			{
+				SpawnArea& area = iter->second;
 				for (int ga = 0; ga < area.connectedGoalAreas.size(); ga++)
 				{
 					area.timeSinceLastSpawn[ga] += m_SimStepTime;

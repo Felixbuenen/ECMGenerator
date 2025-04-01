@@ -72,8 +72,10 @@ namespace ECM {
 			void HandleLeftButtonDownGeneral(const Point& screenPos);
 			void HandleLeftButtonUpGeneral(const Point& screenPos);
 			void HandleDropArea(const Point& screenPos);
+			void HandleDeleteObject();
 
 			void SelectAreaAtPosition(const Point& screenPos);
+			void DeselectArea();
 
 			// methods
 			void RenderDragArea();

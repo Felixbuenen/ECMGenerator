@@ -179,12 +179,13 @@ namespace ECM {
 			const auto& spawnAreas = m_AppState->simulator->GetSpawnAreas();
 			const auto& goalAreas = m_AppState->simulator->GetGoalAreas();
 
-			for (const auto& sa : spawnAreas)
+			for (auto iter = spawnAreas.begin(); iter != spawnAreas.end(); iter++)
 			{
+				const Simulation::SpawnArea& sa = iter->second;
 				const auto& gaConnected = sa.connectedGoalAreas;
 				for (const auto& gaID : gaConnected)
 				{
-					const Simulation::GoalArea& ga = goalAreas[gaID];
+					const Simulation::GoalArea& ga = goalAreas.find(gaID)->second;
 
 					// check if connection selected
 					if (m_AppState->selectedAreaConnection->spawnID == sa.ID 
@@ -781,8 +782,9 @@ namespace ECM {
 			// spawn
 			auto spawnAreas = m_AppState->simulator->GetSpawnAreas();
 
-			for (const Simulation::SpawnArea& sa : spawnAreas)
+			for (auto iter = spawnAreas.begin(); iter != spawnAreas.end(); iter++)
 			{
+				const Simulation::SpawnArea& sa = iter->second;
 				float halfWidth = sa.HalfWidth;
 				float halfHeight = sa.HalfHeight;
 
@@ -800,8 +802,9 @@ namespace ECM {
 			// goal
 			auto goalAreas = m_AppState->simulator->GetGoalAreas();
 
-			for (const Simulation::GoalArea& ga : goalAreas)
+			for (auto iter = goalAreas.begin(); iter != goalAreas.end(); iter++)
 			{
+				const Simulation::GoalArea& ga = iter->second;
 				float halfWidth = ga.HalfWidth;
 				float halfHeight = ga.HalfHeight;
 
@@ -878,7 +881,7 @@ namespace ECM {
 			const auto clearances = m_AppState->simulator->GetClearanceData();
 			const auto activeFlags = m_AppState->simulator->GetActiveFlags();
 
-			const float recip = sqrtf(2.0f);
+			SDL_SetRenderDrawColor(m_Renderer, 0x00, 0x00, 0x00, 0xff);
 
 			for (int i = 0; i <= lastIdx; i++)
 			{

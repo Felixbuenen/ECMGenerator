@@ -36,7 +36,10 @@ namespace ECM {
 		{
 			if (m_ActiveGizmo)
 			{
-				if (m_ActiveGizmo->HandleInput(e, m_App->GetECMRenderer())) return;
+				if (m_ActiveGizmo->HandleInput(e, m_App->GetECMRenderer()))
+				{
+					return;
+				}
 			}
 
 			// EVENT: switch area editing gizmo
@@ -66,10 +69,16 @@ namespace ECM {
 				SwitchEditorState();
 			}
 
+			// EVENT: delete simulation object
+			if (e.type == SDL_KEYDOWN && e.key.keysym.sym == SDLK_DELETE)
+			{
+				HandleDeleteObject();
+			}
+
 			// EVENT: place simulation area
-			if (e.type == SDL_MOUSEBUTTONDOWN 
-				&& e.button.button == SDL_BUTTON_LEFT 
-				&& m_CurrentDragArea != Simulation::SimAreaType::NONE 
+			if (e.type == SDL_MOUSEBUTTONDOWN
+				&& e.button.button == SDL_BUTTON_LEFT
+				&& m_CurrentDragArea != Simulation::SimAreaType::NONE
 				&& m_App->GetApplicationState()->mode == ApplicationMode::BUILD)
 			{
 				HandleDropArea(Point(e.button.x, e.button.y));
@@ -85,8 +94,8 @@ namespace ECM {
 			}
 
 			// EVENT: left mouse button down
-			if (e.type == SDL_MOUSEBUTTONDOWN 
-				&& e.button.button == SDL_BUTTON_LEFT 
+			if (e.type == SDL_MOUSEBUTTONDOWN
+				&& e.button.button == SDL_BUTTON_LEFT
 				&& m_CurrentDragArea == Simulation::SimAreaType::NONE)
 			{
 				HandleLeftButtonDownGeneral(Point(e.button.x, e.button.y));
@@ -99,6 +108,10 @@ namespace ECM {
 			{
 				HandleLeftButtonUpGeneral(Point(e.button.x, e.button.y));
 				return;
+			}
+			else
+			{
+				int i = 0;
 			}
 		}
 
@@ -117,10 +130,8 @@ namespace ECM {
 		{
 			if (m_App->GetApplicationState()->mode == ApplicationMode::CONNECT)
 			{
-				m_SelectedArea = nullptr;
+				DeselectArea();
 				m_CurrentDragArea = Simulation::SimAreaType::NONE;
-				m_ActiveGizmo = nullptr;
-				m_App->GetECMRenderer()->RenderGizmo(nullptr);
 			}
 			
 			if (m_App->GetApplicationState()->mode == ApplicationMode::BUILD)
@@ -168,10 +179,7 @@ namespace ECM {
 					m_ActiveGizmo->SetActiveArea(nullptr);
 				}
 
-				m_ActiveGizmo = nullptr;
-				m_SelectedArea = nullptr;
-
-				m_App->GetECMRenderer()->RenderGizmo(nullptr);
+				DeselectArea();
 
 				return;
 			}
@@ -194,23 +202,25 @@ namespace ECM {
 			if (m_App->GetApplicationState()->mode == CONNECT)
 			{
 				const ECMRenderer* ecmRenderer = m_App->GetECMRenderer();
-				const int MIN_SCREEN_DIST = 5;
+				const int MIN_SCREEN_DIST = 10;
 				const int MIN_SCREEN_DIST_SQ = MIN_SCREEN_DIST*MIN_SCREEN_DIST;
 
-				for (const auto& sa : spawnAreas)
+				for (auto saIter = spawnAreas.begin(); saIter != spawnAreas.end(); saIter++)
 				{
+					const Simulation::SpawnArea& sa = saIter->second;
 					auto& goalAreasConnected = sa.connectedGoalAreas;
-					for (const auto& gaID : goalAreasConnected)
+					for (auto gaIter = goalAreas.begin(); gaIter != goalAreas.end(); gaIter++)
 					{
+						const Simulation::GoalArea& ga = gaIter->second;
 						Point p1Screen = ecmRenderer->WorldToScreenCoordinates(sa.Position.x, sa.Position.y);
-						Point p2Screen = ecmRenderer->WorldToScreenCoordinates(goalAreas[gaID].Position.x, goalAreas[gaID].Position.y);
+						Point p2Screen = ecmRenderer->WorldToScreenCoordinates(ga.Position.x, ga.Position.y);
 
 						Point pointOnConnection = Utility::MathUtility::GetClosestPointOnSegment(screenPos, p1Screen, p2Screen);
 						if (Utility::MathUtility::SquareDistance(screenPos, pointOnConnection) < MIN_SCREEN_DIST_SQ)
 						{
 							m_App->GetUndoRedoManager()->Invoke(new CMD_SelectAreaConnection(this, 
 								Simulation::AreaConnection(m_SelectedAreaConnection->spawnID, m_SelectedAreaConnection->goalID), 
-								Simulation::AreaConnection(sa.ID, gaID)));
+								Simulation::AreaConnection(sa.ID, ga.ID)));
 							return;
 						}
 					}
@@ -239,7 +249,6 @@ namespace ECM {
 				{
 					if (m_SelectedArea->Type == Simulation::SimAreaType::SPAWN)
 					{
-						// TODO: COMMAND
 						m_App->GetUndoRedoManager()->Invoke(new CMD_AddSimulationAreaConnection(m_App, m_SelectedArea->ID, m_ConnectionDragHoverArea->ID, 0.5f));
 					}
 					else
@@ -248,7 +257,7 @@ namespace ECM {
 					}
 				}
 
-				m_SelectedArea = nullptr;
+				DeselectArea();
 				SetDragAreaConnection(false);
 			}
 		}
@@ -261,18 +270,33 @@ namespace ECM {
 			m_CurrentDragArea = Simulation::SimAreaType::NONE;
 		}
 
+		void EnvironmentEditor::HandleDeleteObject()
+		{
+			if (m_App->GetApplicationState()->mode == CONNECT && m_SelectedAreaConnection->spawnID != -1)
+			{
+				// area connection selected -> remove
+				m_App->GetUndoRedoManager()->Invoke(new CMD_RemoveSimulationAreaConnection(m_App, m_SelectedAreaConnection->spawnID, m_SelectedAreaConnection->goalID));
+			}
+			else if (m_App->GetApplicationState()->mode == BUILD && m_SelectedArea != nullptr)
+			{
+				// simulation area selected -> remove
+				m_App->GetUndoRedoManager()->Invoke(new CMD_RemoveSimulationArea(m_SelectedArea->Type, m_SelectedArea->ID, m_App));
+				DeselectArea();
+			}
+		}
+
 		// check if user clicked spawn- or goal area
 		void EnvironmentEditor::SelectAreaAtPosition(const Point& screenPos)
 		{
 			auto& spawnAreas = m_App->GetSimulator()->GetSpawnAreas();
 			auto& goalAreas = m_App->GetSimulator()->GetGoalAreas();
 
-
 			Point worldPos = m_App->GetECMRenderer()->ScreenToWorldCoordinates(screenPos.x, screenPos.y);
 
 			bool foundIntersection = false;
-			for (auto& a : spawnAreas)
+			for (auto saIter = spawnAreas.begin(); saIter != spawnAreas.end(); saIter++)
 			{
+				Simulation::SpawnArea& a = saIter->second;
 				// check if area intersects
 				if (a.Intersects(worldPos))
 				{
@@ -286,8 +310,10 @@ namespace ECM {
 			// TODO: refactor to avoid code duplication
 
 			if (foundIntersection) return;
-			for (auto& a : goalAreas)
+			for (auto gaIter = goalAreas.begin(); gaIter != goalAreas.end(); gaIter++)
 			{
+				Simulation::GoalArea& a = gaIter->second;
+
 				// check if area intersects
 				if (a.Intersects(worldPos))
 				{
@@ -302,6 +328,13 @@ namespace ECM {
 			{
 				m_App->GetUndoRedoManager()->Invoke(new CMD_SelectArea(this, m_SelectedArea, nullptr));
 			}
+		}
+
+		void EnvironmentEditor::DeselectArea()
+		{
+			m_SelectedArea = nullptr;
+			m_ActiveGizmo = nullptr;
+			m_App->GetECMRenderer()->RenderGizmo(nullptr);
 		}
 
 		void EnvironmentEditor::SelectAreaConnection(Simulation::AreaConnection areaConnection)
@@ -339,8 +372,9 @@ namespace ECM {
 			{
 				auto& goalAreas = m_App->GetSimulator()->GetGoalAreas();
 
-				for (auto& ga : goalAreas)
+				for (auto gaIter = goalAreas.begin(); gaIter != goalAreas.end(); gaIter++)
 				{
+					Simulation::GoalArea& ga = gaIter->second;
 					if (ga.Intersects(mouseWorldPos))
 					{
 						m_ConnectionDragHoverArea = &ga;
@@ -352,8 +386,9 @@ namespace ECM {
 			{
 				auto& spawnAreas = m_App->GetSimulator()->GetSpawnAreas();
 
-				for (auto& sa : spawnAreas)
+				for (auto saIter = spawnAreas.begin(); saIter != spawnAreas.end(); saIter++)
 				{
+					Simulation::SpawnArea& sa = saIter->second;
 					if (sa.Intersects(mouseWorldPos))
 					{
 						m_ConnectionDragHoverArea = &sa;

@@ -51,7 +51,8 @@ namespace ECM
 
 				// HANDLE INPUT
 				while (SDL_PollEvent(&e)) {
-					if (!HandleInput(e)) break;
+					if (!HandleInput(e)) 
+						break;
 				}
 				
 				// UPDATE APPLICATION

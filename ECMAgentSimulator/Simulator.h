@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <stack>
+#include <map>
 
 #include "Area.h"
 
@@ -84,16 +85,19 @@ namespace ECM {
 				m_Positions[entity].y = y;
 			}
 
-			int AddSpawnArea(const Point& position, const Vec2& halfSize, const SpawnConfiguration& config); // TODO: expand with agent profile
-			int AddGoalArea(const Point& position, const Vec2& halfSize);
+			int AddSpawnArea(const Point& position, const Vec2& halfSize, const SpawnConfiguration& config, int ID = -1); // TODO: expand with agent profile
+			int AddGoalArea(const Point& position, const Vec2& halfSize, int ID = -1);
 			int AddObstacleArea(const Point& position, const Vec2& halfSize, bool updateECM = false);
 			void RemoveArea(Simulation::SimAreaType areaType, int ID);
 			void ConnectSpawnGoalAreas(int spawnID, int goalID, float spawnRate = 0.0f);
 			void DeconnectSpawnGoalAreas(int spawnID, int goalID);
 			
-			std::vector<SpawnArea>& GetSpawnAreas() { return m_SpawnAreas; }
-			std::vector<GoalArea>& GetGoalAreas() { return m_GoalAreas; }
+			std::map<int, SpawnArea>& GetSpawnAreas() { return m_SpawnAreas; }
+			std::map<int, GoalArea>& GetGoalAreas() { return m_GoalAreas; }
 			std::vector<ObstacleArea>& GetObstacleAreas() { return m_ObstacleAreas; }
+
+			SpawnArea* GetSpawnArea(int ID);
+			GoalArea* GetGoalArea(int ID);
 
 			void FindNNearestNeighbors(const Entity& agent, int n, std::vector<Entity>& outNeighbors) const;
 			void FindNearestObstacles(const Entity& agent, float rangeSquared, std::vector<const ObstacleVertex*>& outObstacles) const;
@@ -115,6 +119,8 @@ namespace ECM {
 			inline KDTree* GetKDTree() const { return m_KDTree; }
 			inline Environment* GetEnvironment() const { return m_Environment; }
 			inline float GetSimulationStepTime() const { return m_SimStepTime; }
+			
+			std::vector<int> GetConnectedAreas(int sourceID, SimAreaType type);
 
 		private:
 			void ClearSimulator();
@@ -151,9 +157,11 @@ namespace ECM {
 
 			float m_SimStepTime;
 
-			std::vector<SpawnArea> m_SpawnAreas;
-			std::vector<GoalArea> m_GoalAreas;
+			std::map<int, SpawnArea> m_SpawnAreas;
+			std::map<int, GoalArea> m_GoalAreas;
 			std::vector<ObstacleArea> m_ObstacleAreas;
+			int m_NextSpawnID = 0;
+			int m_NextGoalID = 0;
 
 			// COMPONENTS
 			PositionComponent* m_Positions;

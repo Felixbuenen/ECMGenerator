@@ -82,18 +82,37 @@ namespace ECM {
 			float m_SpawnRate;
 		};
 
-		class CMD_RemoveSimulationArea : public ICommand
+		class CMD_RemoveSimulationAreaConnection : public ICommand
 		{
 		public:
-			CMD_RemoveSimulationArea(const Simulation::Area& area, Application* application);
+			CMD_RemoveSimulationAreaConnection(Application* application, int spawnID, int goalID, float spawnRate = 0.5f)
+				: m_Application(application), m_SpawnID(spawnID), m_GoalID(goalID), m_SpawnRate(spawnRate) { }
 
 			void Execute() override;
 			void Undo() override;
 
 		private:
-			//void RemoveArea(const Simulation::Area& area);
-
 			Application* m_Application;
+			int m_SpawnID;
+			int m_GoalID;
+			float m_SpawnRate;
+		};
+
+		class CMD_RemoveSimulationArea : public ICommand
+		{
+		public:
+			CMD_RemoveSimulationArea(Simulation::SimAreaType area, int ID, Application* application);
+
+			void Execute() override;
+			void Undo() override;
+
+		private:
+			Application* m_Application;
+			int m_ID;
+			std::vector<int> m_ConnectedAreas;
+			Point m_Position;
+			Vec2 m_HalfSize;
+			Simulation::SimAreaType m_AreaType;
 		};
 
 		class CMD_TransformSimulationArea : public ICommand

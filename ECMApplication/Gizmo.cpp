@@ -133,10 +133,17 @@ namespace ECM {
 
 			if (e.type == SDL_MOUSEBUTTONUP && e.button.button == SDL_BUTTON_LEFT && m_IsDragging)
 			{
-				Vec2 delta = m_ActiveArea->Position - m_OldWorldPosition;
-				HandleStopDragging(TRANSLATE, delta);
+				if (m_IsDragging)
+				{
+					Vec2 delta = m_ActiveArea->Position - m_OldWorldPosition;
+					HandleStopDragging(TRANSLATE, delta);
 
-				eventHandled = true;
+					eventHandled = true;
+				}
+				else
+				{
+					m_IsDragging = false;
+				}
 			}
 
 			// check click gizmo
@@ -236,6 +243,8 @@ namespace ECM {
 
 			if (e.type == SDL_MOUSEBUTTONUP && e.button.button == SDL_BUTTON_LEFT)
 			{
+				if (!m_IsDragging) return false;
+
 				Vec2 delta = Vec2(m_ActiveArea->HalfWidth, m_ActiveArea->HalfHeight) - m_OldSize;
 				HandleStopDragging(SCALE, delta);
 				
