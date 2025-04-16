@@ -130,7 +130,7 @@ namespace ECM
 
 			// UPDATE SIMULATION
 			{
-				//Timer timer("SIMULATION");
+				//Timer simTimer("SIMULATION");
 				if (m_ApplicationState.simulationPlaying)
 				{
 					m_Accumulator += m_DeltaTime;
@@ -148,6 +148,8 @@ namespace ECM
 					// e.g. simulator->GetInterpolatedPositions(alpha) returns alpha interpolation between prev and current positions
 					// which is used by the rendering system
 				}
+
+				//simTimer.Stop();
 			}
 			m_EnvEditor.Update();
 			m_UI.Update(event);

@@ -65,6 +65,10 @@ namespace ECM
 			bool leftMouseClicked;
 			bool leftMouseDragging;
 
+			// debug
+			int entityToCheckNN;
+			std::vector<int> nearestNeighbors;
+
 			// path
 			Point pathStartPoint;
 			Point pathGoalPoint;

@@ -223,46 +223,6 @@ namespace ECM {
 			return Point(screenX, screenY);
 		}
 
-		void ECMRenderer::DebugDrawKNearestNeighbors(int idx)
-		{
-			if (!m_AppState->simulator->GetActiveFlags()[idx]) return;
-
-			const int k = 4;
-			
-			std::vector<int> agents;
-			agents.resize(k);
-
-			agents.push_back(idx);
-
-			const auto positions = m_AppState->simulator->GetPositionData();
-			const auto clearances = m_AppState->simulator->GetClearanceData();
-
-			const float recip = sqrtf(2.0f);
-
-			for (int i = 0; i < k + 1; i++)
-			{
-				int index = agents[i];
-				const auto& pos = positions[index];
-				const auto& clearance = clearances[index];
-
-				float x = pos.x * m_CamZoomFactor + m_CamOffsetX;
-				float y = pos.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
-
-				float size = (clearance.clearance / recip) * m_CamZoomFactor;
-
-				SDL_Rect rect;
-				rect.x = x - size;
-				rect.y = y - size;
-				rect.w = size * 2;
-				rect.h = size * 2;
-
-				if(i < k) SDL_SetRenderDrawColor(m_Renderer, 255, 125, 125, 255);
-				else SDL_SetRenderDrawColor(m_Renderer, 255, 0, 0, 255);
-				
-				SDL_RenderFillRect(m_Renderer, &rect);
-			}
-		}
-
 		void ECMRenderer::DebugDrawVertices()
 		{
 			SDL_SetRenderDrawColor(m_Renderer, 0x00, 0x00, 0x00, 0xff);
@@ -894,8 +854,38 @@ namespace ECM {
 				float x = pos.x * m_CamZoomFactor + m_CamOffsetX;
 				float y = pos.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
 
+				// DEBUG
+				if (m_AppState->simulator->NN_TO_DRAW == i)
+				{
+					SDL_SetRenderDrawColor(m_Renderer, 0xaa, 0x00, 0xaa, 0xff);
+				}
+				else
+				{
+					SDL_SetRenderDrawColor(m_Renderer, 0x00, 0x00, 0x00, 0xff);
+				}
+				// DEBUG
+
 				DrawCircle(m_Renderer, x, y, clearance.clearance * m_CamZoomFactor);
 			}
+
+			// DEBUG
+			SDL_SetRenderDrawColor(m_Renderer, 0xff, 0x55, 0x55, 0xff);
+
+			for (int index : m_AppState->simulator->NEAREST_NEIGHBORS)
+			{
+				if (!activeFlags[index]) continue;
+
+				const auto& pos = positions[index];
+				const auto& vel = velocities[index];
+				const auto& clearance = clearances[index];
+
+				float x = pos.x * m_CamZoomFactor + m_CamOffsetX;
+				float y = pos.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+
+				DrawCircle(m_Renderer, x, y, clearance.clearance * m_CamZoomFactor);
+			}
+			// DEBUG
+
 		}
 
 		// https://stackoverflow.com/questions/38334081/how-to-draw-circles-arcs-and-vector-graphics-in-sdl

@@ -3,6 +3,7 @@
 #include "Simulator.h"
 #include "UtilityFunctions.h"
 #include "ECMDataTypes.h"
+#include "Timer.h"
 
 #include <cmath>
 
@@ -10,35 +11,53 @@ namespace ECM {
 
 	namespace Simulation {
 
-		void ORCA::GetVelocity(Simulator* simulator, const Entity& entity, float stepSize, float maxSpeed, int nNeighbors, Vec2& outVelocity)
+		void ORCA::GetVelocity(Simulator* simulator, const Entity& entity, float stepSize, float maxSpeed, Vec2& outVelocity)
 		{
+			int outputNeighborsCount = 0;
 			// agent neighbors
-			std::vector<Entity> agentNeighbors;
-			simulator->FindNNearestNeighbors(entity, nNeighbors, agentNeighbors);
+			{
+				volatile MultipassTimer timer("FindNNearestNeighbors()");
+				simulator->FindNNearestNeighbors(entity, m_NumNeighbors, m_NeighborCache, outputNeighborsCount);
+			}
 
 			// static obstacle neighbors
 			std::vector<const ObstacleVertex*> obstNeighbors;
-			float range = m_lookAheadObstacle * maxSpeed + simulator->GetClearanceData()[entity].clearance;
-			simulator->FindNearestObstacles(entity, range * range, obstNeighbors);
+			{
+				volatile MultipassTimer timer("FindNearestObstacles()");
+				float range = m_lookAheadObstacle * maxSpeed + simulator->GetClearanceData()[entity].clearance;
+				simulator->FindNearestObstacles(entity, range * range, obstNeighbors);
+			}
 
 			// generate constraints
 			std::vector<Constraint> constraints;
 			int nObstConstraints;
-			GenerateConstraints(simulator, entity, agentNeighbors, obstNeighbors, stepSize, nObstConstraints, constraints);
+			{
+				volatile MultipassTimer timer("GenerateConstraints()");
+				GenerateConstraints(simulator, entity, outputNeighborsCount, m_NeighborCache, obstNeighbors, stepSize, nObstConstraints, constraints);
+			}
 
 			const VelocityComponent& prefVelComp = simulator->GetPreferredVelocityData()[entity];
 			Vec2 prefVel(prefVelComp.dx, prefVelComp.dy);
 
 			// use constraints and LP to calculate new velocity
-			int failedIndex = RandomizedLP(constraints, prefVel, maxSpeed, false, outVelocity);
-			if (failedIndex < constraints.size())
+			int failedIndex;
 			{
-				RandomizedLP3D(nObstConstraints, constraints, maxSpeed, failedIndex, outVelocity);
+				volatile MultipassTimer timer("RandomizedLP()");
+				failedIndex = RandomizedLP(constraints, prefVel, maxSpeed, false, outVelocity);
 			}
+
+			{
+				volatile MultipassTimer timer("RandomizedLP3D()");
+				if (failedIndex < constraints.size())
+				{
+					RandomizedLP3D(nObstConstraints, constraints, maxSpeed, failedIndex, outVelocity);
+				}
+			}
+
 		}
 
 		// generates the ORCA constraints
-		void ORCA::GenerateConstraints(Simulator* simulator, const Entity& entity, const std::vector<Entity>& agentNeighbors, const std::vector<const ObstacleVertex*>& obstNeighbors, float stepSize, int& outNObstacleConstraints, std::vector<Constraint>& outConstraints)
+		void ORCA::GenerateConstraints(Simulator* simulator, const Entity& entity, int numAgentNeighbors, const std::vector<Entity>& agentNeighbors, const std::vector<const ObstacleVertex*>& obstNeighbors, float stepSize, int& outNObstacleConstraints, std::vector<Constraint>& outConstraints)
 		{
 			const PositionComponent& positionComp = simulator->GetPositionData()[entity];
 			const ClearanceComponent& clearance = simulator->GetClearanceData()[entity];
@@ -316,9 +335,8 @@ namespace ECM {
 			outNObstacleConstraints = outConstraints.size();
 
 			// Calculate agent constraints
-			int nNeighbors = agentNeighbors.size();
 
-			for (int i = 0; i < nNeighbors; i++)
+			for (int i = 0; i < numAgentNeighbors; i++)
 			{
 				const Entity& neighbor = agentNeighbors[i];
 				const PositionComponent& nPosition = simulator->GetPositionData()[neighbor];

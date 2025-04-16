@@ -9,6 +9,7 @@
 #include "KDTree.h"
 #include "ORCA.h"
 #include "IRMPathFollower.h"
+#include "Timer.h"
 
 #include <math.h>
 
@@ -49,7 +50,10 @@ namespace ECM {
 			}
 
 			m_KDTree = new KDTree();
-			m_ORCA = new ORCA();
+
+			// TODO: put in config file
+			const int numOrcaNeighbors = 5;
+			m_ORCA = new ORCA(numOrcaNeighbors);
 			m_PathFollower = new IRMPathFollower();
 
 			printf("SIMULATOR: Data for %d agents was created.\n", m_MaxNumEntities);
@@ -82,7 +86,6 @@ namespace ECM {
 			delete[] m_Paths;
 			delete[] m_ActiveAgents;
 			delete[] m_Clearances;
-			//delete[] m_Goals;
 
 			delete m_KDTree;
 			delete m_ORCA;
@@ -204,37 +207,58 @@ namespace ECM {
 			m_freeEntitySpaces.push(idx);
 		}
 
-		void Simulator::FindNNearestNeighbors(const Entity& agent, int n, std::vector<Entity>& outNeighbors) const
+		// Find n nearest neighbors to agent 'agent'. Expects 
+		void Simulator::FindNNearestNeighbors(const Entity& agent, int n, std::vector<Entity>& outNeighbors, int& outNNeighbors)
 		{
-			// TODO: use KD tree
-			// for now do a brute force method
+			if (outNeighbors.size() != n)
+			{
+				std::cout << "ERROR: FindNNearestNeighbors() expects std::vector<Entity>& outNeighbors to be of size n." << std::endl;
+				return;
+			}
 
-			std::vector<std::tuple<float, int>> distances;
+			m_KDTree->KNearestAgents(this, agent, n, outNeighbors, outNNeighbors);
+			
+			// DEBUG DRAWING (to remove)
+			if (NN_TO_DRAW == agent)
+			{
+				NEAREST_NEIGHBORS = outNeighbors;
+			}
+			// DEBUG DRAWING (to remove)
+		}
+
+		// Brute force method (N^2) of finding neighbors. Not used anymore.
+		void Simulator::FindNNearestNeighborsOld(const Entity& agent, int n, std::vector<Entity>& outNeighbors, int& outNNeighbors)
+		{
+			outNeighbors.clear();
+			outNeighbors.resize(n);
 			Point agentPos(m_Positions[agent].x, m_Positions[agent].y);
-
+			
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
 				if (!m_ActiveAgents[i]) continue;
-
+			
 				const Entity& other = m_Entities[i];
 				if (other == agent) continue;
-
-				distances.emplace_back(Utility::MathUtility::SquareDistance(agentPos, Point(m_Positions[other].x, m_Positions[other].y)), other);
+			
+				float dist = Utility::MathUtility::SquareDistance(agentPos, Point(m_Positions[other].x, m_Positions[other].y));
+				m_NNDistances[i] = std::make_tuple(dist, other);
 			}
-
-			std::sort(distances.begin(), distances.end(),
+			
+			std::sort(m_NNDistances.begin(), m_NNDistances.end(),
 				[](const std::tuple<float, int>& a, const std::tuple<float, int>& b) {
 					return std::get<0>(a) < std::get<0>(b);
 				});
-
-			for (int i = 0; i < n && i < distances.size(); ++i) {
-				outNeighbors.push_back(std::get<1>(distances[i]));
+			
+			outNNeighbors = m_NNDistances.size() < n ? m_NNDistances.size() : n;
+			
+			for (int i = 0; i < outNNeighbors; ++i) {
+				outNeighbors[i] = std::get<1>(m_NNDistances[i]);
 			}
 		}
 
 		void Simulator::FindNearestObstacles(const Entity& agent, float rangeSquared, std::vector<const ObstacleVertex*>& outObstacles) const
 		{
-			// TODO: use KD tree
+			// TODO: use KD tree. 
 			// for now do a brute force method
 			std::vector<std::tuple<float, int>> distances;
 			Point agentPos(m_Positions[agent].x, m_Positions[agent].y);
@@ -290,8 +314,10 @@ namespace ECM {
 		// TODO: we either use dt or m_SimStepUpdate, not both... 
 		void Simulator::Update(float dt)
 		{
+			volatile MultipassTimer orcaTimer("Update()");
 			UpdateMaxAgentIndex();
 			UpdateSpawnAreas();
+			m_KDTree->Construct(this);
 			UpdateForceSystem();
 			UpdateVelocitySystem();
 			UpdatePositionSystem();
@@ -360,11 +386,11 @@ namespace ECM {
 			// TODO:
 			// ONDERSTAANDE IS EEN AANNAME, MEER TESTEN IS NODIG!
 			// Nu is zeer waarschijnlijk het probleem dat we obstacles met floating point precisie aan Boost geven.
-			// Echter Boost werkt (naar wat ik weet) met fixed point coordinates. Oftewel integers.
+			// Echter Boost werkt met fixed point coordinates. Oftewel integers.
 			// Als je floating point precisie geeft, komen er onbetrouwbare resultaten uit boost.
 			// Dit genereert incosistente voronoi diagrams, en dat lijdt tot gaten in de 
-			// Ik moet dus het volgende doen:
-			// > definieer hoeveel precisie je wilt. Centimeters? Hoe sla je deze coordinaten op? uints? dan kun je heel veel
+			// TODO:
+			// > definieer hoeveel precisie (bijv. centimeters?). Hoe sla je deze coordinaten op? uints? dan kun je heel veel
 			//   coordinaten nog opslaan.
 			// > deze uints geven we aan boost. Hier moeten we ook een vertaalslag maken naar world coordinates. bijv, als we 
 			//   een obstacle object toevoegen, weten we de screen coordinates (in floats). Deze moet vertaald worden naar
@@ -588,6 +614,7 @@ namespace ECM {
 			UpdateAttractionPointSystem();
 			ApplySteeringForce();
 			ApplyObstacleAvoidanceForce();
+
 		}
 
 		void Simulator::UpdateVelocitySystem()
@@ -632,8 +659,10 @@ namespace ECM {
 
 		void Simulator::ApplyObstacleAvoidanceForce()
 		{
-			// todo: make global
-			const int numRVONeighbors = 5;
+			volatile MultipassTimer orcaTimer("ApplyObstacleAvoidanceForce()");
+
+			m_NNDistances.clear();
+			m_NNDistances.resize(GetNumAgents());
 
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
@@ -643,10 +672,17 @@ namespace ECM {
 				float speed = m_PreferredSpeed[i].speed;
 
 				Vec2 outVel;
-				m_ORCA->GetVelocity(this, e, m_SimStepTime, speed, numRVONeighbors, outVel);
+				m_ORCA->GetVelocity(this, e, m_SimStepTime, speed, outVel);
 
 				m_Forces[e].dx = (outVel.x - m_Velocities[e].dx);
 				m_Forces[e].dy = (outVel.y - m_Velocities[e].dy);
+			}
+
+			if (MultipassTimer::PrintAverages(20))
+			{
+				std::cout << "(With " << GetNumAgents() << " agents in scene)" << std::endl;
+				std::cout << "---------------------------------------------" << std::endl;
+				std::cout << std::endl;
 			}
 		}
 	}

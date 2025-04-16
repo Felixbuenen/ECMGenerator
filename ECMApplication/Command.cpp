@@ -127,14 +127,14 @@ namespace ECM {
 			{
 				for (int id : m_ConnectedAreas)
 				{
-					m_Application->GetSimulator()->ConnectSpawnGoalAreas(m_ID, id, 0.5f);
+					m_Application->GetSimulator()->ConnectSpawnGoalAreas(m_ID, id, 20.0f);
 				}
 			}
 			else if (m_AreaType == Simulation::GOAL)
 			{
 				for (int id : m_ConnectedAreas)
 				{
-					m_Application->GetSimulator()->ConnectSpawnGoalAreas(id, m_ID, 0.5f);
+					m_Application->GetSimulator()->ConnectSpawnGoalAreas(id, m_ID, 20.0f);
 				}
 			}
 		}

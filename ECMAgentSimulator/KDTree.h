@@ -61,22 +61,20 @@ namespace ECM {
 			void TestConstruct(PositionComponent* positions, int size);
 			void Clear();
 
-			// Reference: https://gopalcdas.com/2017/05/24/construction-of-k-d-tree-and-using-it-for-nearest-neighbour-search/
-			void KNearestAgents(Simulator* simulation, int agent, int k, int* outAgents);
-			void KNearestAgentsTest(PositionComponent* positions, int agent, int k, int* outAgents);
+			void KNearestAgents(Simulator* simulation, int agent, int k, std::vector<Entity>& outAgents, int& outNumNeighbors);
+			void AgentsInRange(Simulator* simulation, int agent, float radius, std::vector<Entity>& outAgents, int& outNumNeighbors);
 
-			void AgentsInRange(Simulator* simulation, int agent, float radius, int* outAgents);
 			void AgentsInRangeTest(PositionComponent* positions, int agent, float radius, int maxAgents, std::vector<int>& outAgents);
 
 		private:
-			void ConstructRecursive(PositionComponent* positions, int index, KDTreeCompareY& compY, KDTreeCompareX compX, int leftBound, int rightBound, int depth, int* outIndices);
+			void ConstructRecursive(PositionComponent* positions, int index, KDTreeCompareY& compY, KDTreeCompareX& compX, int leftBound, int rightBound, int depth, int* outIndices);
 
-			void KNearestAgents_R(const Vec2& target, int currentIndex, int k, int& kFound, int depth, std::vector<int>& nearestIndices, std::vector<float>& nearestSqDistances, PositionComponent* positions, int* outAgents);
+			void KNearestAgents_R(const Vec2& target, int currentIndex, int k, int& kFound, int depth, std::vector<Entity>& nearestIndices, std::vector<float>& nearestSqDistances, PositionComponent* positions);
 			void AgentsInRange_R(const Vec2& target, float sqRadius, int currentIndex, int maxAgents, int& nFound, int depth, PositionComponent* positions, std::vector<int>& outAgents);
 
 			int LeftTree(int root) const;
 			int RightTree(int root) const;
-			
+
 			std::vector<int> m_Tree;
 			int m_MaxDepth;
 		};

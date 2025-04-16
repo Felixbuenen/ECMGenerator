@@ -76,8 +76,8 @@ namespace ECM {
 			const float obstacleSize = 200.0f;
 			const float padding = 200.0f;
 
-			int numObstaclesRow = 5000.0f / (obstacleSize + padding);
-			int numObstaclesCol = 5000.0f / (obstacleSize + padding);
+			int numObstaclesRow = 1.0f / (obstacleSize + padding);
+			int numObstaclesCol = 1.0f / (obstacleSize + padding);
 
 			for (int r = 0; r < numObstaclesRow; r++)
 			{
@@ -87,14 +87,21 @@ namespace ECM {
 				{
 					float x = -2500 + padding + c * (obstacleSize + padding);
 
-					std::vector<Segment> obstacle{
-						Segment(Point(x, y), Point(x + obstacleSize, y)),
-							Segment(Point(x + obstacleSize, y), Point(x + obstacleSize, y - obstacleSize)),
-							Segment(Point(x + obstacleSize, y - obstacleSize), Point(x, y - obstacleSize)),
-							Segment(Point(x, y - obstacleSize), Point(x, y))
+					//std::vector<Segment> obstacle{
+					//	Segment(Point(x, y), Point(x + obstacleSize, y)),
+					//		Segment(Point(x + obstacleSize, y), Point(x + obstacleSize, y - obstacleSize)),
+					//		Segment(Point(x + obstacleSize, y - obstacleSize), Point(x, y - obstacleSize)),
+					//		Segment(Point(x, y - obstacleSize), Point(x, y))
+					//};
+
+					std::vector<Point> obstacle {
+						Point(x, y),
+							Point(x, y - obstacleSize),
+							Point(x + obstacleSize, y - obstacleSize),
+							Point(x + obstacleSize, y)
 					};
 
-					//AddObstacle(obstacle);
+					AddObstacle(obstacle);
 				}
 			}
 		}
@@ -180,6 +187,15 @@ namespace ECM {
 			AddWalkableArea(walkableArea);
 			AddObstacle(obstacle);
 			AddObstacle(obstacle2);
+		}
+
+		if (type == Environment::TestEnvironment::DEBUG2)
+		{
+			std::vector<Segment> walkableArea;
+			walkableArea.push_back(Segment(-2000, -2000, 2000, -2000));
+			walkableArea.push_back(Segment(2000, -2000, 2000, 2000));
+			walkableArea.push_back(Segment(-2000, 2000, 2000, 2000));
+			walkableArea.push_back(Segment(-2000, 2000, -2000, -2000));
 		}
 
 		// generate ECM from environment

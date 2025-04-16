@@ -87,7 +87,6 @@ namespace ECM {
 			void DebugDrawSecondaryLines();
 			void DebugDrawCellValues();
 			void DebugDrawBoostVoronoiDiagram();
-			void DebugDrawKNearestNeighbors(int idx);
 			void DebugDrawVertices();
 			void DebugDrawRetractionPoint();
 

@@ -37,7 +37,8 @@ namespace ECM {
 			LINES,
 			SQUARE,
 			EMPTY,
-			DEBUG1
+			DEBUG1,
+			DEBUG2
 		};
 
 		~Environment();

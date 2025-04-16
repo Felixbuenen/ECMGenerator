@@ -99,7 +99,8 @@ namespace ECM {
 			SpawnArea* GetSpawnArea(int ID);
 			GoalArea* GetGoalArea(int ID);
 
-			void FindNNearestNeighbors(const Entity& agent, int n, std::vector<Entity>& outNeighbors) const;
+			void FindNNearestNeighbors(const Entity& agent, int n, std::vector<Entity>& outNeighbors, int& outNNeighbors); // acceleration struct (KD-tree)
+			void FindNNearestNeighborsDeprecated(const Entity& agent, int n, std::vector<Entity>& outNeighbors, int& outNNeighbors); // brute-force
 			void FindNearestObstacles(const Entity& agent, float rangeSquared, std::vector<const ObstacleVertex*>& outObstacles) const;
 			bool ValidSpawnLocation(const Point& location, float clearance) const;
 
@@ -121,6 +122,11 @@ namespace ECM {
 			inline float GetSimulationStepTime() const { return m_SimStepTime; }
 			
 			std::vector<int> GetConnectedAreas(int sourceID, SimAreaType type);
+
+			// DEBUG
+			int NN_TO_DRAW = 0;
+			std::vector<int> NEAREST_NEIGHBORS;
+			// DEBUG
 
 		private:
 			void ClearSimulator();
@@ -147,6 +153,9 @@ namespace ECM {
 			KDTree* m_KDTree;
 			ORCA* m_ORCA;
 			IRMPathFollower* m_PathFollower;
+
+			// TODO: should probably be in a separate class
+			std::vector<std::tuple<float, int>> m_NNDistances;
 
 			int m_MaxNumEntities;
 			int m_NumEntities;
