@@ -227,7 +227,7 @@ namespace ECM {
 		}
 
 		// Brute force method (N^2) of finding neighbors. Not used anymore.
-		void Simulator::FindNNearestNeighborsOld(const Entity& agent, int n, std::vector<Entity>& outNeighbors, int& outNNeighbors)
+		void Simulator::FindNNearestNeighborsDeprecated(const Entity& agent, int n, std::vector<Entity>& outNeighbors, int& outNNeighbors)
 		{
 			outNeighbors.clear();
 			outNeighbors.resize(n);
@@ -289,7 +289,6 @@ namespace ECM {
 					}
 				}
 			}
-
 		}
 
 

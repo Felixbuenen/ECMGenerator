@@ -66,44 +66,25 @@ namespace ECM {
 		}
 		if (type == Environment::TestEnvironment::BIG)
 		{
+			const int size = 2000;
 			std::vector<Segment> walkableArea;
-			walkableArea.push_back(Segment(-2500, -2500, 2500, -2500));
-			walkableArea.push_back(Segment(2500, -2500, 2500, 2500));
-			walkableArea.push_back(Segment(-2500, 2500, 2500, 2500));
-			walkableArea.push_back(Segment(-2500, 2500, -2500, -2500));
+			walkableArea.push_back(Segment(-size, -size, size, -size));
+			walkableArea.push_back(Segment(size, -size, size, size));
+			walkableArea.push_back(Segment(-size, size, size, size));
+			walkableArea.push_back(Segment(-size, size, -size, -size));
+
+			std::vector<Point> obstacle{
+				Point(200, -250),
+					Point(200, 250),
+					Point(100, 250),
+					Point(100, -150),
+					Point(-100, -150),
+					Point(-100, 250),
+					Point(-200, 250),
+					Point(-200, -250)
+			};
 			AddWalkableArea(walkableArea);
-
-			const float obstacleSize = 200.0f;
-			const float padding = 200.0f;
-
-			int numObstaclesRow = 1.0f / (obstacleSize + padding);
-			int numObstaclesCol = 1.0f / (obstacleSize + padding);
-
-			for (int r = 0; r < numObstaclesRow; r++)
-			{
-				float y = 2500 - padding - r * (obstacleSize + padding);
-
-				for (int c = 0; c < numObstaclesCol; c++)
-				{
-					float x = -2500 + padding + c * (obstacleSize + padding);
-
-					//std::vector<Segment> obstacle{
-					//	Segment(Point(x, y), Point(x + obstacleSize, y)),
-					//		Segment(Point(x + obstacleSize, y), Point(x + obstacleSize, y - obstacleSize)),
-					//		Segment(Point(x + obstacleSize, y - obstacleSize), Point(x, y - obstacleSize)),
-					//		Segment(Point(x, y - obstacleSize), Point(x, y))
-					//};
-
-					std::vector<Point> obstacle {
-						Point(x, y),
-							Point(x, y - obstacleSize),
-							Point(x + obstacleSize, y - obstacleSize),
-							Point(x + obstacleSize, y)
-					};
-
-					AddObstacle(obstacle);
-				}
-			}
+			AddObstacle(obstacle);
 		}
 
 		if (type == Environment::TestEnvironment::NARROW)

@@ -3,6 +3,7 @@
 #include "Simulator.h"
 #include "ECMDataTypes.h"
 #include "UtilityFunctions.h"
+#include "Timer.h"
 
 namespace ECM {
 
@@ -20,6 +21,7 @@ namespace ECM {
 
 		void KDTree::Construct(Simulator* simulation)
 		{
+			volatile MultipassTimer orcaTimer("KDTree::Construct()");
 			PositionComponent* positions = simulation->GetPositionData();
 
 			int size = simulation->GetNumAgents();
@@ -175,7 +177,8 @@ namespace ECM {
 				// recurse left tree first
 				KNearestAgents_R(target, LeftTree(currentIndex), k, kFound, depth + 1, nearestIndices, nearestSqDistances, positions);
 				
-				float sqDistanceToBBOX = std::pow(targetValToCheck - currentVal, 2.0f);
+				float distToBBOX = (targetValToCheck - currentVal);
+				float sqDistanceToBBOX = distToBBOX * distToBBOX;
 			
 				// Check if you need to search the right subtree based on the updated threshold.
 				// I.e.: if the furthest nearest neighbor is closer than the splitting node, than there cannot be a neighbor in the other half that is closer (-> prune).
@@ -187,8 +190,9 @@ namespace ECM {
 				// recurse right tree first
 				KNearestAgents_R(target, RightTree(currentIndex), k, kFound, depth + 1, nearestIndices, nearestSqDistances, positions);
 			
-				float sqDistanceToBBOX = std::pow(targetValToCheck - currentVal, 2.0f);
-			
+				float distToBBOX = (targetValToCheck - currentVal);
+				float sqDistanceToBBOX = distToBBOX * distToBBOX;
+
 				// Check if you need to search the left subtree based on the updated threshold.
 				if (sqDistanceToBBOX < nearestSqDistances[k - 1]) {
 					KNearestAgents_R(target, LeftTree(currentIndex), k, kFound, depth + 1, nearestIndices, nearestSqDistances, positions);

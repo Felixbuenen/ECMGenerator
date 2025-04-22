@@ -47,27 +47,30 @@ int main()
 	//delete[] positions;
 	
 	Environment env;
-	env.Initialize(Environment::TestEnvironment::CLASSIC);
+	env.Initialize(Environment::TestEnvironment::BIG);
 	ECMPathPlanner planner(&env.GetECM()->GetECMGraph());
 	Simulator sim(env.GetECM(), &planner, &env, 10000, 0.1f);
 
 	// DEBUG
 	SpawnConfiguration config;
-	sim.AddSpawnArea(Point(-340.479, 364.999), Vec2(50, 50), config);
-	sim.AddSpawnArea(Point(-142.917, 363.598), Vec2(50, 50), config);
-	sim.AddSpawnArea(Point(25.2207, 362.197), Vec2(50, 50), config);
-	sim.AddSpawnArea(Point(183.551, 362.197), Vec2(50, 50), config);
-	sim.AddSpawnArea(Point(344.683, 359.395), Vec2(50, 50), config);
-	sim.AddGoalArea(Point(0.0, -369.203), Vec2(400, 75));
+	const int COLS = 150;
+	const int ROWS = 10000 / COLS;
+	
+	int goalID = sim.AddGoalArea(Point(0.0, -800), Vec2(1300, 400));
+	sim.Initialize();
 
-	sim.ConnectSpawnGoalAreas(0, 0, 0.5);
-	sim.ConnectSpawnGoalAreas(1, 0, 0.5);
-	sim.ConnectSpawnGoalAreas(2, 0, 0.5);
-	sim.ConnectSpawnGoalAreas(3, 0, 0.5);
-	sim.ConnectSpawnGoalAreas(4, 0, 0.5);
+	for (int j = 0; j < ROWS; j++)
+	{
+		for (int i = 0; i < COLS; i++)
+		{
+			Point start(-1950 + 25 * i, 1950 - 25 * j);
+			Point goal = sim.GetGoalArea(goalID)->GetRandomPositionInArea();
+
+			sim.SpawnAgent(start, goal, 10.0f, 5.0f);
+		}
+	}
 	// DEBUG
 
-	sim.Initialize();
 
 	Application app(env.GetECM(), & planner, &env, &sim);
 	if (!app.InitializeApplication("Crowd Simulator", true))

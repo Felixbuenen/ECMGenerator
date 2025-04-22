@@ -83,8 +83,8 @@ namespace ECM {
 		{
 			float preferredSpeedMin = 5.0f;
 			float preferredSpeedMax = 10.0f;
-			float clearanceMin = 10.0f;
-			float clearanceMax = 20.0f;
+			float clearanceMin = 5.0f;
+			float clearanceMax = 10.0f;
 		};
 
 		struct SpawnArea : public Area
