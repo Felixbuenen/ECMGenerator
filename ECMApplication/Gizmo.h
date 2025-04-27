@@ -56,8 +56,8 @@ namespace ECM {
 			Point m_StartDragWorldPosition;
 			Vec2 m_DragDir;
 
-			bool m_IsStartingDrag;
-			bool m_IsDragging;
+			bool m_IsStartingDrag = false;
+			bool m_IsDragging = false;
 			const float m_MinDragLength = 0.05f;
 			GizmoAxis m_ActiveAxis;
 		};
