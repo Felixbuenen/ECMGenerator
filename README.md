@@ -18,4 +18,8 @@ simulations. The basis of the crowd simulator lies in the Explicit Corridor Map 
 TODO
 
 ## Roadmap
-TODO
+Currently the software can run approximately 10k agents in real-time (60fps, excluding rendering) on a machine with 12th Gen Intel Core i7 (16GB RAM). There is still a lot of room for improvement. The main focus in the coming months lies on the following points:
+- (Performance) Improvement of data layout for cache locality
+- (Performance) Multithreaded implementation
+- (UX) More customization options to configure the simulation (spawn rate, different agent profiles...)
+- (UX) Save/load simulation configurations
