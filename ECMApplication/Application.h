@@ -53,17 +53,17 @@ namespace ECM
 			
 			// ECM state
 			Environment* environment;
-			Simulation::Simulator* simulator;
+			Simulation::Simulator* simulator = nullptr;
 
 			// misc
-			const ECMCell* cellToDraw;
+			const ECMCell* cellToDraw = nullptr;
 			SimAreaDrag dragAreaType;
-			Gizmo* activeGizmo;
-			Simulation::AreaConnection* selectedAreaConnection;
+			Gizmo* activeGizmo = nullptr;
+			Simulation::AreaConnection* selectedAreaConnection = nullptr;
 			Point mousePosition;
 			Point mouseClickPosition;
-			bool leftMouseClicked;
-			bool leftMouseDragging;
+			bool leftMouseClicked = false;
+			bool leftMouseDragging = false;
 
 			// debug
 			int entityToCheckNN;
@@ -123,9 +123,9 @@ namespace ECM
 			
 			ApplicationState m_ApplicationState;
 			PathPlanning::ECMPathPlanner* m_Planner;
-			bool m_Quit;
+			bool m_Quit = false;
 			
-			float m_DeltaTime, m_Accumulator;
+			float m_DeltaTime = 0.0f, m_Accumulator = 0.0f;
 		};
 	}
 }

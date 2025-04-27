@@ -56,15 +56,15 @@ namespace ECM {
 
 			// state
 			Simulation::SimAreaType m_CurrentDragArea;
-			Simulation::Area* m_SelectedArea;
-			Simulation::AreaConnection* m_SelectedAreaConnection; // TODO (?): make a 'Selectable' object
+			Simulation::Area* m_SelectedArea = nullptr;
+			Simulation::AreaConnection* m_SelectedAreaConnection = nullptr; // TODO (?): make a 'Selectable' object
 			TransformMode m_TransformMode;
 			Gizmo* m_ActiveGizmo;
 			TranslateGizmo m_TranslateGizmo;
 			ScaleGizmo m_ScaleGizmo;
 
 			// area connection dragging state
-			bool m_IsDraggingAreaConnection;
+			bool m_IsDraggingAreaConnection = false;
 			Simulation::Area* m_ConnectionDragSourceArea;
 			Simulation::Area* m_ConnectionDragHoverArea;
 			

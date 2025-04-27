@@ -10,6 +10,12 @@
 *.userosscache
 *.sln.docstates
 
+# external files
+external/*
+
+# build bat file
+generate_vs.bat
+
 #VS files
 *.vcxproj*
 *.sln

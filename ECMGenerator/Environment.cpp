@@ -4,7 +4,7 @@
 #include "ECMDataTypes.h"
 #include "ECM.h"
 #include "ECMGenerator.h"
-#include "../ECMApplication/Application.h"
+#include "ECMApplication/Application.h"
 
 #include <iostream>
 

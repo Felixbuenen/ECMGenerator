@@ -67,6 +67,10 @@ namespace ECM {
 				{
 					m_freeEntitySpaces.push(i);
 				}
+
+				m_NumEntities = 0;
+				m_NextSpawnID = 0;
+				m_NextGoalID = 0;
 			}
 			~Simulator()
 			{
@@ -169,8 +173,8 @@ namespace ECM {
 			std::map<int, SpawnArea> m_SpawnAreas;
 			std::map<int, GoalArea> m_GoalAreas;
 			std::vector<ObstacleArea> m_ObstacleAreas;
-			int m_NextSpawnID = 0;
-			int m_NextGoalID = 0;
+			int m_NextSpawnID;
+			int m_NextGoalID;
 
 			// COMPONENTS
 			PositionComponent* m_Positions;

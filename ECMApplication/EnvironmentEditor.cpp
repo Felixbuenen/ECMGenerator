@@ -34,7 +34,7 @@ namespace ECM {
 
 		void EnvironmentEditor::HandleInput(SDL_Event& e)
 		{
-			if (m_ActiveGizmo)
+			if (m_ActiveGizmo && m_App->GetApplicationState()->mode == ApplicationMode::BUILD)
 			{
 				if (m_ActiveGizmo->HandleInput(e, m_App->GetECMRenderer()))
 				{
