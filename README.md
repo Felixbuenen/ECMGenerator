@@ -14,8 +14,7 @@ simulations. The basis of the crowd simulator lies in the Explicit Corridor Map 
 ## Video demo
 Below is a demonstration of the latest version (April 2025).
 
-[![](https://markdown-videos-api.jorgenkh.no/youtube/8guPXsBxL5w)]([https://youtu.be/dQw4w9WgXcQ](https://youtu.be/8guPXsBxL5w))
-
+[![](https://markdown-videos-api.jorgenkh.no/youtube/8guPXsBxL5w)](https://youtu.be/8guPXsBxL5w)
 
 ## Build instructions
 TODO
