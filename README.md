@@ -7,8 +7,10 @@ simulations. The basis of the crowd simulator lies in the Explicit Corridor Map 
 
 ## Features
 - Real-time 2D agent-based simulation
+- Creation of the Explicit Corridor Map navigation mesh
+- Path planning- and following
 - ORCA obstacle avoidance
-- Create your own simulation environment using spawn-, goal- and obstacle areas.
+- UI for creating your own simulation environment (using spawn-, goal- and obstacle areas).
 - Data-oriented memory layout
 
 ## Video demo
