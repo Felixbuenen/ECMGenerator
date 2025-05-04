@@ -37,3 +37,4 @@ Currently the software can run approximately 5k agents in real-time (60fps, excl
 - (Performance) Multithreaded implementation
 - (UX) More customization options to configure the simulation (spawn rate, different agent profiles and behaviours...)
 - (UX) Save/load simulation configurations
+- (Misc) Automating fetching and building dependencies
