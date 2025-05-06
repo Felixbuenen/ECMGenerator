@@ -89,11 +89,11 @@ namespace ECM {
 
 			// get the RVO velocities based on the given simulator object
 			void GetVelocity(Simulator* simulator, const Entity& entity, float stepSize, float maxSpeed, Vec2& outVelocity);
-			void RandomizedLP3D(int nObstacleConstraints, const std::vector<Constraint>& constraints, const float maxSpeed, int failedIndex, Vec2& outVelocity) const;
-			int RandomizedLP(const std::vector<Constraint>& constraints, const Vec2& optVelocity, const float maxSpeed, bool useDirOpt, Vec2& outVelocity) const; // given a set of half planes and the preferredVelocity, solve the LP
+			void RandomizedLP3D(const std::vector<Constraint>& constraints, int numConstraints, int nObstacleConstraints, const float maxSpeed, int failedIndex, Vec2& outVelocity) const;
+			int RandomizedLP(const std::vector<Constraint>& constraints, int numConstraints, const Vec2& optVelocity, const float maxSpeed, bool useDirOpt, Vec2& outVelocity) const; // given a set of half planes and the preferredVelocity, solve the LP
 
 		private:
-			void GenerateConstraints(Simulator* simulator, const Entity& entity, int numAgentNeighbors, const std::vector<Entity>& agentNeighbors, const std::vector<const ObstacleVertex*>& obstNeighbors, float stepSize, int& outNObstacleConstraints, std::vector<Constraint>& outConstraints);
+			void GenerateConstraints(Simulator* simulator, const Entity& entity, int numAgentNeighbors, const std::vector<Entity>& agentNeighbors, const std::vector<const ObstacleVertex*>& obstNeighbors, float stepSize, int& outNObstacleConstraints, int& outNTotalConstraints, std::vector<Constraint>& outConstraints);
 
 		private:
 			int m_NumNeighbors;

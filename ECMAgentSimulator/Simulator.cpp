@@ -26,6 +26,7 @@ namespace ECM {
 			// initialize data
 			m_Entities = new Entity[m_MaxNumEntities];
 			m_Positions = new PositionComponent[m_MaxNumEntities];
+
 			m_AttractionPoints = new PositionComponent[m_MaxNumEntities];
 			//m_Goals = new PositionComponent[m_MaxNumEntities];
 			m_Velocities = new VelocityComponent[m_MaxNumEntities];
@@ -313,10 +314,14 @@ namespace ECM {
 		// TODO: we either use dt or m_SimStepUpdate, not both... 
 		void Simulator::Update(float dt)
 		{
-			volatile MultipassTimer orcaTimer("Update()");
+			volatile MultipassTimer updateTimer("Update()");
+
 			UpdateMaxAgentIndex();
 			UpdateSpawnAreas();
+
 			m_KDTree->Construct(this);
+
+			// agent forces
 			UpdateForceSystem();
 			UpdateVelocitySystem();
 			UpdatePositionSystem();
@@ -581,7 +586,7 @@ namespace ECM {
 					else
 					{
 						// temp
-						std::cout << "Recalculate path..." << std::endl;
+						//std::cout << "Recalculate path..." << std::endl;
 						Point goal(path.x[path.numPoints - 1], path.y[path.numPoints - 1]);
 						UpdatePath(e, currentPosition, goal);
 					}
@@ -613,14 +618,13 @@ namespace ECM {
 			UpdateAttractionPointSystem();
 			ApplySteeringForce();
 			ApplyObstacleAvoidanceForce();
-
 		}
 
 		void Simulator::UpdateVelocitySystem()
 		{
 			// TODO: make global
 			const float mass = 0.8f;
-			const float massRecip = 1.0f / mass;
+			const float massRecipDT = (1.0f / mass) * m_SimStepTime;
 
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
@@ -629,8 +633,8 @@ namespace ECM {
 				Entity e = m_Entities[i];
 
 				// a = F / m
-				m_Velocities[e].dx += m_Forces[e].dx * massRecip * m_SimStepTime;
-				m_Velocities[e].dy += m_Forces[e].dy * massRecip * m_SimStepTime;
+				m_Velocities[e].dx += m_Forces[e].dx * massRecipDT;
+				m_Velocities[e].dy += m_Forces[e].dy * massRecipDT;
 			}
 		}
 
@@ -642,14 +646,10 @@ namespace ECM {
 				if (!m_ActiveAgents[i]) continue;
 
 				const Entity& e = m_Entities[i];
-				Point currentPosition(m_Positions[e].x, m_Positions[e].y);
-				Point attractionPoint(m_AttractionPoints[e].x, m_AttractionPoints[e].y);
-				float speed = m_PreferredSpeed[e].speed;
 
-
-				Vec2 desiredVelocity = (attractionPoint - currentPosition);
+				Vec2 desiredVelocity(m_AttractionPoints[e].x - m_Positions[e].x, m_AttractionPoints[e].y - m_Positions[e].y);
 				desiredVelocity.Normalize();
-				desiredVelocity = desiredVelocity * speed;
+				desiredVelocity = desiredVelocity * m_PreferredSpeed[e].speed;
 				
 				m_PreferredVelocities[e].dx = desiredVelocity.x;
 				m_PreferredVelocities[e].dy = desiredVelocity.y;
@@ -668,10 +668,9 @@ namespace ECM {
 				if (!m_ActiveAgents[i]) continue;
 
 				const Entity e = m_Entities[i];
-				float speed = m_PreferredSpeed[i].speed;
 
 				Vec2 outVel;
-				m_ORCA->GetVelocity(this, e, m_SimStepTime, speed, outVel);
+				m_ORCA->GetVelocity(this, e, m_SimStepTime, m_PreferredSpeed[i].speed, outVel);
 
 				m_Forces[e].dx = (outVel.x - m_Velocities[e].dx);
 				m_Forces[e].dy = (outVel.y - m_Velocities[e].dy);

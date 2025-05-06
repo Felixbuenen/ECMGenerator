@@ -16,24 +16,24 @@ namespace ECM {
 			int outputNeighborsCount = 0;
 			// agent neighbors
 			{
-				volatile MultipassTimer timer("FindNNearestNeighbors()");
+				//volatile MultipassTimer timer("FindNNearestNeighbors()");
 				simulator->FindNNearestNeighbors(entity, m_NumNeighbors, m_NeighborCache, outputNeighborsCount);
 			}
 
 			// static obstacle neighbors
 			std::vector<const ObstacleVertex*> obstNeighbors;
 			{
-				volatile MultipassTimer timer("FindNearestObstacles()");
+				//volatile MultipassTimer timer("FindNearestObstacles()");
 				float range = m_lookAheadObstacle * maxSpeed + simulator->GetClearanceData()[entity].clearance;
 				simulator->FindNearestObstacles(entity, range * range, obstNeighbors);
 			}
 
 			// generate constraints
-			std::vector<Constraint> constraints;
-			int nObstConstraints;
+			std::vector<Constraint> constraints(outputNeighborsCount + obstNeighbors.size());
+			int nObstConstraints, nTotalConstraints;
 			{
-				volatile MultipassTimer timer("GenerateConstraints()");
-				GenerateConstraints(simulator, entity, outputNeighborsCount, m_NeighborCache, obstNeighbors, stepSize, nObstConstraints, constraints);
+				//volatile MultipassTimer timer("GenerateConstraints()");
+				GenerateConstraints(simulator, entity, outputNeighborsCount, m_NeighborCache, obstNeighbors, stepSize, nObstConstraints, nTotalConstraints, constraints);
 			}
 
 			const VelocityComponent& prefVelComp = simulator->GetPreferredVelocityData()[entity];
@@ -42,23 +42,25 @@ namespace ECM {
 			// use constraints and LP to calculate new velocity
 			int failedIndex;
 			{
-				volatile MultipassTimer timer("RandomizedLP()");
-				failedIndex = RandomizedLP(constraints, prefVel, maxSpeed, false, outVelocity);
+				//volatile MultipassTimer timer("RandomizedLP()");
+				failedIndex = RandomizedLP(constraints, nTotalConstraints, prefVel, maxSpeed, false, outVelocity);
 			}
 
 			{
-				volatile MultipassTimer timer("RandomizedLP3D()");
-				if (failedIndex < constraints.size())
+				//volatile MultipassTimer timer("RandomizedLP3D()");
+				if (failedIndex < nTotalConstraints)
 				{
-					RandomizedLP3D(nObstConstraints, constraints, maxSpeed, failedIndex, outVelocity);
+					RandomizedLP3D(constraints, nTotalConstraints, nObstConstraints, maxSpeed, failedIndex, outVelocity);
 				}
 			}
 
 		}
 
 		// generates the ORCA constraints
-		void ORCA::GenerateConstraints(Simulator* simulator, const Entity& entity, int numAgentNeighbors, const std::vector<Entity>& agentNeighbors, const std::vector<const ObstacleVertex*>& obstNeighbors, float stepSize, int& outNObstacleConstraints, std::vector<Constraint>& outConstraints)
+		void ORCA::GenerateConstraints(Simulator* simulator, const Entity& entity, int numAgentNeighbors, const std::vector<Entity>& agentNeighbors, const std::vector<const ObstacleVertex*>& obstNeighbors, float stepSize, int& outNObstacleConstraints, int& outNTotalConstraints, std::vector<Constraint>& outConstraints)
 		{
+			outNTotalConstraints = 0;
+
 			const PositionComponent& positionComp = simulator->GetPositionData()[entity];
 			const ClearanceComponent& clearance = simulator->GetClearanceData()[entity];
 			const VelocityComponent& velocityComp = simulator->GetVelocityData()[entity];
@@ -96,7 +98,8 @@ namespace ECM {
 						Constraint c;
 						c.Init(Vec2(0.0f, 0.0f), (relativePosition1 * -1.0f).Normalized());
 
-						outConstraints.push_back(c);
+						outConstraints[outNTotalConstraints] = c;
+						outNTotalConstraints++;
 					}
 
 					// If the point is concave, then we don't want to push the agent away, because we might push the agent into the neighboring obstacle segment.
@@ -114,7 +117,8 @@ namespace ECM {
 						Constraint c;
 						c.Init(Vec2(0.0f, 0.0f), (relativePosition2 * -1.0f).Normalized());
 
-						outConstraints.push_back(c);
+						outConstraints[outNTotalConstraints] = c;
+						outNTotalConstraints++;
 					}
 
 					continue;
@@ -129,7 +133,8 @@ namespace ECM {
 					Vec2 invObstNormal = Utility::MathUtility::Right(segUnitDir);
 					c.Init(Vec2(0.0f, 0.0f), invObstNormal);
 
-					outConstraints.push_back(c);
+					outConstraints[outNTotalConstraints] = c;
+					outNTotalConstraints++;
 
 					continue;
 				}
@@ -263,7 +268,9 @@ namespace ECM {
 					Point pOnCircle = leftCutoff + unitW * obstLookaheadRecip * clearance.clearance;
 
 					c.Init(pOnCircle, unitW);
-					outConstraints.push_back(c);
+					outConstraints[outNTotalConstraints] = c;
+					outNTotalConstraints++;	
+
 					continue;
 				}
 				// the same logic applies for the right cutoff circle...
@@ -274,7 +281,8 @@ namespace ECM {
 					Point pOnCircle = rightCutoff + unitW * obstLookaheadRecip * clearance.clearance;
 
 					c.Init(pOnCircle, unitW);
-					outConstraints.push_back(c);
+					outConstraints[outNTotalConstraints] = c;
+					outNTotalConstraints++;
 
 					continue;
 				}
@@ -295,7 +303,8 @@ namespace ECM {
 
 					Constraint c;
 					c.Init(pOnCutoff, normal);
-					outConstraints.push_back(c);
+					outConstraints[outNTotalConstraints] = c;
+					outNTotalConstraints++;
 
 					continue;
 				}
@@ -311,7 +320,8 @@ namespace ECM {
 
 					Constraint c;
 					c.Init(pOnLeftLeg, normal);
-					outConstraints.push_back(c);
+					outConstraints[outNTotalConstraints] = c;
+					outNTotalConstraints++;
 
 					continue;
 				}
@@ -326,13 +336,14 @@ namespace ECM {
 
 					Constraint c;
 					c.Init(pOnRightLeg, normal);
-					outConstraints.push_back(c);
+					outConstraints[outNTotalConstraints] = c;
+					outNTotalConstraints++;
 
 					continue;
 				}
 			}
 
-			outNObstacleConstraints = outConstraints.size();
+			outNObstacleConstraints = outNTotalConstraints;
 
 			// Calculate agent constraints
 
@@ -366,8 +377,9 @@ namespace ECM {
 
 					Constraint c;
 					c.Init(velocity + U * 0.5f, unitW);
-					outConstraints.push_back(c);
-					
+					outConstraints[outNTotalConstraints] = c;
+					outNTotalConstraints++;
+
 					continue;
 				}
 
@@ -393,7 +405,8 @@ namespace ECM {
 
 					Constraint c;
 					c.Init(pointOnLine, lineNormal);
-					outConstraints.push_back(c);
+					outConstraints[outNTotalConstraints] = c;
+					outNTotalConstraints++;
 				}
 				else
 				{
@@ -408,7 +421,8 @@ namespace ECM {
 
 						Constraint c;
 						c.Init(velocity + U * 0.5f, Utility::MathUtility::Left(leftLegNormalized));
-						outConstraints.push_back(c);
+						outConstraints[outNTotalConstraints] = c;
+						outNTotalConstraints++;
 					}
 					else
 					{
@@ -417,7 +431,8 @@ namespace ECM {
 
 						Constraint c;
 						c.Init(velocity + U * 0.5f, Utility::MathUtility::Right(rightLegNormalized));
-						outConstraints.push_back(c);
+						outConstraints[outNTotalConstraints] = c;
+						outNTotalConstraints++;
 					}
 				}
 			}
@@ -425,15 +440,13 @@ namespace ECM {
 
 		// applies randomized linear programming to find the optimal velocity, given the ORCA constraints.
 		// returns the number of constraints (if success) or the index of the constraint that failed.
-		int ORCA::RandomizedLP(const std::vector<Constraint>& constraints, const Vec2& optVelocity, const float maxSpeed, bool useDirOpt, Vec2& outVelocity) const
+		int ORCA::RandomizedLP(const std::vector<Constraint>& constraints, int numConstraints, const Vec2& optVelocity, const float maxSpeed, bool useDirOpt, Vec2& outVelocity) const
 		{
 
 			// 1. make random permutation of constraints
 			// 
 			// For now: loop through constraints from 0..N.
 			// 
-
-			int nConstraints = constraints.size();
 			
 			if (useDirOpt)
 			{
@@ -452,11 +465,11 @@ namespace ECM {
 				outVelocity = optVelocity;
 			}
 
-			if (nConstraints == 0) return nConstraints;
+			if (numConstraints == 0) return numConstraints;
 
 			//std::cout << "starting LP for prefVel = (" << prefVel.x << ", " << prefVel.y << "). " << nConstraints << " constraints." << std::endl;
 
-			for (int i = 0; i < nConstraints; i++)
+			for (int i = 0; i < numConstraints; i++)
 			{
 				const Constraint& h = constraints[i];
 				// if current solution satisfies this constraint, we don't need to do anything
@@ -523,7 +536,7 @@ namespace ECM {
 						float numerator = Utility::MathUtility::Determinant(Utility::MathUtility::Right(h_j.Normal()), h.PointOnLine() - h_j.PointOnLine());
 
 						// check if the two constraints are parallel
-						if (std::fabs(denominator) <= Utility::EPSILON) {
+						if (std::fabs(denominator) < Utility::EPSILON) {
 							if (numerator < 0.0f) {
 								return i;
 							}
@@ -583,21 +596,25 @@ namespace ECM {
 				}
 			}
 
-			return nConstraints;
+			return numConstraints;
 		}
 	
 		// applies randomized linear programming to find the optimal velocity, given the ORCA constraints. The difference with ORCA::RandomizedLP(..) is that ORCA::RandomizedLP3D(..)
 		//  relaxes the (non-static) obstacle constraints to find the "best possible" solution. This best possible solution does not completely avoid collision, but finds the velocity 
 		//  that minimizes the collision.
-		void ORCA::RandomizedLP3D(int nObstacleConstraints, const std::vector<Constraint>& constraints, const float maxSpeed, int failedIndex, Vec2& outVelocity) const
+		void ORCA::RandomizedLP3D(const std::vector<Constraint>& constraints, int numConstraints, int nObstacleConstraints, const float maxSpeed, int failedIndex, Vec2& outVelocity) const
 		{
 			// loop through constraints (starting from failedIndex)
 
 			// maximum distance to constraints. note that penetration distance is a negative number.
 			float maxPenetration = 0.0f;
 
-			int totalConstraints = constraints.size();
-			for (int i = failedIndex; i < totalConstraints; i++)
+			// cache projected constraints buffer
+			// add static constraints as they are, since we don't want to project static constraints.
+			std::vector<Constraint> projectedConstraints(numConstraints);
+			for (int i = 0; i < nObstacleConstraints; i++) projectedConstraints[i] = constraints[i];
+
+			for (int i = failedIndex; i < numConstraints; i++)
 			{
 				const Constraint& ci = constraints[i];
 
@@ -605,14 +622,11 @@ namespace ECM {
 				//if (Utility::MathUtility::Dot(ci.Normal(), outVelocity - ci.PointOnLine()) >= maxPenetration) continue;
 				Vec2 dir = Utility::MathUtility::Right(ci.Normal());
 				if (Utility::MathUtility::Determinant(dir, ci.PointOnLine() - outVelocity) <= maxPenetration) continue;
-
+				
 				// the optimized velocity violates the current constraint more the the max constraint penetration: optimize for this constraint.
 
-				// add static constraints as they are, since we don't want to project static constraints.
-				std::vector<Constraint> projectedConstraints(nObstacleConstraints); 
-				for (int i = 0; i < nObstacleConstraints; i++) projectedConstraints[i] = constraints[i];
-
 				// loop through all constraints so far, starting from first agent constraint
+				int currentNumConstraints = nObstacleConstraints;
 				for (int j = nObstacleConstraints; j < i; j++)
 				{
 					const Constraint& cj = constraints[j];
@@ -623,7 +637,7 @@ namespace ECM {
 					Vec2 newCPoint;
 
 					// check if constraint lines are parallel
-					if (std::fabs(determinant) <= Utility::EPSILON)
+					if (std::fabs(determinant) < Utility::EPSILON)
 					{
 						// constraint lines are parallel
 						
@@ -652,11 +666,12 @@ namespace ECM {
 					}
 
 					newC.Init(newCPoint, (cj.Normal() - ci.Normal()).Normalized());
-					projectedConstraints.push_back(newC);
+					projectedConstraints[currentNumConstraints] = newC;
+					currentNumConstraints++;
 				}
 
 				const Vec2 tempVel = outVelocity;
-				if (RandomizedLP(projectedConstraints, ci.Normal(), maxSpeed, true, outVelocity) < projectedConstraints.size())
+				if (RandomizedLP(projectedConstraints, currentNumConstraints, ci.Normal(), maxSpeed, true, outVelocity) < currentNumConstraints)
 				{
 					// solving the linear program for the projected constraints should always return a solution, so this should not happen. If it happens, it is due to
 					// floating point errors and we revert back to the previous solution.

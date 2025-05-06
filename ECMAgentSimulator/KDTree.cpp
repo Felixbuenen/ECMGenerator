@@ -104,8 +104,9 @@ namespace ECM {
 			// - Updating the search results -
 			// first: check the distance to the position of the current agent
 			const PositionComponent& currentPosition = positions[m_Tree[currentIndex]];
-			Vec2 diffToNode(currentPosition.x - target.x, currentPosition.y - target.y);
-			float sqDistToCurrentNode = diffToNode.x * diffToNode.x + diffToNode.y * diffToNode.y;
+			float diffX = currentPosition.x - target.x;
+			float diffY = currentPosition.y - target.y;
+			float sqDistToCurrentNode = diffX * diffX + diffY * diffY;
 
 			// second: is the current agent closer than 1 of the closest k nearest agents?
 			// first fill up the k nearest data
@@ -119,7 +120,6 @@ namespace ECM {
 				{
 					// k nearest filled, make sure the last element contains the largest element
 
-					// TODO: instead of last index, make first index the largest distance
 					float largestDistance = sqDistToCurrentNode;
 					int largetIndexTree = k - 1;
 					for (int i = 0; i < (k - 1); i++)
@@ -160,7 +160,7 @@ namespace ECM {
 						}
 					}
 
-					// update list to swap the highest distance with the last element
+					// update list to swap the highest distance with the first element
 					nearestSqDistances[0] = largestDistance;
 					nearestIndices[0] = nearestIndices[largetIndexTree];
 					nearestSqDistances[largetIndexTree] = sqDistToCurrentNode;
@@ -168,35 +168,19 @@ namespace ECM {
 				}
 			}
 
+			bool xAxis = (depth & 1) == 0;
 			// finally decide which sub-tree we will search first. We first search the sub-tree that contains the target.
-			float currentVal = depth % 2 == 0 ? currentPosition.x : currentPosition.y;
-			float targetValToCheck = depth % 2 == 0 ? target.x : target.y;
-			
-			// Update the threshold for the right subtree based on the current node's position.
-			if (targetValToCheck < currentVal) {
-				// recurse left tree first
-				KNearestAgents_R(target, LeftTree(currentIndex), k, kFound, depth + 1, nearestIndices, nearestSqDistances, positions);
-				
-				float distToBBOX = (targetValToCheck - currentVal);
-				float sqDistanceToBBOX = distToBBOX * distToBBOX;
-			
-				// Check if you need to search the right subtree based on the updated threshold.
-				// I.e.: if the furthest nearest neighbor is closer than the splitting node, than there cannot be a neighbor in the other half that is closer (-> prune).
-				if (sqDistanceToBBOX < nearestSqDistances[k - 1]) {
-					KNearestAgents_R(target, RightTree(currentIndex), k, kFound, depth + 1, nearestIndices, nearestSqDistances, positions);
-				}
-			}
-			else {
-				// recurse right tree first
-				KNearestAgents_R(target, RightTree(currentIndex), k, kFound, depth + 1, nearestIndices, nearestSqDistances, positions);
-			
-				float distToBBOX = (targetValToCheck - currentVal);
-				float sqDistanceToBBOX = distToBBOX * distToBBOX;
+			float currentVal = xAxis ? currentPosition.x : currentPosition.y;
+			float targetValToCheck = xAxis ? target.x : target.y;
+			float distToBBOX = (targetValToCheck - currentVal);
+			bool recurseLeft = targetValToCheck < currentVal;
 
-				// Check if you need to search the left subtree based on the updated threshold.
-				if (sqDistanceToBBOX < nearestSqDistances[k - 1]) {
-					KNearestAgents_R(target, LeftTree(currentIndex), k, kFound, depth + 1, nearestIndices, nearestSqDistances, positions);
-				}
+			KNearestAgents_R(target, recurseLeft ? currentIndex * 2 + 1 : currentIndex * 2 + 2, k, kFound, depth + 1, nearestIndices, nearestSqDistances, positions);
+
+			// Check if you need to search the right subtree based on the updated threshold.
+			// I.e.: if the furthest nearest neighbor is closer than the splitting node, than there cannot be a neighbor in the other half that is closer (-> prune).
+			if ((distToBBOX* distToBBOX) < nearestSqDistances[0]) {
+				KNearestAgents_R(target, recurseLeft ? currentIndex * 2 + 2 : currentIndex * 2 + 1, k, kFound, depth + 1, nearestIndices, nearestSqDistances, positions);
 			}
 
 		}

@@ -26,29 +26,29 @@ namespace ECM {
 		class ORCA;
 		class IRMPathFollower;
 
-		struct PositionComponent
+		struct alignas(64) PositionComponent
 		{
 			float x;
 			float y;
 		};
 
-		struct VelocityComponent
+		struct alignas(64) VelocityComponent
 		{
 			float dx;
 			float dy;
 		};
 
-		struct ClearanceComponent
+		struct alignas(64) ClearanceComponent
 		{
 			float clearance;
 		};
 
-		struct SpeedComponent
+		struct alignas(64) SpeedComponent
 		{
 			float speed;
 		};
 
-		struct PathComponent
+		struct alignas(64) PathComponent
 		{
 			int currentIndex;
 			int numPoints;
@@ -177,6 +177,8 @@ namespace ECM {
 			int m_NextGoalID;
 
 			// COMPONENTS
+
+
 			PositionComponent* m_Positions;
 			PositionComponent* m_AttractionPoints;
 			VelocityComponent* m_PreferredVelocities;
