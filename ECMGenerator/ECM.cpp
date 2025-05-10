@@ -20,13 +20,32 @@ namespace ECM {
 	bool ECM::RetractPoint(Point location, Point& outRetractedLocation, ECMEdge& outEdge) const
 	{
 		//Timer timer("ECM::RetractPoint");
-		const ECMCell* cell = GetECMCell(location.x, location.y);
+		const ECMCell* cell = FindECMCell(location.x, location.y);
+		
 		if (cell == nullptr)
 		{
 			return false;
 		}
 
 		outEdge = *cell->edge;
+		RetractPoint_(location, outRetractedLocation, outEdge);
+	}
+
+	bool ECM::RetractPoint(int ecmCell, Point location, Point& outRetractedLocation, ECMEdge& outEdge) const
+	{
+		const ECMCell* cell = GetECMCell(ecmCell);
+
+		if (cell == nullptr)
+		{
+			return false;
+		}
+
+		outEdge = *cell->edge;
+		RetractPoint_(location, outRetractedLocation, outEdge);
+	}
+
+	bool ECM::RetractPoint_(Point location, Point& outRetractedLocation, ECMEdge& outEdge) const
+	{
 		const ECMVertex* p1 = m_EcmGraph.GetVertex(outEdge.half_edges[1].v_target_idx);
 		const ECMVertex* p2 = m_EcmGraph.GetVertex(outEdge.half_edges[0].v_target_idx);
 
@@ -54,7 +73,7 @@ namespace ECM {
 				rayDir.x = v.y;
 				rayDir.y = -v.x;
 			}
-			
+
 			rayDir.Normalize();
 		}
 		else
@@ -131,7 +150,6 @@ namespace ECM {
 	{
 		int index = m_NextEdgeIndex;
 
-		// TODO: can we make an assumption based on the environment how many edges/vertices there will be?
 		m_Edges.push_back(ECMEdge());
 		m_Edges[index].idx = index;
 
@@ -156,9 +174,9 @@ namespace ECM {
 	}
 
 
-	void ECMGraph::ConstructECMCells()
+	void ECMGraph::ConstructECMCells(const Environment& env)
 	{
-		m_Cells->Construct(*this, ECMCellCollectionType::LINEAR);
+		m_Cells->ConstructDefault(*this);
 	}
 
 	ECMCellCollection* ECMGraph::GetCells()
@@ -166,11 +184,8 @@ namespace ECM {
 		return m_Cells.get();
 	}
 
-	// TODO: make KD-tree query (?)
 	int ECMGraph::FindVertex(float x, float y) const
 	{
-		using Utility::EPSILON;
-
 		int index = 0;
 		for (const ECMVertex& vert : m_Vertices)
 		{
@@ -188,9 +203,9 @@ namespace ECM {
 	}
 
 
-	const ECMCell* ECMGraph::FindCell(float x, float y) const
+	const ECMCell* ECMGraph::FindCell(float x, float y, int hintIdx) const
 	{
-		return m_Cells->PointLocationQueryLinear(*this, Point(x, y));
+		return m_Cells->PointLocationQueryLinear(*this, Point(x, y), hintIdx);
 	}
 
 	bool ECMGraph::IsArc(const ECMEdge& edge, int& outPtLeftOfIdx) const
@@ -206,20 +221,15 @@ namespace ECM {
 		return (leftBoundIsPoint || rightBoundIsPoint) && (leftBoundIsPoint != rightBoundIsPoint);
 	}
 
-	std::vector<Segment> ECM::GetRandomTestPath() const
+	const ECMCell* ECM::FindECMCell(float x, float y, int hintIdx) const
 	{
-		return std::vector<Segment>();
-		//int maxVerts = _ecmGraph.GetNextFreeVertexIndex();
-		//
-		//srand((unsigned int)time(NULL));
-		//int startIdx = rand() % maxVerts;
-		//
-		//return _ecmGraph.GetRandomTestPath(startIdx);
+		return m_EcmGraph.FindCell(x, y, hintIdx);
 	}
 
-	const ECMCell* ECM::GetECMCell(float x, float y) const
+	const ECMCell* ECM::GetECMCell(int idx) const
 	{
-		return m_EcmGraph.FindCell(x, y);
+		return m_EcmGraph.GetECMCell(idx);
 	}
+
 
 }

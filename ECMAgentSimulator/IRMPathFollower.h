@@ -18,7 +18,7 @@ namespace ECM {
 		{
 		public:
 			//void Initialize();
-			bool FindAttractionPoint(const ECM& ecm, const ECMGraph& ecmGraph, const Point& position, const PathComponent& path, Point& outPoint);
+			bool FindAttractionPoint(const ECM& ecm, const ECMGraph& ecmGraph, const Point& position, const PathComponent& path, int ECMCell, Point& outPoint);
 		
 		private:
 		

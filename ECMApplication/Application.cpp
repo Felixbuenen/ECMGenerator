@@ -235,7 +235,7 @@ namespace ECM
 				Point worldCoords = m_ECMRenderer.ScreenToWorldCoordinates(e.button.x, e.button.y);
 
 				ECM* ecm = m_ApplicationState.environment->GetECM();
-				m_ApplicationState.cellToDraw = ecm->GetECMCell(worldCoords.x, worldCoords.y);
+				m_ApplicationState.cellToDraw = ecm->FindECMCell(worldCoords.x, worldCoords.y);
 			}
 
 		}

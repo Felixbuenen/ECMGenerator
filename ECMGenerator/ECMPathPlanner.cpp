@@ -60,12 +60,12 @@ namespace ECM {
 			ECMEdge goalEdge;
 			if (!ecm->RetractPoint(start, retrStart, startEdge))
 			{
-				printf("retraction for start point failed");
+				printf("retraction for start point failed\n");
 				return false;
 			}
 			if (!ecm->RetractPoint(goal, retrGoal, goalEdge))
 			{
-				printf("retraction for end point failed");
+				printf("retraction for end point failed\n");
 				return false;
 			}
 

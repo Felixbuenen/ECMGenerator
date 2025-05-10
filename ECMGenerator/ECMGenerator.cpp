@@ -228,7 +228,7 @@ namespace ECM {
 		}
 
 		// finally construct the cells
-		ecmGraph.ConstructECMCells();
+		ecmGraph.ConstructECMCells(environment);
 	}
 
 

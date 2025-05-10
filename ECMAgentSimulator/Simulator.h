@@ -26,29 +26,29 @@ namespace ECM {
 		class ORCA;
 		class IRMPathFollower;
 
-		struct alignas(64) PositionComponent
+		struct alignas(std::hardware_destructive_interference_size) PositionComponent
 		{
 			float x;
 			float y;
 		};
 
-		struct alignas(64) VelocityComponent
+		struct alignas(std::hardware_destructive_interference_size) VelocityComponent
 		{
 			float dx;
 			float dy;
 		};
 
-		struct alignas(64) ClearanceComponent
+		struct alignas(std::hardware_destructive_interference_size) ClearanceComponent
 		{
 			float clearance;
 		};
 
-		struct alignas(64) SpeedComponent
+		struct alignas(std::hardware_destructive_interference_size) SpeedComponent
 		{
 			float speed;
 		};
 
-		struct alignas(64) PathComponent
+		struct alignas(std::hardware_destructive_interference_size) PathComponent
 		{
 			int currentIndex;
 			int numPoints;
@@ -121,6 +121,8 @@ namespace ECM {
 			inline PositionComponent* GetAttractionPointData() const { return m_AttractionPoints; }
 			inline PathPlanning::ECMPathPlanner* GetECMPathPlanner() { return m_Planner; }
 			inline bool* GetActiveFlags() const { return m_ActiveAgents; }
+			inline int* GetCellVisits() const { return m_CellVisit; }
+
 			inline KDTree* GetKDTree() const { return m_KDTree; }
 			inline Environment* GetEnvironment() const { return m_Environment; }
 			inline float GetSimulationStepTime() const { return m_SimStepTime; }
@@ -142,6 +144,7 @@ namespace ECM {
 			void UpdateSpawnAreas();
 
 			// SYSTEMS
+			void UpdateECMCellVisits();
 			void UpdateAttractionPointSystem();
 			void UpdatePositionSystem();
 			void UpdateForceSystem();
@@ -177,8 +180,6 @@ namespace ECM {
 			int m_NextGoalID;
 
 			// COMPONENTS
-
-
 			PositionComponent* m_Positions;
 			PositionComponent* m_AttractionPoints;
 			VelocityComponent* m_PreferredVelocities;
@@ -187,6 +188,7 @@ namespace ECM {
 			ClearanceComponent* m_Clearances;
 			SpeedComponent* m_PreferredSpeed;
 			PathComponent* m_Paths;
+			int* m_CellVisit;
 		};
 
 	}

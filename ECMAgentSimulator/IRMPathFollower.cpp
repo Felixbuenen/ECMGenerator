@@ -11,12 +11,12 @@ namespace ECM {
 	namespace Simulation {
 
         // TODO: ecm/ecmGraph should probably be a member of this class
-		bool IRMPathFollower::FindAttractionPoint(const ECM& ecm, const ECMGraph& ecmGraph, const Point& position, const PathComponent& path, Point& outPoint)
+		bool IRMPathFollower::FindAttractionPoint(const ECM& ecm, const ECMGraph& ecmGraph, const Point& position, const PathComponent& path, int ecmCell, Point& outPoint)
 		{
 			// retract point on the medial axis
 			Point retractedLoc;
 			ECMEdge edge;
-			if (!ecm.RetractPoint(position, retractedLoc, edge))
+			if (!ecm.RetractPoint(ecmCell, position, retractedLoc, edge))
 			{
 				std::cout << "couldn't find attraction point.. aborting path following" << std::endl;
                 return false;

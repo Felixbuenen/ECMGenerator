@@ -65,7 +65,6 @@ namespace ECM {
 			//DebugDrawSecondaryLines();
 			//DebugDrawCellValues();
 			//DebugDrawBoostVoronoiDiagram();
-			//DebugDrawAllECMCells();
 			//DebugDrawVertices();
 
 			DrawAgents();
@@ -391,23 +390,6 @@ namespace ECM {
 					SDL_RenderDrawLine(m_Renderer, x1, y1, x2, y2);
 				}
 
-			}
-		}
-
-		void ECMRenderer::DrawRandomTestPath()
-		{
-			SDL_SetRenderDrawColor(m_Renderer, 0x00, 0xff, 0x00, 0xff);
-
-			std::vector<Segment> path = m_Ecm->GetRandomTestPath();
-
-			for (const Segment& s : path)
-			{
-				float x0 = s.p0.x * m_CamZoomFactor + m_CamOffsetX;
-				float x1 = s.p1.x * m_YRotation * m_CamZoomFactor + m_CamOffsetX;
-				float y0 = s.p0.y * m_CamZoomFactor + m_CamOffsetY;
-				float y1 = s.p1.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
-
-				SDL_RenderDrawLine(m_Renderer, x0, y0, x1, y1);
 			}
 		}
 

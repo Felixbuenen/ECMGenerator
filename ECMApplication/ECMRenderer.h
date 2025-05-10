@@ -73,7 +73,6 @@ namespace ECM {
 			void DrawECMVertices();
 			void HighlightECMVertex(int idx);
 			void DrawPath();
-			void DrawRandomTestPath();
 			void DrawInsideVerts();
 			void DrawClosestObstaclePoints();
 			void DrawCorridor();

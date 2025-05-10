@@ -59,21 +59,20 @@ namespace ECM {
 
 			for (const Segment& s : polygon)
 			{
-				// check if point equal to segment endpoint (in which case we don't want it to be considered "contained"
-				// this check is enough for the purpose of this demo: we don't have a case where we need to check if a point
-				// is on a line segment.
-				if (p.Approximate(s.p0)) return false;
-				if (p.Approximate(s.p1)) return false;
+				// check if point equal to segment endpoint. we consider this 'contained'.
+				// NOTE: to make it faster, we do not consider this a seperate case; exclude for now
+				//if (p.Approximate(s.p0)) return true;
+				//if (p.Approximate(s.p1)) return true;
 
-				if (p.y > fmin(s.p0.y, s.p1.y))
+				if (p.y >= fmin(s.p0.y, s.p1.y))
 				{
-					if (p.y < fmax(s.p0.y, s.p1.y))
+					if (p.y <= fmax(s.p0.y, s.p1.y))
 					{
-						if (p.x < fmax(s.p0.x, s.p1.x))
+						if (p.x <= fmax(s.p0.x, s.p1.x))
 						{
 							float x_intersection = (p.y - s.p0.y) * (s.p1.x - s.p0.x) / (s.p1.y - s.p0.y) + s.p0.x;
 
-							if (s.p0.x == s.p1.x || p.x < x_intersection)
+							if (s.p0.x == s.p1.x || p.x <= x_intersection)
 							{
 								inside = !inside;
 							}

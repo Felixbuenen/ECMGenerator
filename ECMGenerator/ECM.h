@@ -12,6 +12,7 @@ namespace ECM {
 	class ECM;
 	class ECMVertex;
 	class ECMCellCollection;
+	class Environment;
 	
 	struct ECMCell;
 
@@ -67,7 +68,7 @@ namespace ECM {
 		}
 		inline ECMEdge* GetEdge(int idx) { return &(m_Edges[idx]); } // TODO: make const
 		inline const ECMHalfEdge* GetHalfEdge(int idx) const { return &(m_Edges[idx >> 1].half_edges[idx & 1]); };
-
+		inline const ECMCell* GetECMCell(int idx) const { return m_Cells->GetCell(idx); }
 		inline const ECMVertex* GetSource(const ECMHalfEdge* halfEdge) const
 		{
 			// get the byte position of the half edge pointer in memory (relative to the start of the edge list)
@@ -92,7 +93,7 @@ namespace ECM {
 
 		// queries
 		int FindVertex(float x, float y) const;
-		const ECMCell* FindCell(float x, float y) const;
+		const ECMCell* FindCell(float x, float y, int hintIdx = -1) const;
 		bool IsArc(const ECMEdge&, int& outPtLeftOfIdx) const;
 
 		// construction methods
@@ -100,7 +101,7 @@ namespace ECM {
 		ECMEdge* AddEdge();
 		ECMHalfEdge* AddHalfEdge(int edgeIdx, int targetIdx, Point closestLeftV1, Point closestRightV1, short idx);
 
-		void ConstructECMCells();
+		void ConstructECMCells(const Environment& env);
 
 	private:
 		void SetVertexClearance(int vertID, float clearance) { m_Vertices[vertID].clearance = clearance; }
@@ -123,16 +124,17 @@ namespace ECM {
 		void Clear();
 
 		// querying
-		const ECMCell* GetECMCell(float x, float y) const;
+		const ECMCell* FindECMCell(float x, float y, int hintIdx = -1) const;
+		const ECMCell* GetECMCell(int idx) const;
 		bool RetractPoint(Point location, Point& outRetractedLocation, ECMEdge& outEdge) const;
+		bool RetractPoint(int ecmCell, Point location, Point& outRetractedLocation, ECMEdge& outEdge) const;
 
 		inline MedialAxis* GetMedialAxis() { return &m_MedialAxis; }
 		inline ECMGraph& GetECMGraph() { return m_EcmGraph; }
 
-		// ------- TESTING -----------
-		std::vector<Segment> GetRandomTestPath() const;
-
 	private:
+		bool RetractPoint_(Point location, Point& outRetractedLocation, ECMEdge& outEdge) const;
+
 		MedialAxis m_MedialAxis;
 		ECMGraph m_EcmGraph;
 	};

@@ -22,6 +22,7 @@ namespace ECM {
 		{
 			m_LastEntityIdx = -1;
 			m_ActiveAgents = new bool[m_MaxNumEntities];
+			m_CellVisit = new int[m_MaxNumEntities];
 
 			// initialize data
 			m_Entities = new Entity[m_MaxNumEntities];
@@ -39,6 +40,7 @@ namespace ECM {
 			for (int i = 0; i < m_MaxNumEntities; i++)
 			{
 				m_Entities[i] = i;
+				m_CellVisit[i] = -1;
 
 				// set sub-arrays to nullptrs as default
 				// if a path component is not assigned, and we delete it on cleanup, 
@@ -49,6 +51,7 @@ namespace ECM {
 				m_Paths[i].currentIndex = -1;
 				m_Paths[i].numPoints = 0;
 			}
+
 
 			m_KDTree = new KDTree();
 
@@ -79,6 +82,7 @@ namespace ECM {
 
 			delete[] m_Entities;
 			delete[] m_Positions;
+			delete[] m_CellVisit;
 			delete[] m_AttractionPoints;
 			delete[] m_Velocities;
 			delete[] m_PreferredVelocities;
@@ -317,6 +321,7 @@ namespace ECM {
 			volatile MultipassTimer updateTimer("Update()");
 
 			UpdateMaxAgentIndex();
+			UpdateECMCellVisits();
 			UpdateSpawnAreas();
 
 			m_KDTree->Construct(this);
@@ -540,6 +545,17 @@ namespace ECM {
 			}
 		}
 
+		void Simulator::UpdateECMCellVisits()
+		{
+			for (int i = 0; i <= m_LastEntityIdx; i++)
+			{
+				if (!m_ActiveAgents[i]) continue;
+
+				m_CellVisit[i] = m_Ecm->FindECMCell(m_Positions[i].x, m_Positions[i].y, m_CellVisit[i])->idx;
+			}
+		}
+
+
 		void Simulator::UpdateAttractionPointSystem()
 		{
 			// TODO: make global
@@ -573,7 +589,7 @@ namespace ECM {
 				else
 				{
 					Point attractionPoint;
-					bool success = m_PathFollower->FindAttractionPoint(*m_Ecm, m_Ecm->GetECMGraph(), currentPosition, path, attractionPoint);
+					bool success = m_PathFollower->FindAttractionPoint(*m_Ecm, m_Ecm->GetECMGraph(), currentPosition, path, m_CellVisit[e], attractionPoint);
 
 					if (success)
 					{
