@@ -16,8 +16,25 @@ namespace ECM {
 			int outputNeighborsCount = 0;
 			// agent neighbors
 			{
+				//  - DEPRECATED! agents in range query is faster than k-nearest.
 				//volatile MultipassTimer timer("FindNNearestNeighbors()");
-				simulator->FindNNearestNeighbors(entity, m_NumNeighbors, m_NeighborCache, outputNeighborsCount);
+				//simulator->FindNNearestNeighbors(entity, m_NumNeighbors, m_NeighborCache, outputNeighborsCount);
+
+				for (int i = 0; i < m_NumNeighbors; i++)
+				{
+					m_NearestDistances[i] = Utility::MAX_FLOAT;
+					m_NeighborInRangeCache[i] = -1;
+				}
+
+				simulator->FindNearestNeighborsInRange(entity, m_NNRadius, m_NNMaxNeighbors, m_NeighborInRangeCache, outputNeighborsCount);
+				
+				// TODO: make sure the K closest agents from the list are returned. Currently the first agents from the list are returned.
+				for (int i = 0; i < outputNeighborsCount && i < m_NumNeighbors; i++)
+				{
+					m_NeighborCache[i] = m_NeighborInRangeCache[i];
+				}
+				
+				outputNeighborsCount = outputNeighborsCount > m_NumNeighbors ? m_NumNeighbors : outputNeighborsCount;
 			}
 
 			// static obstacle neighbors

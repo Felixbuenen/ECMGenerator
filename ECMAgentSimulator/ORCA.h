@@ -83,8 +83,11 @@ namespace ECM {
 		{
 		public:
 			ORCA(int numNeighbors)
-				: m_NumNeighbors(numNeighbors) { 
-				m_NeighborCache.resize(numNeighbors); 
+				: m_NumNeighbors(numNeighbors),
+				m_NeighborCache(numNeighbors),
+				m_NearestDistances(numNeighbors),
+				m_NeighborInRangeCache(numNeighbors*2)
+			{
 			}
 
 			// get the RVO velocities based on the given simulator object
@@ -98,9 +101,16 @@ namespace ECM {
 		private:
 			int m_NumNeighbors;
 			std::vector<Entity> m_NeighborCache;
+			std::vector<Entity> m_NeighborInRangeCache;
+			std::vector<float> m_NearestDistances;
 
-			float m_lookAheadAgent = 10.0f;
-			float m_lookAheadObstacle = 10.0f;
+			// avoidance parameters
+			const float m_lookAheadAgent = 10.0f;
+			const float m_lookAheadObstacle = 10.0f;
+
+			// nearest neighbors parameters
+			const int m_NNMaxNeighbors = 10;
+			const float m_NNRadius = 25.0f;
 
 		};
 

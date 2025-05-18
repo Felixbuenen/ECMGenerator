@@ -94,6 +94,16 @@ namespace ECM {
 			outNumNeighbors = 0;
 			KNearestAgents_R(target, 0, k, outNumNeighbors, 0, outAgents, nearestSqDistances, positions);
 		}
+		
+		
+		void KDTree::AgentsInRange(Simulator* simulation, int agent, const float radius, const int maxAgents, std::vector<Entity>& outAgents, int& outNumNeighbors)
+		{
+			PositionComponent* positions = simulation->GetPositionData();
+			const auto& pos = simulation->GetPositionData()[agent];
+
+			AgentsInRange_R(Vec2(pos.x, pos.y), radius * radius, 0, maxAgents, outNumNeighbors, 0, positions, outAgents);
+		}
+		
 
 		void KDTree::KNearestAgents_R(const Vec2& target, int currentIndex, int k, int& kFound, int depth, std::vector<Entity>& nearestIndices, std::vector<float>& nearestSqDistances, PositionComponent* positions)
 		{
@@ -194,14 +204,13 @@ namespace ECM {
 			if (m_Tree[currentIndex] == KDTREE_NULL_NODE) return;
 			if (nFound == maxAgents) return;
 
-			// - Updating the search results -
 			// first: check the distance to the position of the current agent
 			const PositionComponent& currentPosition = positions[m_Tree[currentIndex]];
 			Vec2 diffToNode(currentPosition.x - target.x, currentPosition.y - target.y);
 			float sqDistToCurrentNode = diffToNode.x * diffToNode.x + diffToNode.y * diffToNode.y;
 
 			// second: is the current agent within the specified range? Then add it to our results.
-			if (sqDistToCurrentNode < sqRadius)
+			if (sqDistToCurrentNode < sqRadius && sqDistToCurrentNode > Utility::EPSILON)
 			{
 				outAgents[nFound] = m_Tree[currentIndex];
 				nFound++;
@@ -216,45 +225,30 @@ namespace ECM {
 			float currentVal = depth % 2 == 0 ? currentPosition.x : currentPosition.y;
 			float targetValToCheck = depth % 2 == 0 ? target.x : target.y;
 
-			if (targetValToCheck < currentVal) {
-				// recurse left tree first
-				AgentsInRange_R(target, sqRadius, LeftTree(currentIndex), maxAgents, nFound, depth + 1, positions, outAgents);
+			int nextIndex, otherIndex;
 
-				float sqDistanceToBBOX = 0.0f;
-
-				// Update the threshold for the right subtree based on the current node's position.
-				if (depth % 2 == 0) {
-					sqDistanceToBBOX = std::pow(target.x - currentVal, 2.0f);
-				}
-				else {
-					sqDistanceToBBOX = std::pow(target.y - currentVal, 2.0f);
-				}
-
-				// Check if you need to search the right subtree based on the updated threshold.
-				if (sqDistanceToBBOX < sqRadius) {
-					AgentsInRange_R(target, sqRadius, RightTree(currentIndex), maxAgents, nFound, depth + 1, positions, outAgents);
-				}
+			if (targetValToCheck < currentVal)
+			{
+				nextIndex = LeftTree(currentIndex);
+				otherIndex = RightTree(currentIndex);
 			}
-			else {
-				// recurse right tree first
-				AgentsInRange_R(target, sqRadius, RightTree(currentIndex), maxAgents, nFound, depth + 1, positions, outAgents);
-
-				float sqDistanceToBBOX = 0.0f;
-
-				// Update the threshold for the left subtree based on the current node's position.
-				if (depth % 2 == 0) {
-					sqDistanceToBBOX = std::pow(currentVal - target.x, 2.0f);
-				}
-				else {
-					sqDistanceToBBOX = std::pow(currentVal - target.y, 2.0f);
-				}
-
-				// Check if you need to search the left subtree based on the updated threshold.
-				if (sqDistanceToBBOX < sqRadius) {
-					AgentsInRange_R(target, sqRadius, LeftTree(currentIndex), maxAgents, nFound, depth + 1, positions, outAgents);
-				}
+			else
+			{
+				nextIndex = RightTree(currentIndex);
+				otherIndex = LeftTree(currentIndex);
 			}
 
+			// first recurse the tree based on the target position
+			AgentsInRange_R(target, sqRadius, nextIndex, maxAgents, nFound, depth + 1, positions, outAgents);
+
+			// Update the threshold for the other subtree based on the current node's position.
+			float diff = targetValToCheck - currentVal;
+			float sqDistanceToBBOX = diff * diff;
+
+			// Check if you need to search the other subtree based on the updated threshold.
+			if (sqDistanceToBBOX < sqRadius) {
+				AgentsInRange_R(target, sqRadius, otherIndex, maxAgents, nFound, depth + 1, positions, outAgents);
+			}
 		}
 
 

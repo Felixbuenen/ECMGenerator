@@ -62,7 +62,7 @@ namespace ECM {
 			void Clear();
 
 			void KNearestAgents(Simulator* simulation, int agent, int k, std::vector<Entity>& outAgents, int& outNumNeighbors);
-			void AgentsInRange(Simulator* simulation, int agent, float radius, std::vector<Entity>& outAgents, int& outNumNeighbors);
+			void AgentsInRange(Simulator* simulation, int agent, const float radius, const int maxAgents, std::vector<Entity>& outAgents, int& outNumNeighbors);
 
 			void AgentsInRangeTest(PositionComponent* positions, int agent, float radius, int maxAgents, std::vector<int>& outAgents);
 

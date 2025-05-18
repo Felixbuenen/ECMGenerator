@@ -104,6 +104,7 @@ namespace ECM {
 			GoalArea* GetGoalArea(int ID);
 
 			void FindNNearestNeighbors(const Entity& agent, int n, std::vector<Entity>& outNeighbors, int& outNNeighbors); // acceleration struct (KD-tree)
+			void FindNearestNeighborsInRange(const Entity& agent, float radius, int maxNumAgents, std::vector<Entity>& outNeighbors, int& outNNeighbors);
 			void FindNNearestNeighborsDeprecated(const Entity& agent, int n, std::vector<Entity>& outNeighbors, int& outNNeighbors); // brute-force
 			void FindNearestObstacles(const Entity& agent, float rangeSquared, std::vector<const ObstacleVertex*>& outObstacles) const;
 			bool ValidSpawnLocation(const Point& location, float clearance) const;

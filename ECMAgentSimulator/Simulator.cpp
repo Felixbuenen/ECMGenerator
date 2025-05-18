@@ -29,7 +29,6 @@ namespace ECM {
 			m_Positions = new PositionComponent[m_MaxNumEntities];
 
 			m_AttractionPoints = new PositionComponent[m_MaxNumEntities];
-			//m_Goals = new PositionComponent[m_MaxNumEntities];
 			m_Velocities = new VelocityComponent[m_MaxNumEntities];
 			m_PreferredVelocities = new VelocityComponent[m_MaxNumEntities];
 			m_PreferredSpeed = new SpeedComponent[m_MaxNumEntities];
@@ -231,6 +230,27 @@ namespace ECM {
 			// DEBUG DRAWING (to remove)
 		}
 
+		void Simulator::FindNearestNeighborsInRange(const Entity& agent, float radius, int maxNumAgents, std::vector<Entity>& outNeighbors, int& outNNeighbors)
+		{
+			if (outNeighbors.size() != maxNumAgents)
+			{
+				std::cout << "ERROR: FindNNearestNeighbors() expects std::vector<Entity>& outNeighbors to be of size n." << std::endl;
+				return;
+			}
+
+			//m_KDTree->KNearestAgents(this, agent, n, outNeighbors, outNNeighbors);
+			m_KDTree->AgentsInRange(this, agent, radius, maxNumAgents, outNeighbors, outNNeighbors);
+
+			// DEBUG DRAWING (to remove)
+			//if (NN_TO_DRAW == agent)
+			//{
+			//	NEAREST_NEIGHBORS = outNeighbors;
+			//}
+			// DEBUG DRAWING (to remove)
+		}
+
+
+
 		// Brute force method (N^2) of finding neighbors. Not used anymore.
 		void Simulator::FindNNearestNeighborsDeprecated(const Entity& agent, int n, std::vector<Entity>& outNeighbors, int& outNNeighbors)
 		{
@@ -321,8 +341,8 @@ namespace ECM {
 			volatile MultipassTimer updateTimer("Update()");
 
 			UpdateMaxAgentIndex();
-			UpdateECMCellVisits();
 			UpdateSpawnAreas();
+			UpdateECMCellVisits();
 
 			m_KDTree->Construct(this);
 
