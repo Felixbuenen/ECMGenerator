@@ -299,7 +299,7 @@ namespace ECM {
 					const ObstacleVertex* obstNext = obst->nextObstacle
 						;
 					float signedLeftDist = Utility::MathUtility::LineLeftDistance(obst->p, obstNext->p, agentPos);
-					float sqDist = std::powf(signedLeftDist, 2.0f) / Utility::MathUtility::SquareDistance(obst->p, obstNext->p);
+					float sqDist = (signedLeftDist * signedLeftDist) / Utility::MathUtility::SquareDistance(obst->p, obstNext->p);
 
 					if (sqDist < rangeSquared) {
 						// if signedLeftDist < 0.0f, then the agent is right of the obstacle segment and therefor "in front of" the obstacle.
@@ -579,9 +579,8 @@ namespace ECM {
 		void Simulator::UpdateAttractionPointSystem()
 		{
 			// TODO: make global
-			const bool deleteAgent = true;
-			const float deleteDistanceSq = 2.0f * 2.0f;
-			const float arrivalRadiusSq = 20.0f * 20.0f;
+			const float deleteDistanceSq = 4.0f;
+			const float arrivalRadiusSq = 400.0f;
 
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
@@ -621,8 +620,6 @@ namespace ECM {
 					// the path.
 					else
 					{
-						// temp
-						//std::cout << "Recalculate path..." << std::endl;
 						Point goal(path.x[path.numPoints - 1], path.y[path.numPoints - 1]);
 						UpdatePath(e, currentPosition, goal);
 					}
@@ -646,9 +643,6 @@ namespace ECM {
 			}
 		}
 
-		// TODO: currently all forces are calculated for each agent.
-		// It is likely more efficient to calculate each force invidividually in batches for all agents.
-		// Now, the loop must maintain all the local variables which will clutter the cache.
 		void Simulator::UpdateForceSystem()
 		{
 			UpdateAttractionPointSystem();
@@ -659,8 +653,9 @@ namespace ECM {
 		void Simulator::UpdateVelocitySystem()
 		{
 			// TODO: make global
-			const float mass = 0.8f;
-			const float massRecipDT = (1.0f / mass) * m_SimStepTime;
+			constexpr float mass = 0.8f;
+			constexpr float massRecip = 1.0f / mass;
+			const float massRecipDT = massRecip * m_SimStepTime;
 
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{

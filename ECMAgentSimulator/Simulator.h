@@ -172,7 +172,7 @@ namespace ECM {
 			bool* m_ActiveAgents;
 			int m_LastEntityIdx;
 
-			float m_SimStepTime;
+			const float m_SimStepTime;
 
 			std::map<int, SpawnArea> m_SpawnAreas;
 			std::map<int, GoalArea> m_GoalAreas;
