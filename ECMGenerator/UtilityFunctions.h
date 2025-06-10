@@ -23,6 +23,7 @@ namespace ECM {
 			static float LineLeftDistance(const Point& v1, const Point& v2, const Point& p1);
 			static bool Contains(const Point& p, const std::vector<Segment>& polygon);
 			static bool Contains(const Point& p, const Obstacle& obstacle);
+			static bool Intersect(const std::vector<Segment>& p1, const std::vector<Segment>& p2);
 			static bool IsPointInQuadrilateral(const Point& point, const Point& A, const Point& B, const Point& C, const Point& D);
 			static bool IsPointOnSegment(const Point& start, const Point& end, const Point& p);
 			static float Dot(const Vec2& v1, const Vec2& v2);

@@ -80,7 +80,7 @@ namespace ECM {
 
 			const PositionComponent& positionComp = simulator->GetPositionData()[entity];
 			const ClearanceComponent& clearance = simulator->GetClearanceData()[entity];
-			const VelocityComponent& velocityComp = simulator->GetVelocityData()[entity];
+			const VelocityComponent& velocityComp = simulator->GetPrevVelocityData()[entity];
 
 			Point position(positionComp.x, positionComp.y);
 			Vec2 velocity(velocityComp.dx, velocityComp.dy);
@@ -368,7 +368,7 @@ namespace ECM {
 			{
 				const Entity& neighbor = agentNeighbors[i];
 				const PositionComponent& nPosition = simulator->GetPositionData()[neighbor];
-				const VelocityComponent& nVelocity = simulator->GetVelocityData()[neighbor];
+				const VelocityComponent& nVelocity = simulator->GetPrevVelocityData()[neighbor];
 				const ClearanceComponent& nClearance = simulator->GetClearanceData()[neighbor];
 
 				Point VOPos((nPosition.x - position.x) / m_lookAheadAgent, (nPosition.y - position.y) / m_lookAheadAgent);

@@ -51,7 +51,7 @@ int main()
 	env.Initialize(Environment::TestEnvironment::BIG);
 	ECMPathPlanner planner(&env.GetECM()->GetECMGraph());
 	Simulator sim(env.GetECM(), &planner, &env, 10000, 0.1f);
-	//sim.Initialize();
+	sim.Initialize();
 
 	//// DEBUG
 	SpawnConfiguration config;
@@ -60,7 +60,7 @@ int main()
 	
 	int goalID = sim.AddGoalArea(Point(0.0, -800), Vec2(1300, 400));
 	sim.Initialize();
-
+	
 	int offset = 25;
 	
 	for (int j = 0; j < ROWS; j++)

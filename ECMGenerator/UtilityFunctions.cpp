@@ -125,6 +125,11 @@ namespace ECM {
 			return inside;
 		}
 
+		bool MathUtility::Intersect(const std::vector<Segment>& p1, const std::vector<Segment>& p2)
+		{
+			// todo
+			return false;
+		}
 
 		bool MathUtility::IsPointInQuadrilateral(const Point& point, const Point& A, const Point& B, const Point& C, const Point& D) {
 			// Define the four edges of the quadrilateral

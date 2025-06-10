@@ -115,6 +115,7 @@ namespace ECM {
 			inline int GetNumAgents() const { return m_NumEntities; }
 			inline int GetLastIndex() const { return m_LastEntityIdx; }
 			inline PositionComponent* GetPositionData() const { return m_Positions; }
+			inline VelocityComponent* GetPrevVelocityData() const { return m_PrevVelocities; }
 			inline VelocityComponent* GetVelocityData() const { return m_Velocities; }
 			inline VelocityComponent* GetPreferredVelocityData() const { return m_PreferredVelocities; }
 			inline PathComponent* GetPathData() const { return m_Paths; }
@@ -185,6 +186,7 @@ namespace ECM {
 			PositionComponent* m_AttractionPoints;
 			VelocityComponent* m_PreferredVelocities;
 			VelocityComponent* m_Forces;
+			VelocityComponent* m_PrevVelocities;
 			VelocityComponent* m_Velocities;
 			ClearanceComponent* m_Clearances;
 			SpeedComponent* m_PreferredSpeed;

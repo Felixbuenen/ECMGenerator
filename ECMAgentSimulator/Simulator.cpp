@@ -29,6 +29,7 @@ namespace ECM {
 			m_Positions = new PositionComponent[m_MaxNumEntities];
 
 			m_AttractionPoints = new PositionComponent[m_MaxNumEntities];
+			m_PrevVelocities = new VelocityComponent[m_MaxNumEntities];
 			m_Velocities = new VelocityComponent[m_MaxNumEntities];
 			m_PreferredVelocities = new VelocityComponent[m_MaxNumEntities];
 			m_PreferredSpeed = new SpeedComponent[m_MaxNumEntities];
@@ -83,6 +84,7 @@ namespace ECM {
 			delete[] m_Positions;
 			delete[] m_CellVisit;
 			delete[] m_AttractionPoints;
+			delete[] m_PrevVelocities;
 			delete[] m_Velocities;
 			delete[] m_PreferredVelocities;
 			delete[] m_PreferredSpeed;
@@ -221,13 +223,6 @@ namespace ECM {
 			}
 
 			m_KDTree->KNearestAgents(this, agent, n, outNeighbors, outNNeighbors);
-			
-			// DEBUG DRAWING (to remove)
-			if (NN_TO_DRAW == agent)
-			{
-				NEAREST_NEIGHBORS = outNeighbors;
-			}
-			// DEBUG DRAWING (to remove)
 		}
 
 		void Simulator::FindNearestNeighborsInRange(const Entity& agent, float radius, int maxNumAgents, std::vector<Entity>& outNeighbors, int& outNNeighbors)
@@ -238,15 +233,7 @@ namespace ECM {
 				return;
 			}
 
-			//m_KDTree->KNearestAgents(this, agent, n, outNeighbors, outNNeighbors);
 			m_KDTree->AgentsInRange(this, agent, radius, maxNumAgents, outNeighbors, outNNeighbors);
-
-			// DEBUG DRAWING (to remove)
-			//if (NN_TO_DRAW == agent)
-			//{
-			//	NEAREST_NEIGHBORS = outNeighbors;
-			//}
-			// DEBUG DRAWING (to remove)
 		}
 
 
@@ -345,6 +332,16 @@ namespace ECM {
 			UpdateECMCellVisits();
 
 			m_KDTree->Construct(this);
+
+			// TEMP
+			//for (int i = 0; i <= m_LastEntityIdx; i++)
+			//{
+			//	if (!m_ActiveAgents[i]) continue;
+			//
+			//	const Entity& e = m_Entities[i];
+			//	m_PrevVelocities[e] = m_Velocities[e];
+			//}
+			// TEMP
 
 			// agent forces
 			UpdateForceSystem();
@@ -694,6 +691,26 @@ namespace ECM {
 			m_NNDistances.clear();
 			m_NNDistances.resize(GetNumAgents());
 
+
+			// TODO: MT / task queueing.
+			// use thread pool: https://github.com/bshoshany/thread-pool
+			// dit doet alleen geen work stealing. moeite waard om wat meer in te duiken, of zelf iets simpels te schrijven.
+			// 
+			// 1 GetVelocity() call is al best duur. we moeten de batch size dus slim uitkiezen. batches moeten niet te klein zijn (anders veel overhead)
+			//  maar ook niet te groot (als een thread klaar is, en de andere zijn nog bezig, dan is deze idle).
+			//
+			// Ik zou lightweight kunnen beginnen, een simpele header-only implementatie om thread pooling te implementeren. Daarvoor zou ik bovenstaande tool kunnen gebruiken.
+			//
+			// ----------------------
+			//
+			// Verdere ideeen:
+			// - Ik zou een simulation thread pool kunnen maken. Dit object wordt gemanaged door de Simulator class.
+			// - In deze functie schrijven we ook naar de forces buffer. Wellicht willen we dit opsplitsen. Zo niet, dan moeten we de buffer uitkiezen zodat
+			//    deze cache-aligned is. anders krijgen we false sharing en dit vertraagt de boel.
+			// - onderstaand heb ik het opgesplitst, maar je hebt nu nog steeds te maken met het schrijven naar m_Velocities, dus ben hier scherp op!
+			//    misschien onnodig overhead.
+			
+
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
 				if (!m_ActiveAgents[i]) continue;
@@ -702,9 +719,24 @@ namespace ECM {
 
 				Vec2 outVel;
 				m_ORCA->GetVelocity(this, e, m_SimStepTime, m_PreferredSpeed[i].speed, outVel);
+				m_Velocities[e].dx = outVel.x;
+				m_Velocities[e].dy = outVel.y;
 
-				m_Forces[e].dx = (outVel.x - m_Velocities[e].dx);
-				m_Forces[e].dy = (outVel.y - m_Velocities[e].dy);
+				//m_Forces[e].dx = (outVel.x - m_Velocities[e].dx);
+				//m_Forces[e].dy = (outVel.y - m_Velocities[e].dy);
+			}
+
+			for (int i = 0; i <= m_LastEntityIdx; i++)
+			{
+				if (!m_ActiveAgents[i]) continue;
+
+				const Entity e = m_Entities[i];
+				//
+				//Vec2 outVel;
+				//m_ORCA->GetVelocity(this, e, m_SimStepTime, m_PreferredSpeed[i].speed, outVel);
+
+				m_Forces[e].dx = (m_Velocities[e].dx - m_PrevVelocities[e].dx);
+				m_Forces[e].dy = (m_Velocities[e].dy - m_PrevVelocities[e].dy);
 			}
 
 			if (MultipassTimer::PrintAverages(20))
