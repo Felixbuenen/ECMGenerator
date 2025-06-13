@@ -6,10 +6,12 @@
 
 #include "Area.h"
 
+
 namespace ECM {
 
 	class ECM;
 	class Environment;
+	class ThreadPool;
 
 	struct Vec2;
 	struct Point;
@@ -18,37 +20,37 @@ namespace ECM {
 		class ECMPathPlanner;
 	}
 
-
 	namespace Simulation {
 
 		typedef int Entity;
 		class KDTree;
 		class ORCA;
 		class IRMPathFollower;
-
-		struct alignas(std::hardware_destructive_interference_size) PositionComponent
+		
+		struct alignas(64) PositionComponent
 		{
 			float x;
 			float y;
 		};
-
-		struct alignas(std::hardware_destructive_interference_size) VelocityComponent
+		
+		struct alignas(64) VelocityComponent
 		{
 			float dx;
 			float dy;
+			char padding[56];
 		};
-
-		struct alignas(std::hardware_destructive_interference_size) ClearanceComponent
+		
+		struct alignas(64) ClearanceComponent
 		{
 			float clearance;
 		};
-
-		struct alignas(std::hardware_destructive_interference_size) SpeedComponent
+		
+		struct alignas(64) SpeedComponent
 		{
 			float speed;
 		};
-
-		struct alignas(std::hardware_destructive_interference_size) PathComponent
+		
+		struct PathComponent
 		{
 			int currentIndex;
 			int numPoints;
@@ -160,8 +162,10 @@ namespace ECM {
 			PathPlanning::ECMPathPlanner* m_Planner;
 			Environment* m_Environment;
 			KDTree* m_KDTree;
-			ORCA* m_ORCA;
+			std::vector<ORCA*> m_ORCAPerThread;
 			IRMPathFollower* m_PathFollower;
+
+			ThreadPool* m_ThreadPool;
 
 			// TODO: should probably be in a separate class
 			std::vector<std::tuple<float, int>> m_NNDistances;

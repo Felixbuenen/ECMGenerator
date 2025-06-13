@@ -18,34 +18,6 @@ int main()
 	using namespace Simulation;
 	using namespace WindowApplication;
 	using namespace PathPlanning;
-
-	//PositionComponent* positions = new PositionComponent[100];
-	//for (int i = 0; i < 10; i++)
-	//{
-	//	for (int j = 0; j < 10; j++)
-	//	{
-	//		positions[j * 10 + i].x = i * 5.0f;
-	//		positions[j * 10 + i].y = j * 5.0f;
-	//	}
-	//}
-	
-	//KDTree tree;
-	//tree.TestConstruct(positions, 100);
-	//tree.TestConstruct(positions, 100);
-	////int* neighbors = new int[5];
-	//std::vector<int> neighbors(5);
-	//int numNeighbors = 0;
-	//tree.KNearestAgentsTest(positions, 55, 5, neighbors, numNeighbors);
-	//std::vector<int> nn;
-	
-	// test seems to work
-	//tree.AgentsInRangeTest(positions, 55, 6.0f, 5, nn);
-	
-	//for (int i = 0; i < 5; i++) nn.push_back(neighbors[i]);
-	
-	int stop = 0;
-	//delete[] neighbors;
-	//delete[] positions;
 	
 	Environment env;
 	env.Initialize(Environment::TestEnvironment::BIG);
@@ -57,6 +29,7 @@ int main()
 	SpawnConfiguration config;
 	const int COLS = 150;
 	const int ROWS = 10000 / COLS;
+	//const int ROWS = 832 / COLS;
 	
 	int goalID = sim.AddGoalArea(Point(0.0, -800), Vec2(1300, 400));
 	sim.Initialize();

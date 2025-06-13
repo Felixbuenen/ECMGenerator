@@ -177,7 +177,7 @@ namespace ECM {
 			}
 		}
 
-		printf("Couldn't locate point in the ECM graph!\n");
+		//printf("Couldn't locate point in the ECM graph!\n");
 		return nullptr;
 	}
 

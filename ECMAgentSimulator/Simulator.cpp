@@ -10,6 +10,7 @@
 #include "ORCA.h"
 #include "IRMPathFollower.h"
 #include "Timer.h"
+#include "../ECMApplication/ThreadPool.h"
 
 #include <math.h>
 
@@ -50,6 +51,8 @@ namespace ECM {
 				m_Paths[i].y = static_cast<float*>(nullptr);
 				m_Paths[i].currentIndex = -1;
 				m_Paths[i].numPoints = 0;
+				m_PrevVelocities[i].dx = 0.0f;
+				m_PrevVelocities[i].dy = 0.0f;
 			}
 
 
@@ -57,8 +60,13 @@ namespace ECM {
 
 			// TODO: put in config file
 			const int numOrcaNeighbors = 5;
-			m_ORCA = new ORCA(numOrcaNeighbors);
+			const int numThreads = 20; // todo: maak variable
+			for (int i = 0; i < numThreads; i++)
+			{
+				m_ORCAPerThread.push_back(new ORCA(numOrcaNeighbors));
+			}
 			m_PathFollower = new IRMPathFollower();
+			m_ThreadPool = new ThreadPool(numThreads);
 
 			printf("SIMULATOR: Data for %d agents was created.\n", m_MaxNumEntities);
 		}
@@ -80,6 +88,9 @@ namespace ECM {
 				}
 			}
 
+			int numOrcaInstances = m_ORCAPerThread.size();
+			for (int i = 0; i < numOrcaInstances; i++) delete m_ORCAPerThread[i];
+
 			delete[] m_Entities;
 			delete[] m_Positions;
 			delete[] m_CellVisit;
@@ -94,8 +105,8 @@ namespace ECM {
 			delete[] m_Clearances;
 
 			delete m_KDTree;
-			delete m_ORCA;
 			delete m_PathFollower;
+			delete m_ThreadPool;
 
 			printf("SIMULATOR: Data was destroyed.\n");
 		}
@@ -568,7 +579,11 @@ namespace ECM {
 			{
 				if (!m_ActiveAgents[i]) continue;
 
-				m_CellVisit[i] = m_Ecm->FindECMCell(m_Positions[i].x, m_Positions[i].y, m_CellVisit[i])->idx;
+				const ECMCell* cell = m_Ecm->FindECMCell(m_Positions[i].x, m_Positions[i].y, m_CellVisit[i]);
+				if (cell)
+				{
+					m_CellVisit[i] = cell->idx;
+				}
 			}
 		}
 
@@ -661,8 +676,8 @@ namespace ECM {
 				Entity e = m_Entities[i];
 
 				// a = F / m
-				m_Velocities[e].dx += m_Forces[e].dx * massRecipDT;
-				m_Velocities[e].dy += m_Forces[e].dy * massRecipDT;
+				//m_Velocities[e].dx += m_Forces[e].dx * massRecipDT;
+				//m_Velocities[e].dy += m_Forces[e].dy * massRecipDT;
 			}
 		}
 
@@ -691,52 +706,83 @@ namespace ECM {
 			m_NNDistances.clear();
 			m_NNDistances.resize(GetNumAgents());
 
+			const int agentCount = m_LastEntityIdx + 1;
+			const int numThreads = 20; // should be made variable
+			const int minAgentsPerBatch = 20;
+			const int maxAgentsPerBatch = 200;
 
-			// TODO: MT / task queueing.
-			// use thread pool: https://github.com/bshoshany/thread-pool
-			// dit doet alleen geen work stealing. moeite waard om wat meer in te duiken, of zelf iets simpels te schrijven.
-			// 
-			// 1 GetVelocity() call is al best duur. we moeten de batch size dus slim uitkiezen. batches moeten niet te klein zijn (anders veel overhead)
-			//  maar ook niet te groot (als een thread klaar is, en de andere zijn nog bezig, dan is deze idle).
-			//
-			// Ik zou lightweight kunnen beginnen, een simpele header-only implementatie om thread pooling te implementeren. Daarvoor zou ik bovenstaande tool kunnen gebruiken.
-			//
-			// ----------------------
-			//
-			// Verdere ideeen:
-			// - Ik zou een simulation thread pool kunnen maken. Dit object wordt gemanaged door de Simulator class.
-			// - In deze functie schrijven we ook naar de forces buffer. Wellicht willen we dit opsplitsen. Zo niet, dan moeten we de buffer uitkiezen zodat
-			//    deze cache-aligned is. anders krijgen we false sharing en dit vertraagt de boel.
-			// - onderstaand heb ik het opgesplitst, maar je hebt nu nog steeds te maken met het schrijven naar m_Velocities, dus ben hier scherp op!
-			//    misschien onnodig overhead.
-			
+			const int agentsPerBatch = std::max(std::min(agentCount / numThreads, maxAgentsPerBatch), minAgentsPerBatch);
+		
+			// prevent division by zero
+			//if (agentsPerBatch <= 0) return;
 
-			for (int i = 0; i <= m_LastEntityIdx; i++)
+			const int numBatches = std::ceil((float)agentCount / (float)agentsPerBatch);
+
+			std::atomic<int> remainingBatches = numBatches;
+			std::mutex orcaMutex;
+			std::condition_variable waitCv;
+
+			int stop = 0;
+
+			for (int b = 0; b < numBatches; b++)
 			{
-				if (!m_ActiveAgents[i]) continue;
-
-				const Entity e = m_Entities[i];
-
-				Vec2 outVel;
-				m_ORCA->GetVelocity(this, e, m_SimStepTime, m_PreferredSpeed[i].speed, outVel);
-				m_Velocities[e].dx = outVel.x;
-				m_Velocities[e].dy = outVel.y;
-
-				//m_Forces[e].dx = (outVel.x - m_Velocities[e].dx);
-				//m_Forces[e].dy = (outVel.y - m_Velocities[e].dy);
+				int start = b * agentsPerBatch;
+				int stop = std::min(start + agentsPerBatch - 1, m_LastEntityIdx);
+			
+				// add ORCA task to thread pool. This task calculates the ORCA velocity for a certain batch and then writes the result to the velocity buffer.
+				m_ThreadPool->AddTask(
+					[start, stop, &remainingBatches, &orcaMutex, &waitCv, this](int threadID) { for (int i = start; i <= stop; i++)
+				{
+					if (!m_ActiveAgents[i]) continue;
+			
+					const Entity e = m_Entities[i];
+			
+					Vec2 outVel;
+					m_ORCAPerThread[threadID]->GetVelocity(this, e, m_SimStepTime, m_PreferredSpeed[i].speed, outVel);
+					m_Velocities[e].dx = outVel.x;
+					m_Velocities[e].dy = outVel.y;
+				}
+			
+				// if all batches are done, notify condition var that tasks are finished
+				if (--remainingBatches == 0) 
+				{
+					std::lock_guard<std::mutex> lg(orcaMutex);
+					waitCv.notify_one();
+				}
+				});
+			
+			}
+			
+			// wait until all ORCA threads are finished
+			{
+				std::unique_lock<std::mutex> lk(orcaMutex);
+				waitCv.wait(lk, [&remainingBatches]() { return remainingBatches == 0; });
 			}
 
+			// - single thread -
+			//for (int i = 0; i <= m_LastEntityIdx; i++)
+			//{
+			//	if (!m_ActiveAgents[i]) continue;
+			//
+			//	const Entity e = m_Entities[i];
+			//
+			//	Vec2 outVel;
+			//	m_ORCAPerThread[0]->GetVelocity(this, e, m_SimStepTime, m_PreferredSpeed[i].speed, outVel);
+			//	m_Velocities[e].dx = outVel.x;
+			//	m_Velocities[e].dy = outVel.y;
+			//}
+
 			for (int i = 0; i <= m_LastEntityIdx; i++)
 			{
 				if (!m_ActiveAgents[i]) continue;
-
+			
 				const Entity e = m_Entities[i];
-				//
-				//Vec2 outVel;
-				//m_ORCA->GetVelocity(this, e, m_SimStepTime, m_PreferredSpeed[i].speed, outVel);
-
+			
 				m_Forces[e].dx = (m_Velocities[e].dx - m_PrevVelocities[e].dx);
 				m_Forces[e].dy = (m_Velocities[e].dy - m_PrevVelocities[e].dy);
+			
+				m_PrevVelocities[e].dx = m_Velocities[e].dx;
+				m_PrevVelocities[e].dy = m_Velocities[e].dy;
 			}
 
 			if (MultipassTimer::PrintAverages(20))

@@ -833,39 +833,49 @@ namespace ECM {
 				const auto& vel = velocities[i];
 				const auto& clearance = clearances[i];
 				
-				float x = pos.x * m_CamZoomFactor + m_CamOffsetX;
-				float y = pos.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+				//float x = pos.x * m_CamZoomFactor + m_CamOffsetX;
+				//float y = pos.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+				//
+				//DrawCircle(m_Renderer, x, y, clearance.clearance * m_CamZoomFactor);
 
-				// DEBUG
-				if (m_AppState->simulator->NN_TO_DRAW == i)
-				{
-					SDL_SetRenderDrawColor(m_Renderer, 0xaa, 0x00, 0xaa, 0xff);
-				}
-				else
-				{
-					SDL_SetRenderDrawColor(m_Renderer, 0x00, 0x00, 0x00, 0xff);
-				}
-				// DEBUG
+				// triangle is faster and gives indication of direction
+				Vec2 unit(vel.dx, vel.dy);
+				unit.Normalize();
+				Vec2 perp(-unit.y, unit.x);
 
-				DrawCircle(m_Renderer, x, y, clearance.clearance * m_CamZoomFactor);
+				Point tip = Point(pos.x, pos.y) + unit * clearance.clearance;
+				Point tipScreen = WorldToScreenCoordinates(tip.x, tip.y);
+
+				float backOffset = 0.6 * clearance.clearance;
+				float sideOffset = 0.4 * clearance.clearance;
+
+				Point baseCenter = Point(pos.x, pos.y) - unit * backOffset;
+				Point leftBase = baseCenter + perp * sideOffset;
+				Point leftBaseScreen = WorldToScreenCoordinates(leftBase.x, leftBase.y);
+				Point rightBase = baseCenter - perp * sideOffset;
+				Point rightBaseScreen = WorldToScreenCoordinates(rightBase.x, rightBase.y);
+
+				SDL_RenderDrawLine(m_Renderer, tipScreen.x, tipScreen.y, leftBaseScreen.x, leftBaseScreen.y);
+				SDL_RenderDrawLine(m_Renderer, tipScreen.x, tipScreen.y, rightBaseScreen.x, rightBaseScreen.y);
+				SDL_RenderDrawLine(m_Renderer, leftBaseScreen.x, leftBaseScreen.y, rightBaseScreen.x, rightBaseScreen.y);
 			}
 
 			// DEBUG
-			SDL_SetRenderDrawColor(m_Renderer, 0xff, 0x55, 0x55, 0xff);
-
-			for (int index : m_AppState->simulator->NEAREST_NEIGHBORS)
-			{
-				if (!activeFlags[index]) continue;
-
-				const auto& pos = positions[index];
-				const auto& vel = velocities[index];
-				const auto& clearance = clearances[index];
-
-				float x = pos.x * m_CamZoomFactor + m_CamOffsetX;
-				float y = pos.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
-
-				DrawCircle(m_Renderer, x, y, clearance.clearance * m_CamZoomFactor);
-			}
+			//SDL_SetRenderDrawColor(m_Renderer, 0xff, 0x55, 0x55, 0xff);
+			//
+			//for (int index : m_AppState->simulator->NEAREST_NEIGHBORS)
+			//{
+			//	if (!activeFlags[index]) continue;
+			//
+			//	const auto& pos = positions[index];
+			//	const auto& vel = velocities[index];
+			//	const auto& clearance = clearances[index];
+			//
+			//	float x = pos.x * m_CamZoomFactor + m_CamOffsetX;
+			//	float y = pos.y * m_YRotation * m_CamZoomFactor + m_CamOffsetY;
+			//
+			//	DrawCircle(m_Renderer, x, y, clearance.clearance * m_CamZoomFactor);
+			//}
 			// DEBUG
 
 		}

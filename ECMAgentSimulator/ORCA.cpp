@@ -16,10 +16,6 @@ namespace ECM {
 			int outputNeighborsCount = 0;
 			// agent neighbors
 			{
-				//  - DEPRECATED! agents in range query is faster than k-nearest.
-				//volatile MultipassTimer timer("FindNNearestNeighbors()");
-				//simulator->FindNNearestNeighbors(entity, m_NumNeighbors, m_NeighborCache, outputNeighborsCount);
-
 				for (int i = 0; i < m_NumNeighbors; i++)
 				{
 					m_NearestDistances[i] = Utility::MAX_FLOAT;

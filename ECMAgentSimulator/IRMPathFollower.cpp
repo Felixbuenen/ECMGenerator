@@ -18,7 +18,7 @@ namespace ECM {
 			ECMEdge edge;
 			if (!ecm.RetractPoint(ecmCell, position, retractedLoc, edge))
 			{
-				std::cout << "couldn't find attraction point.. aborting path following" << std::endl;
+				//std::cout << "couldn't find attraction point.. aborting path following" << std::endl;
                 return false;
 			}
 
